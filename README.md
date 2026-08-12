@@ -46,4 +46,3 @@ Hệ thống tích hợp đầy đủ các luồng nghiệp vụ từ **Bán vé
 Hệ thống sẽ chạy tại địa chỉ: `http://localhost:3000/`
 
 ---
-*Tài liệu nội bộ dự án HPTicket.*
