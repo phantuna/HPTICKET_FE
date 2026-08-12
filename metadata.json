@@ -1,0 +1,6 @@
+{
+  "name": "HPTicket Management System",
+  "description": "Hệ thống Quản lý Bán vé, POS, Kiểm soát Ra vào Cổng & Phân quyền IAM theo chuẩn HPTicket Modular Monolith.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
