@@ -3,6 +3,7 @@ import { Users } from 'lucide-react';
 import { AdminConfigCard } from '../../iam/components/AdminConfigCard';
 import { CustomerGroup } from '../../../shared/types/hpticket';
 import { marketingService } from '../../../api/marketingService';
+import { toast } from '../../../shared/utils/toast';
 
 interface GroupTabProps {
   groups: CustomerGroup[];
@@ -18,7 +19,7 @@ export const GroupTab: React.FC<GroupTabProps> = ({ groups, setGroups, refreshDa
   const [newGroupDiscount, setNewGroupDiscount] = useState<number>(10);
 
   const handleSave = async () => {
-    if (!newGroupCode || !newGroupName) return;
+    if (!newGroupCode || !newGroupName) { toast.error('Vui lòng nhập đầy đủ Mã và Tên Nhóm khách hàng!'); return; }
     const payload = {
       code: newGroupCode.toUpperCase(),
       name: newGroupName,
@@ -52,7 +53,7 @@ export const GroupTab: React.FC<GroupTabProps> = ({ groups, setGroups, refreshDa
         );
       }
     } catch (err) {
-      alert('Cập nhật trạng thái thất bại');
+      toast.error('Cập nhật trạng thái thất bại');
     }
   };
 

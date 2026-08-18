@@ -36,6 +36,7 @@ import {
   LicenseConfig,
 } from '../types/hpticket';
 import { apiClient, API_ENDPOINTS} from '../../api/apiConfig';
+import { hasPermission } from '../utils/permissionGuard';
 
 const STORAGE_KEY = 'hpticket_db_v3_real_backend_only';
 
@@ -157,12 +158,19 @@ export class MockDatabaseStore {
   }
 
   public getActiveUser(): User {
-    const user = this.users.find((u) => u.id === this.activeUserId) || this.users[0];
+    const jwtUsername = localStorage.getItem('hpticket_username');
+    let user = null;
+    if (jwtUsername) {
+        user = this.users.find((u) => u.username === jwtUsername || u.id === jwtUsername);
+    }
+    if (!user) {
+        user = this.users.find((u) => u.id === this.activeUserId) || this.users[0];
+    }
     if (!user) {
       return {
         id: 'system-fallback-admin',
-        username: 'admin',
-        fullname: 'System Admin',
+        username: jwtUsername || 'admin',
+        fullname: localStorage.getItem('hpticket_fullname') || 'System Admin',
         email: 'admin@hpticket.vn',
         phone: '0988000000',
         role_id: 'rol-admin',
@@ -207,20 +215,6 @@ export class MockDatabaseStore {
     };
     this.systemLogs.unshift(log);
     this.saveToStorage();
-
-    if (true) {
-      // Gửi sang Java Backend bất đồng bộ để ghi vào CSDL thực
-      apiClient.post(API_ENDPOINTS.IAM.SYSTEM_LOGS, {
-        username: log.username,
-        action: log.action,
-        entity_type: log.entity_type,
-        entity_id: log.entity_id,
-        old_data: log.old_data ? JSON.stringify(log.old_data) : null,
-        new_data: log.new_data ? JSON.stringify(log.new_data) : null,
-      }).catch(err => {
-        console.warn('Failed to save audit log to Java Backend:', err);
-      });
-    }
   }
 
   /**
@@ -230,6 +224,12 @@ export class MockDatabaseStore {
   public async syncFromBackend(force: boolean = false): Promise<boolean> {
     
     try {
+      // Chỉ gọi các API mà user hiện tại có quyền — bỏ qua nếu thiếu quyền (tránh 403)
+      const safeGet = (endpoint: string, perm?: string) => {
+        if (perm && !hasPermission(perm)) return Promise.resolve(null);
+        return apiClient.get<any>(endpoint).catch(() => null);
+      };
+
       const [
         usersRes,
         rolesRes,
@@ -242,16 +242,16 @@ export class MockDatabaseStore {
         tktRes,
         cntRes,
       ] = await Promise.all([
-        apiClient.get<any>(API_ENDPOINTS.IAM.USERS).catch(() => null),
-        apiClient.get<any>(API_ENDPOINTS.IAM.ROLES).catch(() => null),
-        apiClient.get<any>(API_ENDPOINTS.MARKETING.CUSTOMER_GROUPS).catch(() => null),
-        apiClient.get<any>(API_ENDPOINTS.MARKETING.CUSTOMER_SOURCES).catch(() => null),
-        apiClient.get<any>(API_ENDPOINTS.TICKETING.TEMPLATES).catch(() => null),
-        apiClient.get<any>(API_ENDPOINTS.TICKETING.GATES).catch(() => null),
-        apiClient.get<any>(API_ENDPOINTS.TICKETING.CONTROL_ZONES).catch(() => null),
-        apiClient.get<any>(API_ENDPOINTS.SALES.ORDERS).catch(() => null),
-        apiClient.get<any>(API_ENDPOINTS.SALES.ISSUED_TICKETS).catch(() => null),
-        apiClient.get<any>(API_ENDPOINTS.SALES.COUNTERS).catch(() => null),
+        safeGet(API_ENDPOINTS.IAM.USERS,                    'VIEW_USER'),
+        safeGet(API_ENDPOINTS.IAM.ROLES,                    'VIEW_ROLE'),
+        safeGet(API_ENDPOINTS.MARKETING.CUSTOMER_GROUPS,    'VIEW_CUSTOMER_GROUP'),
+        safeGet(API_ENDPOINTS.MARKETING.CUSTOMER_SOURCES,   'VIEW_CUSTOMER_SOURCE'),
+        safeGet(API_ENDPOINTS.TICKETING.TEMPLATES,          'VIEW_TICKET_TEMPLATE'),
+        safeGet(API_ENDPOINTS.TICKETING.GATES,              'VIEW_GATE'),
+        safeGet(API_ENDPOINTS.TICKETING.CONTROL_ZONES,      'VIEW_CONTROL_ZONE'),
+        safeGet(API_ENDPOINTS.SALES.ORDERS,                 'VIEW_ORDER'),
+        safeGet(API_ENDPOINTS.SALES.ISSUED_TICKETS,         'VIEW_ORDER'),
+        safeGet(API_ENDPOINTS.SALES.COUNTERS,               'VIEW_COUNTER'),
       ]);
 
       // Unwrap list from standard ApiResponse or PageResponse

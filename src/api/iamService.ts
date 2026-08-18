@@ -5,7 +5,8 @@
 
 import { dbStore } from '../shared/data/mockDatabase';
 import { User, Role, Permission, ApiResponse } from '../shared/types/hpticket';
-import { apiClient, API_ENDPOINTS} from './apiConfig';
+import { apiClient, API_ENDPOINTS } from './apiConfig';
+import { hasPermission } from '../shared/utils/permissionGuard';
 
 export const iamService = {
   /**
@@ -82,47 +83,45 @@ export const iamService = {
   },
 
   async fetchRoles(): Promise<ApiResponse<Role[]>> {
-    if (true) {
-      try {
-        const res = await apiClient.get<ApiResponse<any>>(API_ENDPOINTS.IAM.ROLES);
-        const list = Array.isArray(res.data) ? res.data : (res.data?.content || []);
-        if (list && list.length > 0) {
-          dbStore.roles = list;
-          dbStore.saveToStorage();
-        }
-        return {
-          code: res.code || 200,
-          message: res.message || 'Lấy danh sách nhóm quyền thành công',
-          data: list,
-        };
-      } catch (err) {
-        console.warn('[IAM Service] Backend fetchRoles failed, fallback to Mock DB');
-        throw err;
+    // Không có quyền VIEW_ROLE -> trả về mock data trực tiếp, không gọi API
+    if (!hasPermission('VIEW_ROLE')) return this.getRoles();
+    try {
+      const res = await apiClient.get<ApiResponse<any>>(API_ENDPOINTS.IAM.ROLES);
+      const list = Array.isArray(res.data) ? res.data : (res.data?.content || []);
+      if (list && list.length > 0) {
+        dbStore.roles = list;
+        dbStore.saveToStorage();
       }
+      return {
+        code: res.code || 200,
+        message: res.message || 'Lấy danh sách nhóm quyền thành công',
+        data: list,
+      };
+    } catch (err) {
+      console.warn('[IAM Service] Backend fetchRoles failed, fallback to Mock DB');
+      throw err;
     }
-    return this.getRoles();
   },
 
   async fetchPermissions(): Promise<ApiResponse<Permission[]>> {
-    if (true) {
-      try {
-        const res = await apiClient.get<ApiResponse<any>>(API_ENDPOINTS.IAM.PERMISSIONS);
-        const list = Array.isArray(res.data) ? res.data : (res.data?.content || []);
-        if (list && list.length > 0) {
-          dbStore.permissions = list;
-          dbStore.saveToStorage();
-        }
-        return {
-          code: res.code || 200,
-          message: res.message || 'Lấy danh sách quyền chi tiết thành công',
-          data: list,
-        };
-      } catch (err) {
-        console.warn('[IAM Service] Backend fetchPermissions failed, fallback to Mock DB');
-        throw err;
+    // Không có quyền VIEW_PERMISSION -> trả về mock data trực tiếp, không gọi API
+    if (!hasPermission('VIEW_PERMISSION')) return this.getPermissions();
+    try {
+      const res = await apiClient.get<ApiResponse<any>>(API_ENDPOINTS.IAM.PERMISSIONS);
+      const list = Array.isArray(res.data) ? res.data : (res.data?.content || []);
+      if (list && list.length > 0) {
+        dbStore.permissions = list;
+        dbStore.saveToStorage();
       }
+      return {
+        code: res.code || 200,
+        message: res.message || 'Lấy danh sách quyền chi tiết thành công',
+        data: list,
+      };
+    } catch (err) {
+      console.warn('[IAM Service] Backend fetchPermissions failed, fallback to Mock DB');
+      throw err;
     }
-    return this.getPermissions();
   },
 
   getUsers(): ApiResponse<User[]> {
@@ -289,6 +288,10 @@ export const iamService = {
       try {
         const res = await apiClient.post<ApiResponse<Role>>(API_ENDPOINTS.IAM.ROLES, roleDto);
         if (res?.data) {
+          if (roleDto.permissions && roleDto.permissions.length > 0) {
+            await apiClient.post(API_ENDPOINTS.IAM.ROLE_PERMISSIONS(res.data.id), roleDto.permissions);
+            res.data.permissions = roleDto.permissions;
+          }
           dbStore.roles.push(res.data);
           dbStore.logAudit('CREATE', 'roles', res.data.id, null, res.data);
           dbStore.saveToStorage();
@@ -327,6 +330,10 @@ export const iamService = {
       try {
         const res = await apiClient.put<ApiResponse<Role>>(API_ENDPOINTS.IAM.ROLE_DETAIL(id), roleDto);
         if (res?.data) {
+          if (roleDto.permissions) {
+            await apiClient.post(API_ENDPOINTS.IAM.ROLE_PERMISSIONS(id), roleDto.permissions);
+            res.data.permissions = roleDto.permissions;
+          }
           const idx = dbStore.roles.findIndex((r) => r.id === id);
           if (idx !== -1) {
             const old = { ...dbStore.roles[idx] };
@@ -370,15 +377,54 @@ export const iamService = {
     return { code: 200, message: 'Xóa nhóm quyền thành công', data: undefined };
   },
 
-  async fetchSystemLogs(page: number = 0, size: number = 50): Promise<ApiResponse<any>> {
+  async updateRoleStatus(id: string, isActive: boolean): Promise<ApiResponse<Role>> {
     if (true) {
       try {
-        const res = await apiClient.get<ApiResponse<any>>(`${API_ENDPOINTS.IAM.SYSTEM_LOGS}?page=${page}&size=${size}`);
-        if (res?.data) return res;
+        const res = await apiClient.patch<ApiResponse<Role>>(
+          API_ENDPOINTS.IAM.ROLE_STATUS(id),
+          undefined,
+          { params: { isActive: isActive } }
+        );
+        if (res?.data) {
+          const idx = dbStore.roles.findIndex((r) => r.id === id);
+          if (idx !== -1) {
+            dbStore.roles[idx] = res.data;
+            dbStore.saveToStorage();
+          }
+        }
+        return res;
       } catch (err) {
-        console.warn('[IAM Service] Backend fetchSystemLogs failed, fallback to Mock DB:', err);
+        console.warn('[IAM Service] Backend updateRoleStatus failed, fallback to Mock DB:', err);
         throw err;
       }
+    }
+    const idx = dbStore.roles.findIndex((r) => r.id === id);
+    if (idx === -1) {
+      return { code: 404, message: 'Không tìm thấy nhóm quyền', data: null as any };
+    }
+    dbStore.roles[idx].is_active = isActive;
+    dbStore.saveToStorage();
+    return {
+      code: 200,
+      message: 'Cập nhật trạng thái thành công',
+      data: dbStore.roles[idx],
+    };
+  },
+
+  async fetchSystemLogs(page: number = 0, size: number = 20, fromDate?: string, toDate?: string): Promise<ApiResponse<any>> {
+    // Không có quyền VIEW_SYSTEM_LOG -> trả về empty, không gọi API
+    if (!hasPermission('VIEW_SYSTEM_LOG')) {
+      return { code: 200, message: 'Không có quyền xem log', data: { content: [], totalElements: 0, totalPages: 0 } };
+    }
+    try {
+      let url = `${API_ENDPOINTS.IAM.SYSTEM_LOGS}?page=${page}&size=${size}&sort=created_at,desc`;
+      if (fromDate) url += `&fromDate=${fromDate}`;
+      if (toDate) url += `&toDate=${toDate}`;
+      const res = await apiClient.get<ApiResponse<any>>(url);
+      if (res?.data) return res;
+    } catch (err) {
+      console.warn('[IAM Service] Backend fetchSystemLogs failed, fallback to Mock DB:', err);
+      throw err;
     }
     return {
       code: 200,

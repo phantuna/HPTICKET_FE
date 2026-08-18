@@ -15,7 +15,7 @@ export const TicketingModule: React.FC<TicketingModuleProps> = ({ subTab = 'Khai
   const [activeSubTab, setActiveSubTab] = useState<string>(subTab);
 
   const currentTab = onSelectSubTab ? subTab : activeSubTab;
-  
+
   // Data management is now isolated in the custom hook
   const {
     audienceTypes, setAudienceTypes,
@@ -24,13 +24,13 @@ export const TicketingModule: React.FC<TicketingModuleProps> = ({ subTab = 'Khai
     controlZones, setControlZones,
     loading,
     refreshData
-  } = useTicketing();
+  } = useTicketing(currentTab);
 
   const subTabs = [
     { id: 'KhaiBaoDoiTuong', label: 'Khai Báo Đối Tượng Khách', route: '/KhaiBaoDoiTuong', icon: Users },
+    { id: 'KhaiBaoVe_KS', label: 'Loại Vé Theo Khu Vực', route: '/KhaiBaoVe_KS', icon: Layers },
     { id: 'KhaibaoVe', label: 'Khai Báo Các Loại Vé', route: '/KhaibaoVe', icon: Ticket },
     { id: 'KhaiBaoKhuKiemSoat', label: 'Khai Báo Khu Kiểm Soát', route: '/KhaiBaoKhuKiemSoat', icon: ShieldCheck },
-    { id: 'KhaiBaoVe_KS', label: 'Loại Vé Theo Khu Vực', route: '/KhaiBaoVe_KS', icon: Layers },
   ];
 
   if (loading) {
@@ -47,10 +47,10 @@ export const TicketingModule: React.FC<TicketingModuleProps> = ({ subTab = 'Khai
       {/* 1. KHAI BÁO ĐỐI TƯỢNG (/KhaiBaoDoiTuong) */}
       {/* ---------------------------------------------------- */}
       {currentTab === 'KhaiBaoDoiTuong' && (
-        <AudienceTab 
-          audienceTypes={audienceTypes} 
-          setAudienceTypes={setAudienceTypes} 
-          refreshData={refreshData} 
+        <AudienceTab
+          audienceTypes={audienceTypes}
+          setAudienceTypes={setAudienceTypes}
+          refreshData={refreshData}
         />
       )}
 
@@ -58,12 +58,12 @@ export const TicketingModule: React.FC<TicketingModuleProps> = ({ subTab = 'Khai
       {/* 2. KHAI BÁO CÁC LOẠI VÉ (/KhaibaoVe) */}
       {/* ---------------------------------------------------- */}
       {currentTab === 'KhaibaoVe' && (
-        <TemplateTab 
-          ticketTemplates={ticketTemplates} 
+        <TemplateTab
+          ticketTemplates={ticketTemplates}
           setTicketTemplates={setTicketTemplates}
           audienceTypes={audienceTypes}
           ticketZones={ticketZones}
-          refreshData={refreshData} 
+          refreshData={refreshData}
         />
       )}
 
@@ -71,10 +71,10 @@ export const TicketingModule: React.FC<TicketingModuleProps> = ({ subTab = 'Khai
       {/* 3. KHAI BÁO KHU KIỂM SOÁT (/KhaiBaoKhuKiemSoat) */}
       {/* ---------------------------------------------------- */}
       {currentTab === 'KhaiBaoKhuKiemSoat' && (
-        <ControlZoneTab 
-          controlZones={controlZones} 
-          setControlZones={setControlZones} 
-          refreshData={refreshData} 
+        <ControlZoneTab
+          controlZones={controlZones}
+          setControlZones={setControlZones}
+          refreshData={refreshData}
         />
       )}
 
@@ -82,12 +82,12 @@ export const TicketingModule: React.FC<TicketingModuleProps> = ({ subTab = 'Khai
       {/* 4. KHAI BÁO VÉ THEO KHU VỰC (/KhaiBaoVe_KS) */}
       {/* ---------------------------------------------------- */}
       {currentTab === 'KhaiBaoVe_KS' && (
-        <TicketZoneTab 
-          ticketZones={ticketZones} 
+        <TicketZoneTab
+          ticketZones={ticketZones}
           setTicketZones={setTicketZones}
           controlZones={controlZones}
           ticketTemplates={ticketTemplates}
-          refreshData={refreshData} 
+          refreshData={refreshData}
         />
       )}
     </div>

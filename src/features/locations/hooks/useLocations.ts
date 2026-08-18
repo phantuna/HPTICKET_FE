@@ -4,14 +4,26 @@ import { salesService } from '../../../api/salesService';
 import { ticketingService } from '../../../api/ticketingService';
 import { Company, SalesLocation, SalesCounter, ControlZone, ControlGate } from '../../../shared/types/hpticket';
 
+const globalLocationsCache: any = {
+  company: null,
+  locs: null,
+  counters: null,
+  zones: null,
+  gates: null
+};
+
 export const useLocations = (initialTab: string) => {
   const [activeSubTab, setActiveSubTab] = useState<string>(initialTab);
 
-  const [company, setCompany] = useState<Company | null>(null);
-  const [locations, setLocations] = useState<SalesLocation[]>([]);
-  const [counters, setCounters] = useState<SalesCounter[]>([]);
-  const [controlZones, setControlZones] = useState<ControlZone[]>([]);
-  const [controlGates, setControlGates] = useState<ControlGate[]>([]);
+  useEffect(() => {
+    setActiveSubTab(initialTab);
+  }, [initialTab]);
+
+  const [company, setCompany] = useState<Company | null>(globalLocationsCache.company);
+  const [locations, setLocations] = useState<SalesLocation[]>(globalLocationsCache.locs || []);
+  const [counters, setCounters] = useState<SalesCounter[]>(globalLocationsCache.counters || []);
+  const [controlZones, setControlZones] = useState<ControlZone[]>(globalLocationsCache.zones || []);
+  const [controlGates, setControlGates] = useState<ControlGate[]>(globalLocationsCache.gates || []);
 
   const isItemActive = (item: any) => {
     const val = item?.is_active ?? item?.isActive ?? item?.active ?? item?.status;
@@ -20,25 +32,34 @@ export const useLocations = (initialTab: string) => {
 
   useEffect(() => {
     const loadData = async () => {
-      try {
-        const compRes = await marketingService.fetchCompanies();
-        if (compRes.data && compRes.data.length > 0) setCompany(compRes.data[0]);
-      } catch (err) {}
-
-      const locRes = await salesService.fetchSalesLocations();
-      if (locRes.data && locRes.data.length > 0) setLocations(locRes.data);
-
-      const cntRes = await salesService.fetchSalesCounters();
-      if (cntRes.data && cntRes.data.length > 0) setCounters(cntRes.data);
-
-      const zoneRes = await ticketingService.fetchControlZones();
-      if (zoneRes.data && zoneRes.data.length > 0) setControlZones(zoneRes.data);
-
-      const gateRes = await ticketingService.fetchControlGates();
-      if (gateRes.data && gateRes.data.length > 0) setControlGates(gateRes.data);
+      if (activeSubTab === 'khaibaocongty') {
+        if (!globalLocationsCache.company) {
+          try {
+            const compRes = await marketingService.fetchCompanies();
+            if (compRes.data && compRes.data.length > 0) {
+              setCompany(compRes.data[0]);
+              globalLocationsCache.company = compRes.data[0];
+            }
+          } catch (err) {}
+        }
+      } else if (activeSubTab === 'KhaiBaoDiemBanVe' || activeSubTab === 'KhaiBaoQuayVe') {
+        if (!globalLocationsCache.locs) {
+          const locRes = await salesService.fetchSalesLocations();
+          if (locRes.data && locRes.data.length > 0) { setLocations(locRes.data); globalLocationsCache.locs = locRes.data; }
+          const cntRes = await salesService.fetchSalesCounters();
+          if (cntRes.data && cntRes.data.length > 0) { setCounters(cntRes.data); globalLocationsCache.counters = cntRes.data; }
+        }
+      } else if (activeSubTab === 'KhaibaosKhuKiemSoat' || activeSubTab === 'KhaiBaoCuaKS') {
+        if (!globalLocationsCache.zones) {
+          const zoneRes = await ticketingService.fetchControlZones();
+          if (zoneRes.data && zoneRes.data.length > 0) { setControlZones(zoneRes.data); globalLocationsCache.zones = zoneRes.data; }
+          const gateRes = await ticketingService.fetchControlGates();
+          if (gateRes.data && gateRes.data.length > 0) { setControlGates(gateRes.data); globalLocationsCache.gates = gateRes.data; }
+        }
+      }
     };
     loadData();
-  }, []);
+  }, [activeSubTab]);
 
   const [showCompanyModal, setShowCompanyModal] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
@@ -59,6 +80,8 @@ export const useLocations = (initialTab: string) => {
   const [editCompTaxCode, setEditCompTaxCode] = useState('');
   const [editCompContact, setEditCompContact] = useState('');
   const [editCompEmail, setEditCompEmail] = useState('');
+  const [editCompLogo, setEditCompLogo] = useState('');
+  const [editCompInvoiceLogo, setEditCompInvoiceLogo] = useState('');
 
   const [newLocName, setNewLocName] = useState('');
   const [newLocCode, setNewLocCode] = useState('');
@@ -206,20 +229,31 @@ export const useLocations = (initialTab: string) => {
       setEditCompTaxCode(company.tax_code || '');
       setEditCompContact(company.contact_person || '');
       setEditCompEmail(company.email || '');
+      setEditCompLogo(company.web_logo_url || '');
+      setEditCompInvoiceLogo(company.invoice_logo_url || '');
     }
     setShowCompanyModal(true);
   };
 
   const handleSaveCompany = async () => {
-    if (!company?.id) return;
-    const updated = {
-      ...company,
+    const updated: any = {
       name: editCompName, address: editCompAddress, phone: editCompPhone, fax: editCompFax,
-      code: editCompCode, tax_code: editCompTaxCode, contact_person: editCompContact, email: editCompEmail
+      code: editCompCode, tax_code: editCompTaxCode, contact_person: editCompContact, email: editCompEmail,
+      web_logo_url: editCompLogo,
+      invoice_logo_url: editCompInvoiceLogo
     };
     try {
-      const res = await marketingService.updateCompany(company.id, updated);
-      if (res.data) setCompany(res.data);
+      if (company?.id) {
+        const res = await marketingService.updateCompany(company.id, updated);
+        if (res.data) setCompany(res.data);
+      } else {
+        const res = await marketingService.createCompany({ ...updated, is_active: true });
+        if (res.data) setCompany(res.data);
+        else {
+          const compRes = await marketingService.fetchCompanies();
+          if (compRes.data && compRes.data.length > 0) setCompany(compRes.data[0]);
+        }
+      }
     } catch(err) { console.error(err); }
     setShowCompanyModal(false);
   };
@@ -268,6 +302,8 @@ export const useLocations = (initialTab: string) => {
     editCompTaxCode, setEditCompTaxCode,
     editCompContact, setEditCompContact,
     editCompEmail, setEditCompEmail,
+    editCompLogo, setEditCompLogo,
+    editCompInvoiceLogo, setEditCompInvoiceLogo,
 
     newLocName, setNewLocName,
     newLocCode, setNewLocCode,

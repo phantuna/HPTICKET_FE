@@ -7,6 +7,7 @@ interface POSCartTableProps {
   setLineItems: React.Dispatch<React.SetStateAction<any[]>>;
   updateLineItem: (index: number, field: string, value: any) => void;
   selectedGroupCode: string;
+  customerGroups?: any[];
   effectiveExtraDiscount: number;
   handleCheckout: (extraDiscount: number) => void;
   subtotalAfterLineDiscounts: number;
@@ -20,11 +21,16 @@ interface POSCartTableProps {
 }
 
 export const POSCartTable: React.FC<POSCartTableProps> = ({
-  lineItems, setLineItems, updateLineItem, selectedGroupCode, effectiveExtraDiscount,
+  lineItems, setLineItems, updateLineItem, selectedGroupCode, customerGroups = [], effectiveExtraDiscount,
   handleCheckout, subtotalAfterLineDiscounts, depositAmount, setDepositAmount,
   extraDiscount, setExtraDiscount, selectedPromotionId, setSelectedPromotionId,
   remainingPayable, paymentMethod, setPaymentMethod, totalSubtotalBeforeDiscount, grandTotal
-}) => (
+}) => {
+  const selectedGroup = customerGroups.find(g => g.code === selectedGroupCode);
+  const isRetail = selectedGroupCode === 'RETAIL' || selectedGroupCode === 'KHACH_LE' || 
+                   (selectedGroup && (selectedGroup.name.toLowerCase().includes('lẻ') || selectedGroup.name.toLowerCase().includes('retail')));
+
+  return (
   <div className="lg:col-span-8 bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs space-y-6">
     <div className="overflow-x-auto">
       <table className="w-full text-left text-xs border-collapse">
@@ -67,7 +73,7 @@ export const POSCartTable: React.FC<POSCartTableProps> = ({
                     {item.item_type === ItemType.TICKET ? (
                       <input
                         type="number" min={1} value={item.allowed_passes_per_unit === '' ? '' : (item.allowed_passes_per_unit || 1)}
-                        disabled={selectedGroupCode === 'RETAIL' || selectedGroupCode === 'KHACH_LE'}
+                        disabled={isRetail}
                         onChange={(e) => {
                           const val = e.target.value;
                           const newPasses = val === '' ? '' : parseInt(val);
@@ -93,7 +99,7 @@ export const POSCartTable: React.FC<POSCartTableProps> = ({
                           }
                         }}
                         className={`w-14 h-8 text-[13px] font-bold text-center border-slate-300 rounded-lg shadow-2xs transition-colors ${
-                          (selectedGroupCode === 'RETAIL' || selectedGroupCode === 'KHACH_LE') ? 'bg-slate-100 text-slate-500 cursor-not-allowed opacity-70' : 'focus:ring-emerald-500 focus:border-emerald-500 bg-white text-slate-900'
+                          isRetail ? 'bg-slate-100 text-slate-500 cursor-not-allowed opacity-70' : 'focus:ring-emerald-500 focus:border-emerald-500 bg-white text-slate-900'
                         }`}
                       />
                     ) : <span className="text-slate-400">-</span>}
@@ -201,3 +207,4 @@ export const POSCartTable: React.FC<POSCartTableProps> = ({
     </div>
   </div>
 );
+};

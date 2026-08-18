@@ -32,6 +32,8 @@ export enum UserRoleCode {
 export interface Permission extends BaseEntity {
   code: string;
   name: string;
+  module?: string;
+  description?: string;
   is_active: boolean;
 }
 

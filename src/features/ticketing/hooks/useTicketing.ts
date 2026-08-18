@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { ticketingService } from '../../../api/ticketingService';
 import { AudienceType, TicketTemplate, TicketZone, ControlZone } from '../../../shared/types/hpticket';
 
-export const useTicketing = () => {
+export const useTicketing = (currentTab?: string) => {
   const [audienceTypes, setAudienceTypes] = useState<AudienceType[]>([]);
   const [ticketTemplates, setTicketTemplates] = useState<TicketTemplate[]>([]);
   const [ticketZones, setTicketZones] = useState<TicketZone[]>([]);
@@ -11,32 +11,44 @@ export const useTicketing = () => {
 
   const fetchAll = async () => {
     setLoading(true);
-    try {
-      const audRes = await ticketingService.fetchAudienceTypes();
-      if (audRes.data) setAudienceTypes(audRes.data);
-    } catch (err) {}
+    const promises = [];
 
-    try {
-      const tplRes = await ticketingService.fetchTicketTemplates();
-      if (tplRes.data) setTicketTemplates(tplRes.data);
-    } catch (err) {}
+    if (!currentTab || currentTab === 'KhaiBaoDoiTuong' || currentTab === 'KhaibaoVe') {
+      promises.push(
+        ticketingService.fetchAudienceTypes()
+          .then(res => { if (res.data) setAudienceTypes(res.data); })
+          .catch(() => {})
+      );
+    }
 
-    try {
-      const tzRes = await ticketingService.fetchTicketZones();
-      if (tzRes.data) setTicketZones(tzRes.data);
-    } catch (err) {}
+    if (!currentTab || currentTab === 'KhaibaoVe' || currentTab === 'KhaiBaoVe_KS') {
+      promises.push(
+        ticketingService.fetchTicketTemplates()
+          .then(res => { if (res.data) setTicketTemplates(res.data); })
+          .catch(() => {})
+      );
+      promises.push(
+        ticketingService.fetchTicketZones()
+          .then(res => { if (res.data) setTicketZones(res.data); })
+          .catch(() => {})
+      );
+    }
 
-    try {
-      const czRes = await ticketingService.fetchControlZones();
-      if (czRes.data) setControlZones(czRes.data);
-    } catch (err) {}
-    
+    if (!currentTab || currentTab === 'KhaiBaoKhuKiemSoat' || currentTab === 'KhaiBaoVe_KS') {
+      promises.push(
+        ticketingService.fetchControlZones()
+          .then(res => { if (res.data) setControlZones(res.data); })
+          .catch(() => {})
+      );
+    }
+
+    await Promise.all(promises);
     setLoading(false);
   };
 
   useEffect(() => {
     fetchAll();
-  }, []);
+  }, [currentTab]);
 
   return {
     audienceTypes, setAudienceTypes,

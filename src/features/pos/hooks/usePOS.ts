@@ -81,58 +81,68 @@ export const usePOS = () => {
 
     const fetchAll = async () => {
       try {
-        const json = await apiClient.get<any>(API_ENDPOINTS.TICKETING.TEMPLATES);
-        const list = extractList(json);
-        if (list.length > 0) setTicketTemplates(list.filter(isItemActive));
-      } catch (err) { }
+        const promises = [
+          apiClient.get<any>(API_ENDPOINTS.TICKETING.TEMPLATES).then(json => {
+            const list = extractList(json);
+            if (list.length > 0) setTicketTemplates(list.filter(isItemActive));
+          }).catch(() => {}),
 
-      try {
-        const json = await apiClient.get<any>(API_ENDPOINTS.TICKETING.ZONES);
-        const list = extractList(json);
-        if (list.length > 0) setTicketZones(list);
-      } catch (err) { }
+          apiClient.get<any>(API_ENDPOINTS.TICKETING.ZONES).then(json => {
+            const list = extractList(json);
+            if (list.length > 0) setTicketZones(list);
+          }).catch(() => {}),
 
-      try {
-        const json = await apiClient.get<any>(API_ENDPOINTS.MARKETING.CUSTOMER_GROUPS_ACTIVE);
-        const list = extractList(json);
-        if (list.length > 0) {
-          setCustomerGroups(list);
-          if (!list.some((g: any) => g.code === selectedGroupCode)) {
-            const retailGroup = list.find((g: any) => g.code === 'KHACH_LE' || g.code === 'RETAIL');
-            setSelectedGroupCode(retailGroup ? retailGroup.code : list[0].code);
-          }
-        }
-      } catch (err) { }
+          apiClient.get<any>(API_ENDPOINTS.MARKETING.CUSTOMER_GROUPS_ACTIVE).then(json => {
+            const list = extractList(json);
+            if (list.length > 0) {
+              setCustomerGroups(list);
+              if (!list.some((g: any) => g.code === selectedGroupCode)) {
+                const retailGroup = list.find((g: any) => g.code === 'KHACH_LE' || g.code === 'RETAIL');
+                setSelectedGroupCode(retailGroup ? retailGroup.code : list[0].code);
+              }
+            }
+          }).catch(() => {}),
 
-      try {
-        const json = await apiClient.get<any>(API_ENDPOINTS.MARKETING.CUSTOMER_SOURCES_ACTIVE);
-        const list = extractList(json);
-        if (list.length > 0) setCustomerSources(list);
-      } catch (err) { }
+          apiClient.get<any>(API_ENDPOINTS.MARKETING.CUSTOMER_SOURCES_ACTIVE).then(json => {
+            const list = extractList(json);
+            if (list.length > 0) setCustomerSources(list);
+          }).catch(() => {}),
 
-      try {
-        const json = await apiClient.get<any>(API_ENDPOINTS.MARKETING.PROMOTIONS_ACTIVE);
-        const list = extractList(json);
-        const activePromos = list.filter(isItemActive);
-        if (activePromos.length > 0) {
-          setPromotions(activePromos);
-          setSelectedPromotionId(activePromos[0].id);
-        }
-      } catch (err) { }
+          apiClient.get<any>(API_ENDPOINTS.MARKETING.PROMOTIONS_ACTIVE).then(json => {
+            const list = extractList(json);
+            const activePromos = list.filter(isItemActive);
+            if (activePromos.length > 0) {
+              setPromotions(activePromos);
+              setSelectedPromotionId(activePromos[0].id);
+            }
+          }).catch(() => {}),
 
-      try {
-        const json = await apiClient.get<any>(API_ENDPOINTS.SALES.COUNTERS_ACTIVE);
-        const list = extractList(json);
-        const activeList = list.filter(isItemActive);
-        if (activeList.length > 0) {
-          setCounters(activeList);
-        }
-      } catch (err) { }
+          apiClient.get<any>(API_ENDPOINTS.SALES.COUNTERS_ACTIVE).then(json => {
+            const list = extractList(json);
+            const activeList = list.filter(isItemActive);
+            if (activeList.length > 0) {
+              setCounters(activeList);
+              setSelectedCounterId(prev => {
+                if (prev && !activeList.some((c: any) => c.id === prev)) {
+                  localStorage.removeItem('hpticket_pos_selected_counter');
+                  return '';
+                }
+                return prev;
+              });
+            } else {
+              setCounters([]);
+              setSelectedCounterId('');
+              localStorage.removeItem('hpticket_pos_selected_counter');
+            }
+          }).catch(() => {}),
 
-      try {
-        const json = await apiClient.get<any>(API_ENDPOINTS.SALES.PRODUCTS);
-        const list = extractList(json);
-        if (list.length > 0) setProducts(list.filter(isItemActive));
+          apiClient.get<any>(API_ENDPOINTS.SALES.PRODUCTS).then(json => {
+            const list = extractList(json);
+            if (list.length > 0) setProducts(list.filter(isItemActive));
+          }).catch(() => {})
+        ];
+
+        await Promise.all(promises);
       } catch (err) { }
     };
 

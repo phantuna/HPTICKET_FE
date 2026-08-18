@@ -5,8 +5,10 @@ import { AdminConfigCard } from '../components/AdminConfigCard';
 import { CameraQRScannerModal } from '../../ticketing/components/CameraQRScannerModal';
 import { useIAM } from '../hooks/useIAM';
 import { UserModal } from '../components/UserModal';
+import { RoleModal } from '../components/RoleModal';
 import { BadgeModal } from '../components/BadgeModal';
 import { StaffQRScanner } from '../components/StaffQRScanner';
+import { toast } from '../../../shared/utils/toast';
 
 interface IAMModuleProps {
   subTab?: string;
@@ -35,11 +37,21 @@ export const IAMModule: React.FC<IAMModuleProps> = ({ subTab = 'KhaiBaoPhanQuyen
     handleDeleteUsers,
     handleToggleUserActive,
     openNewUserModal,
-    openEditUserModal
+    openEditUserModal,
+    showRoleModal, setShowRoleModal,
+    editingRoleId,
+    roleCode, setRoleCode,
+    roleName, setRoleName,
+    rolePermissions, setRolePermissions,
+    handleCreateOrUpdateRole,
+    handleDeleteRoles,
+    handleToggleRoleActive,
+    openNewRoleModal,
+    openEditRoleModal
   } = useIAM(subTab);
 
   const currentTab = onSelectSubTab ? subTab : activeSubTab;
-  
+
   React.useEffect(() => {
     if (onSelectSubTab) {
       setActiveSubTab(subTab);
@@ -87,17 +99,14 @@ export const IAMModule: React.FC<IAMModuleProps> = ({ subTab = 'KhaiBaoPhanQuyen
             },
             {
               header: 'Sử dụng',
-              accessor: () => true,
+              accessor: () => true, // Để dummy vì Role đang có active field riêng, hoặc dùng accessor: 'is_active'
               className: 'text-center w-24',
             },
           ]}
-          onAddNew={() => alert('Thêm nhóm quyền mới')}
-          onEdit={(item: any) => {
-            alert(`Sửa nhóm quyền: ${item.name}`);
-          }}
-          onDelete={(ids) => {
-            alert(`Xóa ${ids.length} nhóm quyền`);
-          }}
+          onAddNew={openNewRoleModal}
+          onEdit={openEditRoleModal}
+          onDelete={handleDeleteRoles}
+          onToggleActive={handleToggleRoleActive}
         />
       )}
 
@@ -272,6 +281,18 @@ export const IAMModule: React.FC<IAMModuleProps> = ({ subTab = 'KhaiBaoPhanQuyen
           username={username} setUsername={setUsername} password={password} setPassword={setPassword}
           phone={phone} setPhone={setPhone} roleId={roleId} setRoleId={setRoleId}
           roles={roles} onClose={() => setShowUserModal(false)} onSubmit={handleCreateOrUpdateUser}
+        />
+      )}
+
+      {showRoleModal && (
+        <RoleModal
+          editingRoleId={editingRoleId}
+          roleCode={roleCode} setRoleCode={setRoleCode}
+          roleName={roleName} setRoleName={setRoleName}
+          rolePermissions={rolePermissions} setRolePermissions={setRolePermissions}
+          allPermissions={permissions}
+          onClose={() => setShowRoleModal(false)}
+          onSubmit={handleCreateOrUpdateRole}
         />
       )}
     </div>

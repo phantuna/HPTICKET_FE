@@ -10,7 +10,7 @@
 // 1. Quản lý Domain Base URL cho các môi trường (Dev, Staging, Production, Local Spring Boot 8080)
 export const API_BASE_URL = (typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.VITE_API_URL)
   ? (import.meta as any).env.VITE_API_URL
-  : 'http://localhost:8080/api/v1';
+  : 'https://api.vnscout.io.vn/api/v1';
 
 // Dual-Mode Feature Flag: Cho phép chuyển qua lại giữa Real Spring Boot Backend và Offline Mock DB
 export const getUseMockApi = (): boolean => {
@@ -42,6 +42,7 @@ export const API_ENDPOINTS = {
     ROLES: '/iam/roles',
     ROLE_DETAIL: (id: string) => `/iam/roles/${id}`,
     ROLE_STATUS: (id: string) => `/iam/roles/${id}/status`,
+    ROLE_PERMISSIONS: (id: string) => `/iam/roles/${id}/permissions`,
     PERMISSIONS: '/iam/permissions',
     SYSTEM_LOGS: '/iam/system-logs',
   },
@@ -190,7 +191,14 @@ export const apiClient = {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `API Error: ${response.status} ${response.statusText}`);
+        const errorMessage = errorData.message || `API Error: ${response.status} ${response.statusText}`;
+
+        // Phát thanh sự kiện lỗi ra toàn hệ thống (bắt bởi App.tsx)
+        window.dispatchEvent(new CustomEvent('api_error', {
+          detail: { message: errorMessage }
+        }));
+
+        throw new Error(errorMessage);
       }
 
       return await response.json();

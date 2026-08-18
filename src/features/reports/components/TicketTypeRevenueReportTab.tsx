@@ -38,19 +38,19 @@ export const TicketTypeRevenueReportTab: React.FC<TicketTypeRevenueReportTabProp
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col items-center justify-center relative overflow-hidden group hover:border-slate-300 transition">
-          <div className="absolute top-0 right-0 px-3 py-1 bg-slate-100 text-slate-500 rounded-bl-xl text-[10px] font-bold uppercase tracking-widest border-b border-l border-slate-200">Trước giảm</div>
-          <p className="text-sm font-bold text-slate-500 mb-2 uppercase tracking-wide">Doanh Thu Gộp</p>
-          <p className="text-2xl font-bold text-slate-400 line-through decoration-slate-300">{totalLoaiVeGross.toLocaleString('vi-VN')} đ</p>
+        <div className="bg-white border border-slate-200 rounded-xl p-4 xl:p-6 shadow-sm flex flex-col items-center justify-center relative overflow-hidden group hover:border-slate-300 transition min-w-0">
+          <div className="absolute top-0 right-0 px-2 xl:px-3 py-1 bg-slate-100 text-slate-500 rounded-bl-xl text-[9px] xl:text-[10px] font-bold uppercase tracking-widest border-b border-l border-slate-200 z-10">Trước giảm</div>
+          <p className="text-xs xl:text-sm font-bold text-slate-500 mb-1 xl:mb-2 uppercase tracking-wide text-center mt-3 xl:mt-0">Doanh Thu Gộp</p>
+          <p className="text-lg md:text-base lg:text-xl xl:text-2xl font-bold text-slate-400 line-through decoration-slate-300 text-center break-words w-full px-2">{totalLoaiVeGross.toLocaleString('vi-VN')} đ</p>
         </div>
-        <div className="bg-white border border-sky-100 rounded-xl p-6 shadow-sm flex flex-col items-center justify-center bg-sky-50/30">
-          <p className="text-sm font-bold text-sky-700 mb-2 uppercase tracking-wide">Số Lượng Vé Bán</p>
-          <p className="text-4xl font-extrabold text-sky-600">{totalLoaiVeQty.toLocaleString('vi-VN')}</p>
+        <div className="bg-white border border-sky-100 rounded-xl p-4 xl:p-6 shadow-sm flex flex-col items-center justify-center bg-sky-50/30 min-w-0">
+          <p className="text-xs xl:text-sm font-bold text-sky-700 mb-1 xl:mb-2 uppercase tracking-wide text-center">Số Lượng Vé Bán</p>
+          <p className="text-2xl md:text-xl lg:text-3xl xl:text-4xl font-extrabold text-sky-600 text-center break-words w-full px-2">{totalLoaiVeQty.toLocaleString('vi-VN')}</p>
         </div>
-        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6 shadow-md flex flex-col items-center justify-center relative overflow-hidden">
-          <div className="absolute top-0 right-0 px-3 py-1 bg-emerald-500 text-white rounded-bl-xl text-[10px] font-bold shadow-sm uppercase tracking-widest">Thực thu</div>
-          <p className="text-sm font-bold text-emerald-800 mb-2 uppercase tracking-wide">Doanh Thu Ròng</p>
-          <p className="text-4xl font-extrabold text-emerald-600 drop-shadow-sm">{totalLoaiVeDoanhThu.toLocaleString('vi-VN')} đ</p>
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 xl:p-6 shadow-md flex flex-col items-center justify-center relative overflow-hidden min-w-0">
+          <div className="absolute top-0 right-0 px-2 xl:px-3 py-1 bg-emerald-500 text-white rounded-bl-xl text-[9px] xl:text-[10px] font-bold shadow-sm uppercase tracking-widest z-10">Thực thu</div>
+          <p className="text-xs xl:text-sm font-bold text-emerald-800 mb-1 xl:mb-2 uppercase tracking-wide text-center mt-3 xl:mt-0">Doanh Thu Ròng</p>
+          <p className="text-2xl md:text-xl lg:text-3xl xl:text-4xl font-extrabold text-emerald-600 drop-shadow-sm text-center break-words w-full px-1">{totalLoaiVeDoanhThu.toLocaleString('vi-VN')} đ</p>
         </div>
       </div>
 

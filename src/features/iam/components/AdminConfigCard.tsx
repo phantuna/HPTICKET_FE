@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Edit, Trash2 } from 'lucide-react';
+import { toast } from '../../../shared/utils/toast';
 
 export interface ColumnDef<T> {
   header: string;
@@ -48,11 +49,11 @@ export function AdminConfigCard<T extends { id: string | number }>({
 
   const handleEditClick = () => {
     if (selectedIds.length === 0) {
-      alert('Vui lòng chọn 1 dòng cần sửa!');
+      toast.error('Vui lòng chọn 1 dòng cần sửa!');
       return;
     }
     if (selectedIds.length > 1) {
-      alert('Vui lòng chỉ chọn 1 dòng để sửa!');
+      toast.error('Vui lòng chỉ chọn 1 dòng để sửa!');
       return;
     }
     const target = data.find((item) => item.id === selectedIds[0]);
@@ -63,7 +64,7 @@ export function AdminConfigCard<T extends { id: string | number }>({
 
   const handleDeleteClick = () => {
     if (selectedIds.length === 0) {
-      alert('Vui lòng chọn ít nhất 1 dòng cần xóa!');
+      toast.error('Vui lòng chọn ít nhất 1 dòng cần xóa!');
       return;
     }
     if (confirm(`Bạn có chắc chắn muốn xóa ${selectedIds.length} dòng đã chọn?`)) {
@@ -141,10 +142,10 @@ export function AdminConfigCard<T extends { id: string | number }>({
                 const rec = row as Record<string, any>;
                 const isActive = Boolean(
                   rec[activeField] ??
-                    rec.isActive ??
-                    rec.is_active ??
-                    rec.active ??
-                    (rec.status === 'ACTIVE' || rec.status === true)
+                  rec.isActive ??
+                  rec.is_active ??
+                  rec.active ??
+                  (rec.status === 'ACTIVE' || rec.status === true)
                 );
 
                 return (
@@ -158,9 +159,8 @@ export function AdminConfigCard<T extends { id: string | number }>({
                       }
                       handleSelectRow(row.id);
                     }}
-                    className={`cursor-pointer hover:bg-blue-50/60 transition ${
-                      isSelected ? 'bg-blue-50/90' : index % 2 === 1 ? 'bg-slate-50/50' : 'bg-white'
-                    }`}
+                    className={`cursor-pointer hover:bg-blue-50/60 transition ${isSelected ? 'bg-blue-50/90' : index % 2 === 1 ? 'bg-slate-50/50' : 'bg-white'
+                      }`}
                   >
                     {/* Checkbox row */}
                     <td className="p-3 text-center">

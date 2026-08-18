@@ -56,6 +56,7 @@ export interface CheckoutPayload {
   invoice_status?: 'IMMEDIATE' | 'PENDING' | 'UNISSUED';
   company_tax_code?: string;
   company_name?: string;
+  company_address?: string;
   company_phone?: string;
   company_email?: string;
 }
@@ -679,6 +680,7 @@ export const salesService = {
           invoice_status: payload.invoice_status || 'UNISSUED',
           company_tax_code: payload.company_tax_code || null,
           company_name: payload.company_name || null,
+          company_address: payload.company_address || null,
           company_phone: payload.company_phone || null,
           company_email: payload.company_email || null,
         };

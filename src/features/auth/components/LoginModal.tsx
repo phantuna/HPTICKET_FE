@@ -28,6 +28,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
       if (res && res.data && res.data.token) {
         localStorage.setItem('hpticket_token', res.data.token);
         localStorage.setItem('hpticket_username', userStr);
+        localStorage.setItem('hpticket_fullname', res.data.fullname || 'Người dùng');
         localStorage.setItem('hpticket_role', res.data.role || 'ADMIN');
 
         // Thông báo đồng bộ hệ thống

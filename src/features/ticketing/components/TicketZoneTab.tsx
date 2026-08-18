@@ -3,6 +3,7 @@ import { Layers } from 'lucide-react';
 import { AdminConfigCard } from '../../iam/components/AdminConfigCard';
 import { TicketZone, ControlZone, TicketTemplate } from '../../../shared/types/hpticket';
 import { ticketingService } from '../../../api/ticketingService';
+import { toast } from '../../../shared/utils/toast';
 
 interface TicketZoneTabProps {
   ticketZones: TicketZone[];
@@ -15,27 +16,23 @@ interface TicketZoneTabProps {
 export const TicketZoneTab: React.FC<TicketZoneTabProps> = ({ ticketZones, setTicketZones, controlZones, ticketTemplates, refreshData }) => {
   const [showModal, setShowModal] = useState(false);
   const [editingZone, setEditingZone] = useState<TicketZone | null>(null);
-  const [selectedTemplateId, setSelectedTemplateId] = useState('');
+  const [zoneName, setZoneName] = useState('');
   const [selectedControlZoneIds, setSelectedControlZoneIds] = useState<string[]>([]);
 
   const handleSave = async () => {
-    if (!selectedTemplateId) return;
-    const tpl = ticketTemplates.find((t) => t.id === selectedTemplateId || t.code === selectedTemplateId);
-    const tplName = tpl ? tpl.name : 'Unknown';
+    if (!zoneName.trim()) { toast.error('Vui lòng nhập tên nhóm vé!'); return; }
 
     if (editingZone) {
       const updatedItem: any = { 
         ...editingZone, 
-        name: tplName, 
-        ticket_template_id: selectedTemplateId,
+        name: zoneName, 
         zone_ids: selectedControlZoneIds,
       };
       await ticketingService.updateTicketZone(editingZone.id, updatedItem);
     } else {
       const item: any = {
         id: `tz-${Date.now()}`,
-        name: tplName,
-        ticket_template_id: selectedTemplateId,
+        name: zoneName,
         zone_ids: selectedControlZoneIds,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -84,13 +81,13 @@ export const TicketZoneTab: React.FC<TicketZoneTabProps> = ({ ticketZones, setTi
         ]}
         onAddNew={() => {
           setEditingZone(null);
-          setSelectedTemplateId('');
+          setZoneName('');
           setSelectedControlZoneIds([]);
           setShowModal(true);
         }}
         onEdit={(item: any) => {
           setEditingZone(item);
-          setSelectedTemplateId(item.ticket_template_id || '');
+          setZoneName(item.name || '');
           setSelectedControlZoneIds(item.zone_ids || [item.zone_id || item.control_zone_id].filter(Boolean));
           setShowModal(true);
         }}
@@ -105,19 +102,14 @@ export const TicketZoneTab: React.FC<TicketZoneTabProps> = ({ ticketZones, setTi
             </h3>
             <div className="space-y-3 text-xs">
               <div>
-                <label className="block text-slate-700 font-semibold mb-1">Mẫu Vé Bán:</label>
-                <select
-                  value={selectedTemplateId}
-                  onChange={(e) => setSelectedTemplateId(e.target.value)}
+                <label className="block text-slate-700 font-semibold mb-1">Tên Nhóm Vé (Khu Vực):</label>
+                <input
+                  type="text"
+                  value={zoneName}
+                  onChange={(e) => setZoneName(e.target.value)}
+                  placeholder="Ví dụ: Nhóm vé Tham Quan, Cáp Treo..."
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 outline-none focus:ring-1 focus:ring-purple-500 font-medium"
-                >
-                  <option value="">-- Chọn Mẫu Vé --</option>
-                  {ticketTemplates.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
               <div>
                 <label className="block text-slate-700 font-semibold mb-1">Khu Vực Kiểm Soát:</label>

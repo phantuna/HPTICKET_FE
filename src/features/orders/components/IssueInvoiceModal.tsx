@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FileText, Send, Users, X } from 'lucide-react';
 import { IssueOrderPayload } from '../services/invoiceService';
 
@@ -26,6 +26,19 @@ export const IssueInvoiceModal: React.FC<IssueInvoiceModalProps> = ({
   const [buyerAddress, setBuyerAddress] = useState('');
   const [buyerEmail, setBuyerEmail] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        // Giả lập sự kiện submit form
+        handleSubmit(e as any);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [isOpen, buyerTaxCode, buyerLegalName, buyerAddress, buyerEmail, isSubmitting]);
 
   if (!isOpen) return null;
 
@@ -90,6 +103,7 @@ export const IssueInvoiceModal: React.FC<IssueInvoiceModalProps> = ({
                 type="text"
                 value={buyerTaxCode}
                 onChange={e => setBuyerTaxCode(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSubmit(e as any); } }}
                 placeholder="Ví dụ: 0100109106501"
                 className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-400 outline-none transition"
               />
@@ -103,6 +117,7 @@ export const IssueInvoiceModal: React.FC<IssueInvoiceModalProps> = ({
                 type="text"
                 value={buyerLegalName}
                 onChange={e => setBuyerLegalName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSubmit(e as any); } }}
                 placeholder="Tên đầy đủ theo đăng ký kinh doanh"
                 className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-400 outline-none transition"
               />
@@ -116,6 +131,7 @@ export const IssueInvoiceModal: React.FC<IssueInvoiceModalProps> = ({
                 type="text"
                 value={buyerAddress}
                 onChange={e => setBuyerAddress(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSubmit(e as any); } }}
                 placeholder="Địa chỉ công ty"
                 className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-400 outline-none transition"
               />
@@ -129,6 +145,7 @@ export const IssueInvoiceModal: React.FC<IssueInvoiceModalProps> = ({
                 type="email"
                 value={buyerEmail}
                 onChange={e => setBuyerEmail(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSubmit(e as any); } }}
                 placeholder="email@company.com"
                 className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-400 outline-none transition"
               />

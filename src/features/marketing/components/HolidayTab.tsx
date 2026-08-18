@@ -3,6 +3,7 @@ import { Calendar } from 'lucide-react';
 import { AdminConfigCard } from '../../iam/components/AdminConfigCard';
 import { Holiday } from '../../../shared/types/hpticket';
 import { marketingService } from '../../../api/marketingService';
+import { toast } from '../../../shared/utils/toast';
 
 interface HolidayTabProps {
   holidays: Holiday[];
@@ -19,7 +20,7 @@ export const HolidayTab: React.FC<HolidayTabProps> = ({ holidays, setHolidays, r
   const [newHolidayEnd, setNewHolidayEnd] = useState('2026-09-02');
 
   const handleSave = async () => {
-    if (!newHolidayName) return;
+    if (!newHolidayName) { toast.error('Vui lòng nhập Tên Ngày Lễ!'); return; }
     const payload = {
       name: newHolidayName,
       start_date: newHolidayStart,
@@ -46,7 +47,7 @@ export const HolidayTab: React.FC<HolidayTabProps> = ({ holidays, setHolidays, r
       if (res.code === 200) {
         setHolidays((prev) => prev.map((h: any) => h.id === id ? { ...h, is_active: !currentActive, isActive: !currentActive, active: !currentActive } : h));
       }
-    } catch (err) { alert('Cập nhật thất bại'); }
+    } catch (err) { toast.error('Cập nhật thất bại'); }
   };
 
   return (

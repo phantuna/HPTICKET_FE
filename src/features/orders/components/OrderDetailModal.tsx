@@ -34,8 +34,18 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
   );
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white border border-slate-200 rounded-2xl max-w-2xl w-full shadow-2xl text-slate-800 flex flex-col max-h-[90vh]">
+    <div 
+      className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          setSelectedOrder(null);
+        }
+      }}
+    >
+      <div 
+        className="bg-white border border-slate-200 rounded-2xl max-w-2xl w-full shadow-2xl text-slate-800 flex flex-col max-h-[90vh]"
+        onClick={() => setSelectedTicket(null)}
+      >
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
@@ -49,7 +59,10 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
             </p>
           </div>
           <button
-            onClick={() => setSelectedOrder(null)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedOrder(null);
+            }}
             className="text-slate-500 hover:text-slate-900 text-xs bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition"
           >
             Đóng
@@ -169,7 +182,10 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                   return (
                     <div key={`${tkt.id}-${idx}`} className="border border-slate-200 rounded-xl overflow-hidden">
                       <button
-                        onClick={() => setSelectedTicket(isExpanded ? null : tkt)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedTicket(isExpanded ? null : tkt);
+                        }}
                         className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-slate-50 transition text-left"
                       >
                         <div className="flex items-center gap-2 min-w-0">
@@ -188,8 +204,11 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                       </button>
 
                       {isExpanded && (
-                        <div className="border-t border-slate-100 bg-slate-50 px-4 py-4 flex flex-col items-center gap-3">
-                          <QRCodeDisplay value={tkt.qr_display || tkt.qr_code_string} size={160} />
+                        <div 
+                          className="border-t border-slate-100 bg-slate-50 px-4 py-4 flex flex-col items-center gap-3"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <QRCodeDisplay value={tkt.qr_display || tkt.qr_code_string} size={160} showText={false} />
                           <p className="text-[10px] font-mono text-slate-500 text-center break-all">{tkt.qr_code_string}</p>
                           <div className="flex items-center gap-2 text-xs">
                             <Layers className="w-3.5 h-3.5 text-amber-600" />

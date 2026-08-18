@@ -24,7 +24,7 @@ export const MarketingModule: React.FC<MarketingModuleProps> = ({ subTab = 'khai
     ticketTemplates,
     loading,
     refreshData
-  } = useMarketing();
+  } = useMarketing(currentTab);
 
   if (loading) {
     return (
@@ -61,11 +61,11 @@ export const MarketingModule: React.FC<MarketingModuleProps> = ({ subTab = 'khai
       {/* 4. KHAI BÁO KHUYẾN MẠI (/KhaiBaoKhuyenMai) */}
       {/* ---------------------------------------------------- */}
       {currentTab === 'KhaiBaoKhuyenMai' && (
-        <PromotionTab 
-          promotions={promotions} 
-          setPromotions={setPromotions} 
-          ticketTemplates={ticketTemplates} 
-          refreshData={refreshData} 
+        <PromotionTab
+          promotions={promotions}
+          setPromotions={setPromotions}
+          ticketTemplates={ticketTemplates}
+          refreshData={refreshData}
         />
       )}
     </div>

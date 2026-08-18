@@ -2,21 +2,31 @@ import React, { useState, useEffect } from 'react';
 import { iamService } from '../../../api/iamService';
 import { User, Role, Permission } from '../../../shared/types/hpticket';
 
+const globalIamCache: any = { users: null, roles: null, perms: null };
+
 export const useIAM = (initialTab: string) => {
   const [activeSubTab, setActiveSubTab] = useState<string>(initialTab);
 
-  const [users, setUsers] = useState<User[]>([]);
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [permissions, setPermissions] = useState<Permission[]>([]);
+  useEffect(() => {
+    setActiveSubTab(initialTab);
+  }, [initialTab]);
+
+  const [users, setUsers] = useState<User[]>(globalIamCache.users || []);
+  const [roles, setRoles] = useState<Role[]>(globalIamCache.roles || []);
+  const [permissions, setPermissions] = useState<Permission[]>(globalIamCache.perms || []);
   const [selectedBadgeUser, setSelectedBadgeUser] = useState<User | null>(null);
   const [badgeQrMode, setBadgeQrMode] = useState<'text' | 'vcard' | 'code'>('text');
   const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
 
   useEffect(() => {
-    iamService.fetchUsers().then(res => setUsers(res.data || []));
-    iamService.fetchRoles().then(res => setRoles(res.data || []));
-    iamService.fetchPermissions().then(res => setPermissions(res.data || []));
-  }, []);
+    if (activeSubTab === 'KhaiBaoPhanQuyen') {
+      if (!globalIamCache.roles) { iamService.fetchRoles().then(res => { setRoles(res.data || []); globalIamCache.roles = res.data; }); }
+      if (!globalIamCache.perms) { iamService.fetchPermissions().then(res => { setPermissions(res.data || []); globalIamCache.perms = res.data; }); }
+    } else if (activeSubTab === 'KhaibaoDangNhap' || activeSubTab === 'KhaiBaoThe_NV') {
+      if (!globalIamCache.users) { iamService.fetchUsers().then(res => { setUsers(res.data || []); globalIamCache.users = res.data; }); }
+      if (!globalIamCache.roles) { iamService.fetchRoles().then(res => { setRoles(res.data || []); globalIamCache.roles = res.data; }); }
+    }
+  }, [activeSubTab]);
 
   const [scanInput, setScanInput] = useState('');
   const [scannedStaff, setScannedStaff] = useState<User | null>(null);
@@ -129,6 +139,87 @@ export const useIAM = (initialTab: string) => {
     setShowUserModal(true);
   };
 
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
+  const [roleCode, setRoleCode] = useState('');
+  const [roleName, setRoleName] = useState('');
+  const [rolePermissions, setRolePermissions] = useState<string[]>([]);
+
+  const handleCreateOrUpdateRole = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!roleCode || !roleName) return;
+
+    try {
+      if (editingRoleId) {
+        const res = await iamService.updateRole(editingRoleId, {
+          code: roleCode,
+          name: roleName,
+          permissions: rolePermissions
+        });
+        if (res.code === 200) {
+          // Lấy lại danh sách sau khi sửa (hoặc cập nhật state thủ công, nhưng fetch lại cho chắc do cần load permission)
+          iamService.fetchRoles().then(r => setRoles(r.data || []));
+        }
+      } else {
+        const res = await iamService.createRole({
+          code: roleCode,
+          name: roleName,
+          is_active: true,
+          permissions: rolePermissions
+        } as Role);
+        if (res.code === 201) {
+          iamService.fetchRoles().then(r => setRoles(r.data || []));
+        }
+      }
+      setShowRoleModal(false);
+      setEditingRoleId(null);
+      setRoleCode('');
+      setRoleName('');
+      setRolePermissions([]);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteRoles = async (ids: (string | number)[]) => {
+    try {
+      for (const id of ids) {
+        await iamService.deleteRole(String(id));
+      }
+      setRoles(prev => prev.filter(r => !ids.includes(r.id)));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleToggleRoleActive = async (id: string | number, currentActive: boolean) => {
+    const newActive = !currentActive;
+    setRoles((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, is_active: newActive, isActive: newActive } : r))
+    );
+    try {
+      await iamService.updateRoleStatus(String(id), newActive);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const openNewRoleModal = () => {
+    setEditingRoleId(null);
+    setRoleCode('');
+    setRoleName('');
+    setRolePermissions([]);
+    setShowRoleModal(true);
+  };
+
+  const openEditRoleModal = (item: any) => {
+    setEditingRoleId(item.id);
+    setRoleCode(item.code || '');
+    setRoleName(item.name || '');
+    setRolePermissions(item.permissions || []);
+    setShowRoleModal(true);
+  };
+
   return {
     activeSubTab, setActiveSubTab,
     users, roles, permissions,
@@ -150,6 +241,18 @@ export const useIAM = (initialTab: string) => {
     handleDeleteUsers,
     handleToggleUserActive,
     openNewUserModal,
-    openEditUserModal
+    openEditUserModal,
+    
+    // Role management
+    showRoleModal, setShowRoleModal,
+    editingRoleId, setEditingRoleId,
+    roleCode, setRoleCode,
+    roleName, setRoleName,
+    rolePermissions, setRolePermissions,
+    handleCreateOrUpdateRole,
+    handleDeleteRoles,
+    handleToggleRoleActive,
+    openNewRoleModal,
+    openEditRoleModal
   };
 };

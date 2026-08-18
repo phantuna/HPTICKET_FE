@@ -80,7 +80,7 @@ export const POSModule: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
           <POSCartTable
             lineItems={lineItems} setLineItems={setLineItems} updateLineItem={updateLineItem}
-            selectedGroupCode={selectedGroupCode} effectiveExtraDiscount={effectiveExtraDiscount}
+            selectedGroupCode={selectedGroupCode} customerGroups={customerGroups} effectiveExtraDiscount={effectiveExtraDiscount}
             handleCheckout={handleCheckout} subtotalAfterLineDiscounts={subtotalAfterLineDiscounts}
             depositAmount={depositAmount} setDepositAmount={setDepositAmount}
             extraDiscount={extraDiscount} setExtraDiscount={setExtraDiscount}
@@ -128,7 +128,7 @@ export const POSModule: React.FC = () => {
 
       {toastMessage && (
         <div className={`fixed top-8 right-8 z-[9999] p-6 rounded-2xl shadow-2xl flex flex-col gap-2 min-w-[380px] max-w-lg transition-colors duration-300 animate-pulse ${toastMessage.type === 'error' ? 'bg-rose-600 text-white border-2 border-rose-400' : 'bg-emerald-600 text-white border-2 border-emerald-400'}`}>
-            <h4 className="text-lg font-bold flex items-center gap-2"><span className="text-2xl">{toastMessage.type === 'error' ? '⚠️' : '✅'}</span> {toastMessage.title}</h4>
+            <h4 className="text-lg font-bold flex items-center gap-2">{toastMessage.title}</h4>
             <p className={`text-sm mt-1 leading-relaxed ${toastMessage.type === 'error' ? 'text-rose-50' : 'text-emerald-50'}`}>{toastMessage.message}</p>
         </div>
       )}

@@ -3,6 +3,7 @@ import { Gift } from 'lucide-react';
 import { AdminConfigCard } from '../../iam/components/AdminConfigCard';
 import { Promotion } from '../../../shared/types/hpticket';
 import { marketingService } from '../../../api/marketingService';
+import { toast } from '../../../shared/utils/toast';
 
 interface PromotionTabProps {
   promotions: Promotion[];
@@ -23,7 +24,7 @@ export const PromotionTab: React.FC<PromotionTabProps> = ({ promotions, setPromo
   const [newPromoValue, setNewPromoValue] = useState<number | ''>(10);
 
   const handleSave = async () => {
-    if (!newPromoName) return;
+    if (!newPromoName) { toast.error('Vui lòng nhập Tên Khuyến mãi!'); return; }
     const payload = {
       code: `KM-${Date.now()}`,
       name: newPromoName,
@@ -56,7 +57,7 @@ export const PromotionTab: React.FC<PromotionTabProps> = ({ promotions, setPromo
       if (res.code === 200) {
         setPromotions((prev) => prev.map((p: any) => p.id === id ? { ...p, is_active: !currentActive, isActive: !currentActive, active: !currentActive } : p));
       }
-    } catch (err) { alert('Cập nhật thất bại'); }
+    } catch (err) { toast.error('Cập nhật thất bại'); }
   };
 
   return (

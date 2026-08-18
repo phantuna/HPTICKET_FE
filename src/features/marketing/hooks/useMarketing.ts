@@ -3,13 +3,21 @@ import { marketingService } from '../../../api/marketingService';
 import { CustomerGroup, CustomerSource, Holiday, Promotion } from '../../../shared/types/hpticket';
 import { apiClient, API_ENDPOINTS } from '../../../api/apiConfig';
 
-export const useMarketing = () => {
-  const [groups, setGroups] = useState<CustomerGroup[]>([]);
-  const [sources, setSources] = useState<CustomerSource[]>([]);
-  const [holidays, setHolidays] = useState<Holiday[]>([]);
-  const [promotions, setPromotions] = useState<Promotion[]>([]);
-  const [ticketTemplates, setTicketTemplates] = useState<any[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+const globalMarketingCache: any = {
+  groups: null,
+  sources: null,
+  holidays: null,
+  promotions: null,
+  templates: null
+};
+
+export const useMarketing = (currentTab?: string) => {
+  const [groups, setGroups] = useState<CustomerGroup[]>(globalMarketingCache.groups || []);
+  const [sources, setSources] = useState<CustomerSource[]>(globalMarketingCache.sources || []);
+  const [holidays, setHolidays] = useState<Holiday[]>(globalMarketingCache.holidays || []);
+  const [promotions, setPromotions] = useState<Promotion[]>(globalMarketingCache.promotions || []);
+  const [ticketTemplates, setTicketTemplates] = useState<any[]>(globalMarketingCache.templates || []);
+  const [loading, setLoading] = useState<boolean>(false);
 
   const isItemActive = (item: any) => {
     const val = item?.is_active ?? item?.isActive ?? item?.active ?? item?.status;
@@ -19,21 +27,46 @@ export const useMarketing = () => {
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const gRes = await marketingService.fetchCustomerGroups();
-      if (gRes.data) setGroups(gRes.data);
+      if (!currentTab || currentTab === 'khaibaoNhomNguonKhach') {
+        if (!globalMarketingCache.groups) {
+          const res = await marketingService.fetchCustomerGroups();
+          if (res.data) { setGroups(res.data); globalMarketingCache.groups = res.data; }
+        }
+      }
 
-      const sRes = await marketingService.fetchCustomerSources();
-      if (sRes.data) setSources(sRes.data);
+      if (!currentTab || currentTab === 'KhaiBaoNguonKhach') {
+        if (!globalMarketingCache.groups) {
+          const res = await marketingService.fetchCustomerGroups();
+          if (res.data) { setGroups(res.data); globalMarketingCache.groups = res.data; }
+        }
+        if (!globalMarketingCache.sources) {
+          const res = await marketingService.fetchCustomerSources();
+          if (res.data) { setSources(res.data); globalMarketingCache.sources = res.data; }
+        }
+      }
 
-      const hRes = await marketingService.fetchHolidays();
-      if (hRes.data) setHolidays(hRes.data);
+      if (!currentTab || currentTab === 'Hoiday') {
+        if (!globalMarketingCache.holidays) {
+          const res = await marketingService.fetchHolidays();
+          if (res.data) { setHolidays(res.data); globalMarketingCache.holidays = res.data; }
+        }
+      }
 
-      const pRes = await marketingService.fetchPromotions();
-      if (pRes.data) setPromotions(pRes.data);
-
-      const tRes = await apiClient.get<any>(API_ENDPOINTS.TICKETING.TEMPLATES);
-      const list = Array.isArray(tRes) ? tRes : (tRes?.data?.content || tRes?.data || []);
-      if (list.length > 0) setTicketTemplates(list.filter(isItemActive));
+      if (!currentTab || currentTab === 'KhaiBaoKhuyenMai') {
+        if (!globalMarketingCache.promotions) {
+          const res = await marketingService.fetchPromotions();
+          if (res.data) { setPromotions(res.data); globalMarketingCache.promotions = res.data; }
+        }
+        if (!globalMarketingCache.templates) {
+          const tRes = await apiClient.get<any>(API_ENDPOINTS.TICKETING.TEMPLATES);
+          const list = Array.isArray(tRes) ? tRes : (tRes?.data?.content || tRes?.data || []);
+          if (list.length > 0) {
+            const activeTemplates = list.filter(isItemActive);
+            setTicketTemplates(activeTemplates);
+            globalMarketingCache.templates = activeTemplates;
+          }
+        }
+      }
     } catch (err) {
       console.error(err);
     }
@@ -42,7 +75,7 @@ export const useMarketing = () => {
 
   useEffect(() => {
     fetchAll();
-  }, []);
+  }, [currentTab]);
 
   return {
     groups, setGroups,

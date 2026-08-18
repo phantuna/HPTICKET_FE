@@ -26,6 +26,7 @@ export const LocationModule: React.FC<LocationModuleProps> = ({ subTab = 'khaiba
     editCompPhone, setEditCompPhone, editCompFax, setEditCompFax,
     editCompCode, setEditCompCode, editCompTaxCode, setEditCompTaxCode,
     editCompContact, setEditCompContact, editCompEmail, setEditCompEmail,
+    editCompLogo, setEditCompLogo, editCompInvoiceLogo, setEditCompInvoiceLogo,
     newLocName, setNewLocName, newLocCode, setNewLocCode, newLocAddress, setNewLocAddress,
     newCounterName, setNewCounterName, newCounterCode, setNewCounterCode, selectedLocId, setSelectedLocId,
     newZoneName, setNewZoneName, newZoneCode, setNewZoneCode,
@@ -85,17 +86,27 @@ export const LocationModule: React.FC<LocationModuleProps> = ({ subTab = 'khaiba
               <div className="flex items-center gap-4">
                 <div className="w-20 h-20 bg-white border border-slate-200 rounded-xl p-2 flex items-center justify-center shadow-sm">
                   {company?.web_logo_url ? (
-                    <img src={company.web_logo_url} alt="Logo" className="max-h-full max-w-full object-contain rounded" />
+                    <img src={company.web_logo_url} alt="Logo Web" className="max-h-full max-w-full object-contain rounded" />
                   ) : (
                     <span className="text-[10px] text-slate-400">No Logo</span>
                   )}
                 </div>
-                <div>
-                  <p className="text-slate-900 font-bold text-sm">Logo Vé In & Web Portal</p>
-                  <p className="text-xs text-slate-500 mt-1">Chuẩn PNG / SVG nền trong suốt, độ phân giải cao</p>
-                  <span className="inline-block mt-2 text-[11px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                    Đã đồng bộ FPT e-Invoice
-                  </span>
+                <div className="flex-1">
+                  <p className="text-slate-900 font-bold text-sm">Logo Website</p>
+                  <p className="text-xs text-slate-500 mt-1">Sử dụng trên trang cổng bán vé</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4 pt-3 border-t border-slate-200">
+                <div className="w-20 h-20 bg-white border border-slate-200 rounded-xl p-2 flex items-center justify-center shadow-sm">
+                  {company?.invoice_logo_url ? (
+                    <img src={company.invoice_logo_url} alt="Logo Hóa Đơn" className="max-h-full max-w-full object-contain rounded" />
+                  ) : (
+                    <span className="text-[10px] text-slate-400">No Logo</span>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className="text-slate-900 font-bold text-sm">Logo Hóa Đơn Điện Tử</p>
+                  <p className="text-xs text-slate-500 mt-1">Đã đồng bộ FPT e-Invoice / Viettel S-Invoice</p>
                 </div>
               </div>
             </div>
@@ -227,7 +238,11 @@ export const LocationModule: React.FC<LocationModuleProps> = ({ subTab = 'khaiba
           editCompCode={editCompCode} setEditCompCode={setEditCompCode} editCompName={editCompName} setEditCompName={setEditCompName}
           editCompAddress={editCompAddress} setEditCompAddress={setEditCompAddress} editCompPhone={editCompPhone} setEditCompPhone={setEditCompPhone}
           editCompFax={editCompFax} setEditCompFax={setEditCompFax} editCompTaxCode={editCompTaxCode} setEditCompTaxCode={setEditCompTaxCode}
-          editCompEmail={editCompEmail} setEditCompEmail={setEditCompEmail} onSubmit={handleSaveCompany} onClose={() => setShowCompanyModal(false)}
+          editCompContact={editCompContact} setEditCompContact={setEditCompContact}
+          editCompEmail={editCompEmail} setEditCompEmail={setEditCompEmail}
+          editCompLogo={editCompLogo} setEditCompLogo={setEditCompLogo}
+          editCompInvoiceLogo={editCompInvoiceLogo} setEditCompInvoiceLogo={setEditCompInvoiceLogo}
+          onSubmit={handleSaveCompany} onClose={() => setShowCompanyModal(false)}
         />
       )}
     </div>

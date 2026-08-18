@@ -3,6 +3,7 @@ import { Building2 } from 'lucide-react';
 import { AdminConfigCard } from '../../iam/components/AdminConfigCard';
 import { CustomerSource, CustomerGroup } from '../../../shared/types/hpticket';
 import { marketingService } from '../../../api/marketingService';
+import { toast } from '../../../shared/utils/toast';
 
 interface SourceTabProps {
   sources: CustomerSource[];
@@ -27,7 +28,7 @@ export const SourceTab: React.FC<SourceTabProps> = ({ sources, setSources, group
   };
 
   const handleSave = async () => {
-    if (!newSourceCompany) return;
+    if (!newSourceCompany) { toast.error('Vui lòng nhập tên/công ty Nguồn khách!'); return; }
     const payload = {
       code: newSourceCode || `SRC-${Date.now()}`,
       company_name: newSourceCompany,
@@ -57,7 +58,7 @@ export const SourceTab: React.FC<SourceTabProps> = ({ sources, setSources, group
       if (res.code === 200) {
         setSources((prev) => prev.map((s: any) => s.id === id ? { ...s, is_active: !currentActive, isActive: !currentActive, active: !currentActive } : s));
       }
-    } catch (err) { alert('Cập nhật thất bại'); }
+    } catch (err) { toast.error('Cập nhật thất bại'); }
   };
 
   return (

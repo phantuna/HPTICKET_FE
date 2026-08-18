@@ -19,6 +19,7 @@ import {
 import { dbStore } from '../data/mockDatabase';
 import { LicenseManagerModal } from '../../features/iam/components/LicenseManagerModal';
 import { LoginModal } from '../../features/auth/components/LoginModal';
+import { toast } from '../utils/toast';
 
 interface HeaderProps {
   activeTab: string;
@@ -101,9 +102,9 @@ export const Header: React.FC<HeaderProps> = ({
                   onClick={async () => {
                     const synced = await dbStore.syncFromBackend(true);
                     if (synced) {
-                      alert("✅ Đã tải dữ liệu mới nhất từ cơ sở dữ liệu Spring Boot (PostgreSQL)!");
+                      toast.success("✅ Đã tải dữ liệu mới nhất từ cơ sở dữ liệu Spring Boot (PostgreSQL)!");
                     } else {
-                      alert("⚠️ Không thể tải dữ liệu. Kiểm tra máy chủ Java 8080 đang chạy hoặc đăng nhập lại.");
+                      toast.error("⚠️ Không thể tải dữ liệu. Kiểm tra máy chủ Java 8080 đang chạy hoặc đăng nhập lại.");
                     }
                   }}
                   title="Đồng bộ dữ liệu mới nhất"
@@ -123,7 +124,7 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => setUserDropdownOpen(!userDropdownOpen)}
                 className="flex items-center gap-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl px-3 py-1.5 transition text-left"
               >
-                <img 
+                <img
                   src={`https://api.dicebear.com/7.x/notionists/svg?seed=${activeUser.username}&backgroundColor=3f72af`}
                   alt="Avatar"
                   className="w-8 h-8 rounded-full border border-slate-200 bg-emerald-50"
@@ -140,7 +141,7 @@ export const Header: React.FC<HeaderProps> = ({
               {userDropdownOpen && (
                 <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl py-2 z-50 text-slate-800">
                   <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-3">
-                    <img 
+                    <img
                       src={`https://api.dicebear.com/7.x/notionists/svg?seed=${activeUser.username}&backgroundColor=3f72af`}
                       alt="Avatar"
                       className="w-10 h-10 rounded-full border border-slate-200"

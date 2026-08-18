@@ -6,6 +6,11 @@ import { dbStore } from '../../../shared/data/mockDatabase';
 
 export const useReports = (initialTab: string) => {
   const [activeSubTab, setActiveSubTab] = useState<string>(initialTab);
+
+  useEffect(() => {
+    setActiveSubTab(initialTab);
+  }, [initialTab]);
+
   const [chartView, setChartView] = useState<'day' | 'week' | 'month' | 'quarter'>('day');
 
   const getTodayDateString = (d: Date) => {
@@ -60,36 +65,76 @@ export const useReports = (initialTab: string) => {
           return [];
         };
 
-        const [orderRes, ticketRes, usersRes, countersRes, groupsRes, sourcesRes, templatesRes, logsRes, gateLogsRes, productsRes] = await Promise.allSettled([
-          salesService.fetchOrders(),
-          salesService.fetchIssuedTickets(),
-          apiClient.get(API_ENDPOINTS.IAM.USERS_ACTIVE),
-          apiClient.get(API_ENDPOINTS.SALES.COUNTERS_ACTIVE),
-          apiClient.get(API_ENDPOINTS.MARKETING.CUSTOMER_GROUPS_ACTIVE),
-          apiClient.get(API_ENDPOINTS.MARKETING.CUSTOMER_SOURCES_ACTIVE),
-          apiClient.get(API_ENDPOINTS.TICKETING.TEMPLATES),
-          apiClient.get(API_ENDPOINTS.IAM.SYSTEM_LOGS, { size: 10000, fromDate, toDate }),
-          apiClient.get(API_ENDPOINTS.TICKETING.ACCESS_LOGS, { fromDate, toDate }).catch(() => ({ data: [] })),
-          apiClient.get(API_ENDPOINTS.SALES.PRODUCTS).catch(() => ({ data: [] }))
-        ]);
+        const fetchPromises: Promise<any>[] = [];
+        let usersIdx = -1, countersIdx = -1, groupsIdx = -1, sourcesIdx = -1, templatesIdx = -1;
+        let orderIdx = -1, ticketIdx = -1, logsIdx = -1, gateLogsIdx = -1, productsIdx = -1;
 
-        if (orderRes.status === 'fulfilled' && orderRes.value?.data) setLiveOrders(orderRes.value.data);
-        if (ticketRes.status === 'fulfilled' && ticketRes.value?.data) setLiveTickets(ticketRes.value.data);
-        if (usersRes.status === 'fulfilled') setUsers(extractList(usersRes.value));
-        if (countersRes.status === 'fulfilled') setSalesCounters(extractList(countersRes.value));
-        if (groupsRes.status === 'fulfilled') setCustomerGroups(extractList(groupsRes.value));
-        if (sourcesRes.status === 'fulfilled') setCustomerSources(extractList(sourcesRes.value));
-        if (templatesRes.status === 'fulfilled') setTicketTemplates(extractList(templatesRes.value).filter((t: any) => t.is_active || t.isActive || t.active || t.status !== 'INACTIVE'));
-        if (logsRes.status === 'fulfilled') setLiveSystemLogs(extractList(logsRes.value));
-        if (gateLogsRes.status === 'fulfilled') setLiveGateLogs(extractList(gateLogsRes.value));
-        if (productsRes.status === 'fulfilled') setLiveProducts(extractList(productsRes.value));
+        // Tùy theo từng Tab mà chỉ tải đúng những Dropdown Danh mục (active) cần thiết cho bộ lọc
+        if (activeSubTab === 'BaoCaoVeChiTiet' || activeSubTab === 'BaoCaoDoanhThu_User_Thang') {
+          usersIdx = fetchPromises.length;
+          fetchPromises.push(apiClient.get(API_ENDPOINTS.IAM.USERS_ACTIVE).catch(() => ({ data: [] })));
+        }
+
+        if (activeSubTab === 'BaoCaoVeChiTiet') {
+          countersIdx = fetchPromises.length; fetchPromises.push(apiClient.get(API_ENDPOINTS.SALES.COUNTERS_ACTIVE).catch(() => ({ data: [] })));
+          groupsIdx = fetchPromises.length; fetchPromises.push(apiClient.get(API_ENDPOINTS.MARKETING.CUSTOMER_GROUPS_ACTIVE).catch(() => ({ data: [] })));
+          sourcesIdx = fetchPromises.length; fetchPromises.push(apiClient.get(API_ENDPOINTS.MARKETING.CUSTOMER_SOURCES_ACTIVE).catch(() => ({ data: [] })));
+        }
+
+        if (activeSubTab === 'BaoCaoDoanhThu_LoaiVe' || activeSubTab === 'BaoCaoVeChiTiet') {
+          templatesIdx = fetchPromises.length;
+          fetchPromises.push(apiClient.get(API_ENDPOINTS.TICKETING.TEMPLATES).catch(() => ({ data: [] })));
+        }
+
+        // Tải Dữ liệu chính (Main APIs)
+        const requiresOrders = ['BaoCaoDoanhThu', 'BaoCaoVeChiTiet', 'BaoCaoDoanhThu_User_Thang', 'BaoCaoDoanhThu_LoaiVe', 'BaoCaoDoanhThu_SanPham'].includes(activeSubTab);
+        if (requiresOrders) {
+          orderIdx = fetchPromises.length;
+          fetchPromises.push(salesService.fetchOrders().catch(() => ({ data: [] })));
+        }
+
+        if (activeSubTab === 'BaoCaoVeChiTiet') {
+          ticketIdx = fetchPromises.length;
+          fetchPromises.push(salesService.fetchIssuedTickets().catch(() => ({ data: [] })));
+        }
+
+        if (activeSubTab === 'BaoCaoDoanhThu_SanPham') {
+          productsIdx = fetchPromises.length;
+          fetchPromises.push(apiClient.get(API_ENDPOINTS.SALES.PRODUCTS).catch(() => ({ data: [] })));
+        }
+
+        if (activeSubTab === 'BaoCaoHeThong') {
+          logsIdx = fetchPromises.length;
+          fetchPromises.push(apiClient.get(API_ENDPOINTS.IAM.SYSTEM_LOGS, { size: 1000, fromDate, toDate }).catch(() => ({ data: [] })));
+        }
+
+        if (activeSubTab === 'BaoCaoRaVao') {
+          gateLogsIdx = fetchPromises.length;
+          fetchPromises.push(apiClient.get(API_ENDPOINTS.TICKETING.ACCESS_LOGS, { fromDate, toDate, size: 2000 }).catch(() => ({ data: [] })));
+        }
+
+        const results = await Promise.allSettled(fetchPromises);
+
+        // Cập nhật State
+        if (usersIdx !== -1 && results[usersIdx].status === 'fulfilled') setUsers(extractList((results[usersIdx] as any).value));
+        if (countersIdx !== -1 && results[countersIdx].status === 'fulfilled') setSalesCounters(extractList((results[countersIdx] as any).value));
+        if (groupsIdx !== -1 && results[groupsIdx].status === 'fulfilled') setCustomerGroups(extractList((results[groupsIdx] as any).value));
+        if (sourcesIdx !== -1 && results[sourcesIdx].status === 'fulfilled') setCustomerSources(extractList((results[sourcesIdx] as any).value));
+        if (templatesIdx !== -1 && results[templatesIdx].status === 'fulfilled') setTicketTemplates(extractList((results[templatesIdx] as any).value).filter((t: any) => t.is_active || t.isActive || t.active || t.status !== 'INACTIVE'));
+
+        if (orderIdx !== -1 && results[orderIdx].status === 'fulfilled') setLiveOrders(extractList((results[orderIdx] as any).value));
+        if (ticketIdx !== -1 && results[ticketIdx].status === 'fulfilled') setLiveTickets(extractList((results[ticketIdx] as any).value));
+        if (productsIdx !== -1 && results[productsIdx].status === 'fulfilled') setLiveProducts(extractList((results[productsIdx] as any).value));
+        if (logsIdx !== -1 && results[logsIdx].status === 'fulfilled') setLiveSystemLogs(extractList((results[logsIdx] as any).value));
+        if (gateLogsIdx !== -1 && results[gateLogsIdx].status === 'fulfilled') setLiveGateLogs(extractList((results[gateLogsIdx] as any).value));
+
         setIsDataLoaded(true);
       } catch (err) {
         console.error('Failed to fetch data for dashboard:', err);
       }
     };
     loadData();
-  }, [searchTrigger]);
+  }, [searchTrigger, activeSubTab]); // Thêm activeSubTab để khi đổi tab nó tự load đúng dữ liệu
 
   const handleExportExcel = (reportTitle: string) => {
     setExportNotice(`Đã kết xuất tệp Báo cáo Excel: ${reportTitle}_${new Date().toISOString().slice(0, 10)}.xlsx`);

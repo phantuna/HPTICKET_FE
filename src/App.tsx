@@ -80,15 +80,34 @@ export default function App() {
   }, []);
 
   // Lắng nghe sự kiện hết hạn token JWT (401) từ apiConfig
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastInfo, setToastInfo] = useState<{message: string, title: string, type: 'error' | 'success'} | null>(null);
   useEffect(() => {
     const handleSessionExpired = (e: any) => {
-      setToastMessage(e.detail?.message || 'Phiên đăng nhập đã hết hạn!');
-      // Ẩn toast sau 2 giây (để kịp redirect)
-      setTimeout(() => setToastMessage(null), 2000);
+      setToastInfo({ message: e.detail?.message || 'Phiên đăng nhập đã hết hạn!', title: 'Hết hạn đăng nhập', type: 'error' });
+      setTimeout(() => setToastInfo(null), 3500);
     };
     window.addEventListener('session_expired', handleSessionExpired);
     return () => window.removeEventListener('session_expired', handleSessionExpired);
+  }, []);
+
+  // Lắng nghe các lỗi nghiệp vụ từ API (Business Exceptions)
+  useEffect(() => {
+    const handleApiError = (e: any) => {
+      setToastInfo({ message: e.detail?.message || 'Đã xảy ra lỗi hệ thống khi gọi API!', title: 'Lỗi hệ thống', type: 'error' });
+      setTimeout(() => setToastInfo(null), 3500);
+    };
+    window.addEventListener('api_error', handleApiError);
+    return () => window.removeEventListener('api_error', handleApiError);
+  }, []);
+
+  // Lắng nghe Toast chung (Thành công/Thất bại từ code người dùng gọi)
+  useEffect(() => {
+    const handleToast = (e: any) => {
+      setToastInfo({ message: e.detail?.message, title: e.detail?.title || 'Thông báo', type: e.detail?.type || 'success' });
+      setTimeout(() => setToastInfo(null), 3500);
+    };
+    window.addEventListener('toast_notification', handleToast);
+    return () => window.removeEventListener('toast_notification', handleToast);
   }, []);
 
   const handleUserSwitch = () => {
@@ -115,10 +134,14 @@ export default function App() {
     return (
       <>
         {/* Vẫn giữ Toast chung cho toàn App kể cả khi ở Login */}
-        {toastMessage && (
-          <div className="fixed top-4 right-4 z-[9999] bg-red-600 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 animate-[slideIn_0.3s_ease-out]">
-            <svg className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            <div className="font-semibold">{toastMessage}</div>
+        {toastInfo && (
+          <div className={`fixed top-8 right-8 z-[9999] p-6 rounded-2xl shadow-2xl flex flex-col gap-2 min-w-[380px] max-w-lg transition-colors duration-300 animate-[slideIn_0.3s_ease-out] ${toastInfo.type === 'error' ? 'bg-rose-600 text-white border-2 border-rose-400' : 'bg-emerald-600 text-white border-2 border-emerald-400'}`}>
+            <h4 className="text-lg font-bold flex items-center gap-2">
+              {toastInfo.title}
+            </h4>
+            <p className={`text-sm mt-1 leading-relaxed ${toastInfo.type === 'error' ? 'text-rose-50' : 'text-emerald-50'}`}>
+              {toastInfo.message}
+            </p>
           </div>
         )}
         <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-slate-100"><div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div></div>}>
@@ -130,12 +153,15 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800 font-sans antialiased selection:bg-emerald-600 selection:text-white flex flex-col">
-      {/* Toast thông báo lỗi JWT */}
-      {toastMessage && (
-        <div className="fixed top-4 right-4 z-[9999] bg-red-600 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 animate-[slideIn_0.3s_ease-out]">
-          <svg className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-          <div className="font-semibold">{toastMessage}</div>
-        </div>
+      {toastInfo && (
+          <div className={`fixed top-8 right-8 z-[9999] p-6 rounded-2xl shadow-2xl flex flex-col gap-2 min-w-[380px] max-w-lg transition-colors duration-300 animate-[slideIn_0.3s_ease-out] ${toastInfo.type === 'error' ? 'bg-rose-600 text-white border-2 border-rose-400' : 'bg-emerald-600 text-white border-2 border-emerald-400'}`}>
+            <h4 className="text-lg font-bold flex items-center gap-2">
+              {toastInfo.title}
+            </h4>
+            <p className={`text-sm mt-1 leading-relaxed ${toastInfo.type === 'error' ? 'text-rose-50' : 'text-emerald-50'}`}>
+              {toastInfo.message}
+            </p>
+          </div>
       )}
 
       {/* Full screen System Lock Overlay when locked */}

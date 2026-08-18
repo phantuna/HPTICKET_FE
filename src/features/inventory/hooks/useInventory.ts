@@ -6,6 +6,10 @@ import { dbStore } from '../../../shared/data/mockDatabase';
 export const useInventory = (initialTab: string) => {
   const [activeTab, setActiveTab] = useState<string>(initialTab);
 
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
+
   const [products, setProducts] = useState<Product[]>([]);
   const [stockLogs, setStockLogs] = useState<StockMovementLog[]>([]);
 

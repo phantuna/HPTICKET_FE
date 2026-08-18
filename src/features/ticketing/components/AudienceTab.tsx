@@ -3,6 +3,7 @@ import { Users } from 'lucide-react';
 import { AdminConfigCard } from '../../iam/components/AdminConfigCard';
 import { AudienceType } from '../../../shared/types/hpticket';
 import { ticketingService } from '../../../api/ticketingService';
+import { toast } from '../../../shared/utils/toast';
 
 interface AudienceTabProps {
   audienceTypes: AudienceType[];
@@ -17,7 +18,7 @@ export const AudienceTab: React.FC<AudienceTabProps> = ({ audienceTypes, setAudi
   const [newAudName, setNewAudName] = useState('');
 
   const handleSave = async () => {
-    if (!newAudCode || !newAudName) return;
+    if (!newAudCode || !newAudName) { toast.error('Vui lòng nhập đầy đủ Mã và Tên Đối tượng vé!'); return; }
     
     if (editingAud) {
       const updatedItem = { ...editingAud, code: newAudCode.toUpperCase(), name: newAudName };

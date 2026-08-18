@@ -3,6 +3,7 @@ import { Ticket } from 'lucide-react';
 import { AdminConfigCard } from '../../iam/components/AdminConfigCard';
 import { TicketTemplate, AudienceType, TicketZone } from '../../../shared/types/hpticket';
 import { ticketingService } from '../../../api/ticketingService';
+import { toast } from '../../../shared/utils/toast';
 
 interface TemplateTabProps {
   ticketTemplates: TicketTemplate[];
@@ -41,7 +42,7 @@ export const TemplateTab: React.FC<TemplateTabProps> = ({
   };
 
   const handleSave = async () => {
-    if (!newTplCode || !newTplName) return;
+    if (!newTplCode || !newTplName) { toast.error('Vui lòng nhập đầy đủ Mã Mẫu Vé và Tên Mẫu Vé!'); return; }
 
     if (editingTpl) {
       const updatedItem = {

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { usePermission } from '../hooks/usePermission';
 import {
   Settings,
   Ticket,
@@ -58,8 +59,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { label: 'Khai báo khu kiểm soát', module: 'location', subTab: 'KhaibaosKhuKiemSoat', icon: ShieldCheck },
     { label: 'Khai báo cửa kiểm soát', module: 'location', subTab: 'KhaiBaoCuaKS', icon: Server },
     { label: 'Khai báo đối tượng', module: 'ticketing', subTab: 'KhaiBaoDoiTuong', icon: Users },
-    { label: 'Khai báo các loại vé', module: 'ticketing', subTab: 'KhaibaoVe', icon: Ticket },
-    { label: 'Khai báo vé theo khu vực', module: 'ticketing', subTab: 'KhaiBaoVe_KS', icon: Layers },
+    { label: 'Khai báo nhóm vé áp dụng (Khu vực)', module: 'ticketing', subTab: 'KhaiBaoVe_KS', icon: Layers },
+    { label: 'Khai báo mẫu vé / Loại vé', module: 'ticketing', subTab: 'KhaibaoVe', icon: Ticket },
     { label: 'Khai báo nhóm quyền', module: 'iam', subTab: 'KhaiBaoPhanQuyen', icon: Shield },
     { label: 'Khai báo tài khoản đăng nhập', module: 'iam', subTab: 'KhaibaoDangNhap', icon: UserCheck },
     { label: 'Khai báo thẻ nhân viên / QR', module: 'iam', subTab: 'KhaiBaoThe_NV', icon: QrCode },
@@ -87,8 +88,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       ],
     },
     { label: 'Báo cáo ra vào cổng', module: 'reports', subTab: 'BaoCaoRaVao', icon: Clock },
-    { label: 'Nhật ký lịch sử hệ thống', module: 'reports', subTab: 'BaoCaoHeThong', icon: FileText },
+    { label: 'Nhật ký lịch sử hệ thống', module: 'reports', subTab: 'BaoCaoHeThong', icon: FileText, requirePermission: 'VIEW_SYSTEM_LOG' },
   ];
+
+  // Xác định quyền bằng cách đọc JWT token — động, không fix cứng role
+  const { can } = usePermission();
 
   const isRouteActive = (module: string, subTab?: string) => {
     if (activeTab !== module) return false;
@@ -102,25 +106,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <aside
-      className={`sticky top-16 shrink-0 h-[calc(100vh-4rem)] bg-white border-r border-slate-200 transition-all duration-300 flex flex-col shadow-xs z-20 overflow-x-hidden ${
-        isOpen ? 'w-72 min-w-[18rem]' : 'w-14 min-w-[3.5rem]'
-      }`}
+      className={`sticky top-16 shrink-0 h-[calc(100vh-4rem)] bg-white border-r border-slate-200 transition-all duration-300 flex flex-col shadow-xs z-20 overflow-x-hidden ${isOpen ? 'w-72 min-w-[18rem]' : 'w-14 min-w-[3.5rem]'
+        }`}
     >
       {/* Sidebar Header / Collapse Toggle */}
-      <div className="p-3 border-b border-slate-200 flex items-center justify-between bg-slate-50/80">
+      <div className="p-3 border-b border-slate-200 flex items-center justify-center bg-slate-50/80 min-h-[3.5rem]">
         <div className={`flex items-center gap-2 overflow-hidden transition-all ${isOpen ? 'opacity-100' : 'opacity-0 w-0'}`}>
           <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           <span className="text-xs font-bold uppercase tracking-wider text-slate-800 whitespace-nowrap">
             Danh Mục Hệ Thống
           </span>
         </div>
-        <button
-          onClick={onToggleSidebar}
-          className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition mx-auto lg:ml-auto"
-          title={isOpen ? 'Thu gọn Menu' : 'Mở rộng Menu'}
-        >
-          <Menu className="w-4 h-4" />
-        </button>
       </div>
 
       {/* Navigation Scroll Area */}
@@ -129,11 +125,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="space-y-1">
           <button
             onClick={() => setKhaibaoOpen(!khaibaoOpen)}
-            className={`w-full flex items-center justify-between p-2 rounded-xl text-xs font-bold transition text-left ${
-              declarationMenu.some((item) => isRouteActive(item.module, item.subTab))
+            className={`w-full flex items-center justify-between p-2 rounded-xl text-xs font-bold transition text-left ${declarationMenu.some((item) => isRouteActive(item.module, item.subTab))
                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                 : 'text-slate-700 hover:bg-slate-100'
-            }`}
+              }`}
             title="Khai Báo Hệ Thống"
           >
             <div className="flex items-center gap-2 overflow-hidden">
@@ -155,11 +150,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     key={idx}
                     onClick={() => onSelectRoute(item.module, item.subTab)}
                     title={item.label}
-                    className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition text-left ${
-                      active
+                    className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition text-left ${active
                         ? 'bg-emerald-600 text-white font-semibold shadow-xs'
                         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                    }`}
+                      }`}
                   >
                     <Icon className={`w-3.5 h-3.5 shrink-0 ${active ? 'text-white' : 'text-slate-400'}`} />
                     <span className={`truncate ${isOpen ? 'inline' : 'hidden'}`}>{item.label}</span>
@@ -174,11 +168,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="space-y-1">
           <button
             onClick={() => setQuanlyveOpen(!quanlyveOpen)}
-            className={`w-full flex items-center justify-between p-2 rounded-xl text-xs font-bold transition text-left ${
-              posMenu.some((item) => isRouteActive(item.module))
+            className={`w-full flex items-center justify-between p-2 rounded-xl text-xs font-bold transition text-left ${posMenu.some((item) => isRouteActive(item.module))
                 ? 'bg-blue-50 text-blue-700 border border-blue-200'
                 : 'text-slate-700 hover:bg-slate-100'
-            }`}
+              }`}
             title="Quản Lý Vé & POS"
           >
             <div className="flex items-center gap-2 overflow-hidden">
@@ -200,11 +193,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     key={idx}
                     onClick={() => onSelectRoute(item.module)}
                     title={item.label}
-                    className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition text-left ${
-                      active
+                    className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition text-left ${active
                         ? 'bg-blue-600 text-white font-semibold shadow-xs'
                         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center gap-2 overflow-hidden">
                       <Icon className={`w-3.5 h-3.5 shrink-0 ${active ? 'text-white' : 'text-slate-400'}`} />
@@ -226,11 +218,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="space-y-1">
           <button
             onClick={() => setBaocaoOpen(!baocaoOpen)}
-            className={`w-full flex items-center justify-between p-2 rounded-xl text-xs font-bold transition text-left ${
-              reportsMenu.some((item) => isRouteActive(item.module, item.subTab))
+            className={`w-full flex items-center justify-between p-2 rounded-xl text-xs font-bold transition text-left ${reportsMenu.some((item) => isRouteActive(item.module, item.subTab))
                 ? 'bg-purple-50 text-purple-700 border border-purple-200'
                 : 'text-slate-700 hover:bg-slate-100'
-            }`}
+              }`}
             title="Báo Cáo & Thống Kê"
           >
             <div className="flex items-center gap-2 overflow-hidden">
@@ -245,6 +236,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {baocaoOpen && (
             <div className={`space-y-0.5 ${isOpen ? 'pl-3 border-l border-slate-200 ml-3 mt-1' : 'pl-0 border-none ml-0 mt-1'}`}>
               {reportsMenu.map((item, idx) => {
+                // Ẩn menu nếu requirePermission được khai báo mà user không có quyền đó
+                if (item.requirePermission && !can(item.requirePermission)) return null;
+
                 if (item.children) {
                   const hasActiveChild = isAnyChildActive(item.children);
                   return (
@@ -252,9 +246,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <button
                         onClick={() => setDichvuOpen(!dichvuOpen)}
                         title={item.label}
-                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition text-left ${
-                          hasActiveChild ? 'bg-purple-100 text-purple-700 font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                        }`}
+                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition text-left ${hasActiveChild ? 'bg-purple-100 text-purple-700 font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                          }`}
                       >
                         <div className="flex items-center gap-2 overflow-hidden">
                           <item.icon className={`w-3.5 h-3.5 shrink-0 ${hasActiveChild ? 'text-purple-600' : 'text-slate-400'}`} />
@@ -273,11 +266,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 key={cIdx}
                                 onClick={() => onSelectRoute(child.module, child.subTab)}
                                 title={child.label}
-                                className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition text-left ${
-                                  cActive
+                                className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition text-left ${cActive
                                     ? 'bg-purple-600 text-white font-semibold shadow-xs'
                                     : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
-                                }`}
+                                  }`}
                               >
                                 <child.icon className={`w-3.5 h-3.5 shrink-0 ${cActive ? 'text-white' : 'text-slate-400'}`} />
                                 <span className={`truncate ${isOpen ? 'inline' : 'hidden'}`}>{child.label}</span>
@@ -297,11 +289,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     key={idx}
                     onClick={() => onSelectRoute(item.module, item.subTab)}
                     title={item.label}
-                    className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition text-left ${
-                      active
+                    className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition text-left ${active
                         ? 'bg-purple-600 text-white font-semibold shadow-xs'
                         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                    }`}
+                      }`}
                   >
                     <Icon className={`w-3.5 h-3.5 shrink-0 ${active ? 'text-white' : 'text-slate-400'}`} />
                     <span className={`truncate ${isOpen ? 'inline' : 'hidden'}`}>{item.label}</span>

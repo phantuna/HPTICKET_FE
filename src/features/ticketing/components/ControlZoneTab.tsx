@@ -3,6 +3,7 @@ import { ShieldCheck } from 'lucide-react';
 import { AdminConfigCard } from '../../iam/components/AdminConfigCard';
 import { ControlZone } from '../../../shared/types/hpticket';
 import { ticketingService } from '../../../api/ticketingService';
+import { toast } from '../../../shared/utils/toast';
 
 interface ControlZoneTabProps {
   controlZones: ControlZone[];
@@ -17,7 +18,7 @@ export const ControlZoneTab: React.FC<ControlZoneTabProps> = ({ controlZones, se
   const [newControlZoneName, setNewControlZoneName] = useState('');
 
   const handleSave = async () => {
-    if (!newControlZoneCode || !newControlZoneName) return;
+    if (!newControlZoneCode || !newControlZoneName) { toast.error('Vui lòng nhập đầy đủ Mã và Tên Khu vực kiểm soát!'); return; }
     const payload: any = {
       code: newControlZoneCode.toUpperCase(),
       name: newControlZoneName,

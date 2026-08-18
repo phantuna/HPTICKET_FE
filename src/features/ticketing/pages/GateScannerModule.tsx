@@ -76,6 +76,17 @@ export const GateScannerModule: React.FC = () => {
       const logsRes = await ticketingService.fetchAccessLogs();
       setLogs(logsRes.data || [...dbStore.gateAccessLogs]);
       setQrInput('');
+
+      // TRUYỀN TÍN HIỆU XUỐNG C# ĐỂ NHẢY CHỐT ZKTECO
+      if (res.data && ((res.data as any).status_result === 'OPEN_GATE' || res.data.result === ScanStatusResult.SUCCESS)) {
+        const globalWindow = window as any;
+        if (globalWindow.chrome && globalWindow.chrome.webview) {
+          globalWindow.chrome.webview.postMessage(JSON.stringify({
+             action: 'OPEN_GATE',
+             gate_id: selectedGateId
+          }));
+        }
+      }
     } catch (e) {
       console.error('Scan error:', e);
     } finally {

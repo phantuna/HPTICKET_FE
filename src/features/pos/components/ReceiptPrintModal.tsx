@@ -125,8 +125,9 @@ export const ReceiptPrintModal: React.FC<ReceiptPrintModalProps> = ({
             // Find unit price from order details if available
             const orderDetail = order.details?.find(d => d.item_id === tkt.ticket_template_id);
             const basePrice = orderDetail ? orderDetail.unit_price : 0;
-            const effectivePrice = orderDetail && orderDetail.pre_tax_price 
-              ? Math.round(Number(orderDetail.pre_tax_price) + Number(orderDetail.tax_amount || 0)) 
+            // Dùng giá trị xuất hóa đơn (Giá sau chiết khấu + Thuế) để in lên mặt vé
+            const effectivePrice = orderDetail 
+              ? Math.round(Number(orderDetail.total_price) / (orderDetail.quantity || 1))
               : basePrice;
             const qrCode = tkt.qr_code_string || defaultQrValue;
 

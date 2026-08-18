@@ -11,8 +11,14 @@ export const TicketQRModal: React.FC<TicketQRModalProps> = ({ selectedTicket, se
   if (!selectedTicket) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 shadow-2xl text-slate-800 flex flex-col items-center">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+    >
+      <div 
+        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm cursor-pointer"
+        onClick={() => setSelectedTicket(null)}
+      />
+      <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 shadow-2xl text-slate-800 flex flex-col items-center relative z-10 animate-[slideIn_0.2s_ease-out]">
         <h3 className="text-base font-bold text-center text-slate-900 mb-1">{selectedTicket.ticket_template_name}</h3>
         <p className="text-xs text-slate-500 mb-4">Hạn dùng: {selectedTicket.valid_date}</p>
 
