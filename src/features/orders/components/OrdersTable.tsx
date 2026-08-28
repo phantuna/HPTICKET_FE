@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, FileText, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { Eye, FileText, CheckCircle2, XCircle, Clock, Printer, Loader2 } from 'lucide-react';
 
 interface OrdersTableProps {
   orders: any[];
@@ -15,6 +15,10 @@ interface OrdersTableProps {
   onToggleSelectOrder?: (id: string) => void;
   onToggleSelectAll?: (orders: any[]) => void;
   isAllSelected?: boolean;
+  onReprintOrder?: (ord: any) => void;
+  isReprinting?: boolean;
+  onCancelOrder?: (ord: any) => void;
+  isCancellingId?: string;
 }
 
 const formatDate = (dateStr: string | null | undefined) => {
@@ -81,11 +85,15 @@ export const OrdersTable: React.FC<OrdersTableProps> = ({
   onToggleSelectOrder,
   onToggleSelectAll,
   isAllSelected = false,
+  onReprintOrder,
+  isReprinting = false,
+  onCancelOrder,
+  isCancellingId,
 }) => {
   return (
     <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-xs text-slate-700">
+        <table className="w-full text-left text-xs text-slate-700 whitespace-nowrap">
           <thead className="bg-slate-50 text-slate-500 uppercase font-mono text-[10px] border-b border-slate-200">
             <tr>
               <th className="p-3.5 w-10 text-center">
@@ -116,7 +124,7 @@ export const OrdersTable: React.FC<OrdersTableProps> = ({
               orders.map((ord) => {
                 const isSelected = selectedOrderIds.includes(ord.id);
                 const invoiceStatus = ord.invoice_status || (ord.invoice_number ? 'ISSUED' : 'UNISSUED');
-                const isEligible = invoiceStatus !== 'ISSUED' && invoiceStatus !== 'ISSUED_BULK' && invoiceStatus !== 'PENDING';
+                const isEligible = ord.status !== 'CANCELLED' && invoiceStatus !== 'ISSUED' && invoiceStatus !== 'ISSUED_BULK' && invoiceStatus !== 'PENDING';
                 
                 return (
                   <tr
@@ -154,14 +162,60 @@ export const OrdersTable: React.FC<OrdersTableProps> = ({
                       />
                     </td>
                     <td className="p-3.5 font-medium">
-                      <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded">
-                        {ord.payment_method}
-                      </span>
+                      {ord.status === 'CANCELLED' ? (
+                        <span className="text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded">
+                          ĐÃ HỦY
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded">
+                          {ord.payment_method}
+                        </span>
+                      )}
                     </td>
                     <td className="p-3.5 text-right font-mono font-extrabold text-slate-900">
                       {ord.final_amount.toLocaleString('vi-VN')} đ
                     </td>
-                    <td className="p-3.5 text-center">
+                    <td className="p-3.5 text-center flex items-center justify-center gap-2">
+                      {ord.status === 'CANCELLED' ? (
+                        <span className="px-2.5 py-1 bg-rose-50 text-rose-500 text-[11px] font-semibold rounded-lg border border-rose-200 inline-flex items-center gap-1 opacity-70">
+                          Đã Hủy
+                        </span>
+                      ) : (
+                        <>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onReprintOrder && onReprintOrder(ord);
+                            }}
+                            disabled={isReprinting}
+                            className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 text-[11px] font-semibold rounded-lg border border-blue-200 transition inline-flex items-center gap-1 disabled:opacity-50"
+                          >
+                            {isReprinting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Printer className="w-3.5 h-3.5" />}
+                            In Lại
+                          </button>
+                          {(() => {
+                            const isInvoiceIssued = ord.invoice_status === 'ISSUED' || ord.invoice_status === 'ISSUED_BULK' || (ord.invoice_status == null && ord.invoice_number != null);
+                            return (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (isInvoiceIssued) {
+                                    alert('Đơn hàng này đã được xuất Hóa đơn điện tử (Viettel S-Invoice).\n\nTheo quy định của Tổng cục Thuế, bạn không thể tự ý hủy đơn trên hệ thống POS.\nVui lòng lập biên bản Hủy/Điều chỉnh hóa đơn trên hệ thống phần mềm kế toán!');
+                                    return;
+                                  }
+                                  onCancelOrder && onCancelOrder(ord);
+                                }}
+                                disabled={isCancellingId === ord.id || isInvoiceIssued}
+                                title={isInvoiceIssued ? "Không thể hủy đơn đã xuất HĐĐT" : "Hủy đơn hàng"}
+                                className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg border transition inline-flex items-center gap-1 ${isInvoiceIssued ? 'bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed' : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200 disabled:opacity-50'}`}
+                              >
+                                {isCancellingId === ord.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
+                                Hủy
+                              </button>
+                            );
+                          })()}
+                        </>
+                      )}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();

@@ -30,7 +30,8 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({ subTab = 'BaoCaoDo
     users, salesCounters, customerGroups, customerSources, ticketTemplates,
     rawOrders, issuedTickets, rawGateLogs, gateLogs, systemLogs,
     totalRevenue, totalTicketsSold, chartData, ticketStatsArray, totalCash, totalBankTransfer,
-    ticketTemplateStats, productStats
+    ticketTotalRevenue, ticketTotalCash, ticketTotalBankTransfer,
+    ticketTemplateStats, productStats, loadDropdowns
   } = reportsData;
 
   const currentTab = onSelectSubTab ? subTab : activeSubTab;
@@ -65,8 +66,11 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({ subTab = 'BaoCaoDo
           posFilter={posFilter} setPosFilter={setPosFilter} sellerFilter={sellerFilter} setSellerFilter={setSellerFilter}
           customerGroupFilter={customerGroupFilter} setCustomerGroupFilter={setCustomerGroupFilter} customerSourceFilter={customerSourceFilter} setCustomerSourceFilter={setCustomerSourceFilter}
           setSearchTrigger={setSearchTrigger} handleExportExcel={handleExportExcel} salesCounters={salesCounters} users={users} customerGroups={customerGroups} customerSources={customerSources}
-          totalRevenue={totalRevenue} totalCash={totalCash} totalBankTransfer={totalBankTransfer} issuedTickets={issuedTickets} rawOrders={rawOrders}
+          totalRevenue={totalRevenue} totalCash={totalCash} totalBankTransfer={totalBankTransfer} 
+          ticketTotalRevenue={ticketTotalRevenue} ticketTotalCash={ticketTotalCash} ticketTotalBankTransfer={ticketTotalBankTransfer}
+          issuedTickets={issuedTickets} rawOrders={rawOrders}
           page={page} setPage={setPage} pageSize={pageSize}
+          onFilterFocus={loadDropdowns}
         />
       )}
 
@@ -74,6 +78,7 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({ subTab = 'BaoCaoDo
         <UserRevenueReportTab
           sellerFilter={sellerFilter} setSellerFilter={setSellerFilter} selectedMonth={selectedMonth} setSelectedMonth={setSelectedMonth}
           setSearchTrigger={setSearchTrigger} handleExportExcel={handleExportExcel} users={users} rawOrders={rawOrders} totalRevenue={totalRevenue}
+          onFilterFocus={loadDropdowns}
         />
       )}
 
@@ -81,6 +86,7 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({ subTab = 'BaoCaoDo
         <TicketTypeRevenueReportTab
           fromDate={fromDate} setFromDate={setFromDate} toDate={toDate} setToDate={setToDate} ticketTypeFilter={ticketTypeFilter} setTicketTypeFilter={setTicketTypeFilter}
           setSearchTrigger={setSearchTrigger} handleExportExcel={handleExportExcel} ticketTemplates={ticketTemplates} ticketTemplateStats={ticketTemplateStats}
+          onFilterFocus={loadDropdowns}
         />
       )}
 

@@ -9,6 +9,9 @@ import { OrderDetailModal } from '../components/OrderDetailModal';
 import { TicketQRModal } from '../components/TicketQRModal';
 import { InvoiceActionBar } from '../components/InvoiceActionBar';
 import { IssueInvoiceModal } from '../components/IssueInvoiceModal';
+import { salesService } from '../../../api/salesService';
+import { ReceiptPrintModal } from '../../pos/components/ReceiptPrintModal';
+import { PromptModal } from '../../../shared/components/PromptModal';
 
 export const OrdersModule: React.FC = () => {
   const {
@@ -26,7 +29,7 @@ export const OrdersModule: React.FC = () => {
     orders, issuedTickets,
     orderDetail,
     currentPage, pageSize, totalElements, totalPages, isLoading,
-    fetchData, fetchOrderDetail, goToPage, changePageSize
+    fetchData, fetchOrderDetail, goToPage, changePageSize, loadDropdowns
   } = useOrders();
 
   const {
@@ -44,6 +47,85 @@ export const OrdersModule: React.FC = () => {
     toastMessage,
     clearToast
   } = useInvoice();
+
+  const [reprintData, setReprintData] = React.useState<{order: any, tickets: any[]} | null>(null);
+  const [isReprinting, setIsReprinting] = React.useState(false);
+  const [isCancellingId, setIsCancellingId] = React.useState<string | undefined>();
+
+  const [promptModalOpen, setPromptModalOpen] = React.useState(false);
+  const [orderToCancel, setOrderToCancel] = React.useState<any>(null);
+
+  const handleCancelOrderClick = (ord: any) => {
+    setOrderToCancel(ord);
+    setPromptModalOpen(true);
+  };
+
+  const handleConfirmCancel = async (reason: string) => {
+    if (!orderToCancel || !reason) return;
+    
+    setPromptModalOpen(false);
+    setIsCancellingId(orderToCancel.id);
+    
+    try {
+      const res = await salesService.cancelOrder(orderToCancel.id, reason);
+      if (res.code === 200 || res.code === 201 || res.code === 204) {
+        // Clear selection just in case the cancelled order was previously selected
+        clearSelection();
+        fetchData(); 
+      } else {
+        alert(res.message || 'Hủy đơn hàng thất bại');
+      }
+    } catch (err: any) {
+      if (err.code === 403 || (err.message && err.message.toLowerCase().includes('quyền'))) {
+        alert('Lỗi 403: Bạn không có quyền thao tác trên quầy bán này hoặc quyền đã bị thu hồi. Ứng dụng sẽ tải lại.');
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        alert('Lỗi khi hủy đơn hàng. Vui lòng thử lại sau.');
+      }
+    } finally {
+      setIsCancellingId(undefined);
+      setOrderToCancel(null);
+    }
+  };
+
+  const handleReprintOrder = async (ord: any) => {
+    setIsReprinting(true);
+    try {
+      // 1. Gọi API lấy thông tin Order chi tiết
+      const orderRes = await salesService.fetchOrderDetail(ord.id);
+      // 2. Gọi API lấy toàn bộ vé của order đó
+      const ticketsRes = await salesService.fetchIssuedTicketsByOrder(ord.id);
+      
+      let fullOrder = ord;
+      if (orderRes && typeof orderRes === 'object') {
+        fullOrder = orderRes.data || orderRes;
+      }
+
+      let ticketsList: any[] = [];
+      if (Array.isArray(ticketsRes)) {
+        ticketsList = ticketsRes;
+      } else if (ticketsRes && Array.isArray(ticketsRes.data)) {
+        ticketsList = ticketsRes.data;
+      } else if (ticketsRes && typeof ticketsRes === 'object' && !ticketsRes.data && !ticketsRes.code) {
+        // Fallback for single object without wrapper
+        ticketsList = [ticketsRes];
+      } else if (ticketsRes && ticketsRes.data && typeof ticketsRes.data === 'object') {
+        ticketsList = [ticketsRes.data];
+      }
+
+      if (ticketsList.length === 0) {
+        alert('Đơn hàng này không có vé nào để in!');
+        return;
+      }
+      // 3. Đưa vào State để render ReceiptPrintModal
+      setReprintData({ order: fullOrder, tickets: ticketsList });
+    } catch (error) {
+      console.error("Lỗi khi tải thông tin vé để in lại:", error);
+      alert('Đã xảy ra lỗi khi kết nối với máy chủ để in lại vé!');
+    } finally {
+      setIsReprinting(false);
+    }
+  };
 
   const filteredOrders = orders
     .filter((o) => {
@@ -88,7 +170,8 @@ export const OrdersModule: React.FC = () => {
   );
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 relative">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 relative print:p-0 print:m-0 print:space-y-0 print:max-w-none">
+      <div className="print:hidden space-y-6">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed top-20 right-6 z-50 animate-fade-in">
@@ -125,6 +208,7 @@ export const OrdersModule: React.FC = () => {
         ticketCounters={ticketCounters} customerSources={customerSources}
         isLoading={isLoading}
         onSearch={() => { goToPage(0); }}
+        onFilterFocus={loadDropdowns}
       />
 
       {/* Invoice Action Bar */}
@@ -156,6 +240,10 @@ export const OrdersModule: React.FC = () => {
           onToggleSelectOrder={toggleSelectOrder}
           onToggleSelectAll={toggleSelectAll}
           isAllSelected={isAllSelected(filteredOrders)}
+          onReprintOrder={handleReprintOrder}
+          isReprinting={isReprinting}
+          onCancelOrder={handleCancelOrderClick}
+          isCancellingId={isCancellingId}
         />
       )}
 
@@ -184,6 +272,32 @@ export const OrdersModule: React.FC = () => {
         onClose={closeIssueModal}
         onSubmitCompany={(payload) => issueSelectedOrders(payload, () => fetchData())}
       />
+      </div>
+
+      {reprintData && (
+        <ReceiptPrintModal
+          order={reprintData.order}
+          tickets={reprintData.tickets}
+          onClose={() => setReprintData(null)}
+          onNewOrder={() => setReprintData(null)} // Đóng modal sau khi in xong
+        />
+      )}
+      {/* Prompt Modal Hủy Đơn */}
+      <PromptModal
+        isOpen={promptModalOpen}
+        onClose={() => {
+          setPromptModalOpen(false);
+          setOrderToCancel(null);
+        }}
+        onConfirm={handleConfirmCancel}
+        title="Hủy đơn hàng"
+        message={`Bạn đang yêu cầu hủy đơn hàng ${orderToCancel?.order_code}.\nHành động này không thể hoàn tác và sẽ tự động hoàn lại số lượng tồn kho.\n\nVui lòng nhập lý do hủy:`}
+        type="danger"
+        confirmText="Xác nhận Hủy"
+        placeholder="Nhập lý do hủy..."
+        required={true}
+      />
+
     </div>
   );
 };

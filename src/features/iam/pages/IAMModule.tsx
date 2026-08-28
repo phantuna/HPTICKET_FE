@@ -32,7 +32,10 @@ export const IAMModule: React.FC<IAMModuleProps> = ({ subTab = 'KhaiBaoPhanQuyen
     username, setUsername,
     password, setPassword,
     phone, setPhone,
+    qrCode, setQrCode,
     roleId, setRoleId,
+    selectedCounterIds, setSelectedCounterIds,
+    salesCounters,
     handleCreateOrUpdateUser,
     handleDeleteUsers,
     handleToggleUserActive,
@@ -118,8 +121,8 @@ export const IAMModule: React.FC<IAMModuleProps> = ({ subTab = 'KhaiBaoPhanQuyen
           columns={[
             {
               header: 'ID',
-              accessor: (row, idx) => idx + 1,
-              className: 'w-20 font-mono',
+              accessor: (row: any, idx: number) => idx + 1,
+              className: 'w-16 font-mono text-center'
             },
             {
               header: 'Tên đăng nhập',
@@ -191,9 +194,9 @@ export const IAMModule: React.FC<IAMModuleProps> = ({ subTab = 'KhaiBaoPhanQuyen
             data={users}
             columns={[
               {
-                header: 'ID',
-                accessor: (row: any, idx) => idx + 1,
-                className: 'w-16 font-mono text-center',
+                header: 'STT',
+                accessor: (row: any, idx: number) => idx + 1,
+                className: 'w-16 font-mono text-center'
               },
               {
                 header: 'Mã QR Nhân Viên',
@@ -223,13 +226,26 @@ export const IAMModule: React.FC<IAMModuleProps> = ({ subTab = 'KhaiBaoPhanQuyen
                 className: 'py-2',
               },
               {
-                header: 'Ảnh QR',
-                accessor: (row: any) => (
-                  <div className="p-1 bg-white inline-block border border-slate-200 rounded-lg shadow-xs">
-                    <QRCodeDisplay value={row.qr_code} size={48} />
-                  </div>
-                ),
-                className: 'p-2 text-center w-28',
+                header: 'Quầy được gán',
+                accessor: (row: any) => {
+                  const counters: any[] = row.assigned_counters || [];
+                  if (counters.length === 0) {
+                    return <span className="text-xs text-slate-400 italic">Chưa phân quầy</span>;
+                  }
+                  return (
+                    <div className="flex flex-wrap gap-1">
+                      {counters.map((c: any) => (
+                        <span
+                          key={c.id}
+                          className="text-[10px] font-semibold bg-violet-50 text-violet-700 border border-violet-200 px-2 py-0.5 rounded-full whitespace-nowrap"
+                        >
+                          {c.name || c.code}
+                        </span>
+                      ))}
+                    </div>
+                  );
+                },
+                className: 'py-2 min-w-[140px]',
               },
               {
                 header: 'Thao Tác',
@@ -279,8 +295,12 @@ export const IAMModule: React.FC<IAMModuleProps> = ({ subTab = 'KhaiBaoPhanQuyen
         <UserModal
           editingUserId={editingUserId} fullname={fullname} setFullname={setFullname}
           username={username} setUsername={setUsername} password={password} setPassword={setPassword}
-          phone={phone} setPhone={setPhone} roleId={roleId} setRoleId={setRoleId}
-          roles={roles} onClose={() => setShowUserModal(false)} onSubmit={handleCreateOrUpdateUser}
+          phone={phone} setPhone={setPhone} qrCode={qrCode} setQrCode={setQrCode} roleId={roleId} setRoleId={setRoleId}
+          roles={roles}
+          salesCounters={salesCounters}
+          selectedCounterIds={selectedCounterIds}
+          setSelectedCounterIds={setSelectedCounterIds}
+          onClose={() => setShowUserModal(false)} onSubmit={handleCreateOrUpdateUser}
         />
       )}
 

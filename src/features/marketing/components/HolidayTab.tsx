@@ -16,11 +16,21 @@ export const HolidayTab: React.FC<HolidayTabProps> = ({ holidays, setHolidays, r
   const [editingHolidayId, setEditingHolidayId] = useState<string | null>(null);
 
   const [newHolidayName, setNewHolidayName] = useState('');
-  const [newHolidayStart, setNewHolidayStart] = useState('2026-09-02');
-  const [newHolidayEnd, setNewHolidayEnd] = useState('2026-09-02');
+  const [newHolidayStart, setNewHolidayStart] = useState('');
+  const [newHolidayEnd, setNewHolidayEnd] = useState('');
+
+  const formatDate = (d: string) => {
+    if (!d) return '';
+    try {
+      return new Date(d).toLocaleDateString('vi-VN');
+    } catch {
+      return d;
+    }
+  };
 
   const handleSave = async () => {
     if (!newHolidayName) { toast.error('Vui lòng nhập Tên Ngày Lễ!'); return; }
+    if (!newHolidayStart || !newHolidayEnd) { toast.error('Vui lòng chọn Từ Ngày và Đến Ngày!'); return; }
     const payload = {
       name: newHolidayName,
       start_date: newHolidayStart,
@@ -56,25 +66,27 @@ export const HolidayTab: React.FC<HolidayTabProps> = ({ holidays, setHolidays, r
         title="KHAI BÁO CÁC NGÀY LỄ"
         data={holidays}
         columns={[
-          { header: 'ID', accessor: (row: any, idx) => idx + 1, className: 'w-20 font-mono' },
-          { header: 'Mã ngày lễ', accessor: 'code', className: 'font-mono font-bold text-slate-800' },
+          { header: 'ID', accessor: (row: any, idx) => idx + 1, className: 'w-16 font-mono text-center' },
           { header: 'Tên ngày lễ', accessor: 'name', className: 'font-semibold text-slate-900' },
-          { header: 'Từ ngày', accessor: 'start_date', className: 'font-mono text-slate-800' },
-          { header: 'Đến ngày', accessor: 'end_date', className: 'font-mono text-slate-800' },
+          { header: 'Từ ngày', accessor: (row: any) => formatDate(row.start_date || row.startDate), className: 'font-mono text-slate-800' },
+          { header: 'Đến ngày', accessor: (row: any) => formatDate(row.end_date || row.endDate), className: 'font-mono text-slate-800' },
           { header: 'Sử dụng', accessor: 'is_active', className: 'text-center w-24' },
         ]}
         onAddNew={() => {
           setEditingHolidayId(null);
           setNewHolidayName('');
-          setNewHolidayStart('2026-09-02');
-          setNewHolidayEnd('2026-09-02');
+          setNewHolidayStart('');
+          setNewHolidayEnd('');
           setShowModal(true);
         }}
         onEdit={(item: any) => {
           setEditingHolidayId(item.id);
-          setNewHolidayName(item.name);
-          setNewHolidayStart(item.start_date || item.startDate || '2026-09-02');
-          setNewHolidayEnd(item.end_date || item.endDate || '2026-09-02');
+          setNewHolidayName(item.name || '');
+          // Chuyển ISO string về format YYYY-MM-DD cho input type="date"
+          const sDate = item.start_date || item.startDate;
+          const eDate = item.end_date || item.endDate;
+          setNewHolidayStart(sDate ? sDate.substring(0, 10) : '');
+          setNewHolidayEnd(eDate ? eDate.substring(0, 10) : '');
           setShowModal(true);
         }}
         onDelete={handleDelete}
@@ -94,7 +106,7 @@ export const HolidayTab: React.FC<HolidayTabProps> = ({ holidays, setHolidays, r
                   type="text"
                   value={newHolidayName}
                   onChange={(e) => setNewHolidayName(e.target.value)}
-                  placeholder="e.g. Giỗ Tổ Hùng Vương"
+                  placeholder="e.g. Tết Nguyên Đán"
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 outline-none focus:ring-1 focus:ring-purple-500 font-medium"
                 />
               </div>

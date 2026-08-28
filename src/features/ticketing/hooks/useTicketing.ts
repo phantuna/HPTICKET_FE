@@ -17,7 +17,7 @@ export const useTicketing = (currentTab?: string) => {
       promises.push(
         ticketingService.fetchAudienceTypes()
           .then(res => { if (res.data) setAudienceTypes(res.data); })
-          .catch(() => {})
+          .catch(() => { })
       );
     }
 
@@ -25,12 +25,12 @@ export const useTicketing = (currentTab?: string) => {
       promises.push(
         ticketingService.fetchTicketTemplates()
           .then(res => { if (res.data) setTicketTemplates(res.data); })
-          .catch(() => {})
+          .catch(() => { })
       );
       promises.push(
         ticketingService.fetchTicketZones()
           .then(res => { if (res.data) setTicketZones(res.data); })
-          .catch(() => {})
+          .catch(() => { })
       );
     }
 
@@ -38,7 +38,7 @@ export const useTicketing = (currentTab?: string) => {
       promises.push(
         ticketingService.fetchControlZones()
           .then(res => { if (res.data) setControlZones(res.data); })
-          .catch(() => {})
+          .catch(() => { })
       );
     }
 

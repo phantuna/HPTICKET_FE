@@ -75,7 +75,7 @@ export const ProductRevenueReportTab: React.FC<ProductRevenueReportTabProps> = (
       <div className="bg-white border border-slate-100 rounded-md p-6 shadow-sm">
         <h3 className="text-sm font-bold text-slate-700 mb-4 uppercase">Chi Tiết Doanh Thu Sản Phẩm</h3>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+          <table className="w-full text-left text-sm whitespace-nowrap">
             <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
               <tr><th className="p-3">STT</th><th className="p-3">Mã hàng</th><th className="p-3">Tên hàng hóa/dịch vụ</th><th className="p-3 text-right">Số lượng</th><th className="p-3 text-right">Doanh thu</th><th className="p-3 text-right">% Tổng</th></tr>
             </thead>

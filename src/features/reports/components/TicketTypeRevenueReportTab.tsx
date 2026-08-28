@@ -12,11 +12,12 @@ interface TicketTypeRevenueReportTabProps {
   handleExportExcel: (tab: string) => void;
   ticketTemplates: any[];
   ticketTemplateStats: any[];
+  onFilterFocus?: () => void;
 }
 
 export const TicketTypeRevenueReportTab: React.FC<TicketTypeRevenueReportTabProps> = ({
   fromDate, setFromDate, toDate, setToDate, ticketTypeFilter, setTicketTypeFilter,
-  setSearchTrigger, handleExportExcel, ticketTemplates, ticketTemplateStats
+  setSearchTrigger, handleExportExcel, ticketTemplates, ticketTemplateStats, onFilterFocus
 }) => {
   const totalLoaiVeGross = ticketTemplateStats.reduce((sum, t) => sum + t.grossRevenue, 0);
   const totalLoaiVeDoanhThu = ticketTemplateStats.reduce((sum, t) => sum + t.revenue, 0);
@@ -28,7 +29,7 @@ export const TicketTypeRevenueReportTab: React.FC<TicketTypeRevenueReportTabProp
         <div className="flex items-center gap-2"><span className="text-slate-600 font-medium text-sm">Từ ngày:</span><input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="border border-slate-200 rounded-md px-3 py-1.5 outline-none focus:border-emerald-500 text-sm" /></div>
         <div className="flex items-center gap-2"><span className="text-slate-600 font-medium text-sm">Đến ngày:</span><input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="border border-slate-200 rounded-md px-3 py-1.5 outline-none focus:border-emerald-500 text-sm" /></div>
         <div className="flex items-center gap-2"><span className="text-slate-600 font-medium text-sm">Loại vé :</span>
-          <select value={ticketTypeFilter} onChange={(e) => setTicketTypeFilter(e.target.value)} className="bg-white border border-slate-200 px-3 py-1.5 text-sm text-slate-800 rounded-md outline-none focus:border-emerald-500">
+          <select onFocus={onFilterFocus} onMouseEnter={onFilterFocus} value={ticketTypeFilter} onChange={(e) => setTicketTypeFilter(e.target.value)} className="bg-white border border-slate-200 px-3 py-1.5 text-sm text-slate-800 rounded-md outline-none focus:border-emerald-500">
             <option value="all">Tất cả</option>
             {ticketTemplates.map((t) => <option key={t.id} value={t.code}>{t.name}</option>)}
           </select>
@@ -87,7 +88,7 @@ export const TicketTypeRevenueReportTab: React.FC<TicketTypeRevenueReportTabProp
       <div className="bg-white border border-slate-100 rounded-md p-6 shadow-sm">
         <h3 className="text-sm font-bold text-slate-700 mb-4 uppercase">Chi Tiết Doanh Thu Vé</h3>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+          <table className="w-full text-left text-sm whitespace-nowrap">
             <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
               <tr><th className="p-3">STT</th><th className="p-3">Mã loại vé</th><th className="p-3">Tên loại vé</th><th className="p-3 text-right">Số lượng</th><th className="p-3 text-right">Doanh thu</th><th className="p-3 text-right">% Tổng</th></tr>
             </thead>

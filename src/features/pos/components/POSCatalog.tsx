@@ -9,19 +9,38 @@ interface POSCatalogProps {
   products: any[];
   lineItems: any[];
   handleToggleItem: (item: any, type: ItemType) => void;
+  selectedCounter?: any;
 }
 
 export const POSCatalog: React.FC<POSCatalogProps> = ({
-  activeListTab, setActiveListTab, ticketTemplates, ticketZones, products, lineItems, handleToggleItem
-}) => (
-  <div className="lg:col-span-4 bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col">
+  activeListTab, setActiveListTab, ticketTemplates, ticketZones, products, lineItems, handleToggleItem, selectedCounter
+}) => {
+  const supportedTypes = selectedCounter?.supportedTypes || [];
+  const canSellTicket = supportedTypes.length === 0 || supportedTypes.includes('TICKET');
+  const canSellDrink = supportedTypes.length === 0 || supportedTypes.includes('DRINK');
+
+  // Reactively correct the active tab if a user switches to a counter that doesn't support the current tab
+  React.useEffect(() => {
+    if (activeListTab === 'TICKETS' && !canSellTicket && canSellDrink) {
+      setActiveListTab('PRODUCTS');
+    } else if (activeListTab === 'PRODUCTS' && !canSellDrink && canSellTicket) {
+      setActiveListTab('TICKETS');
+    }
+  }, [selectedCounter?.id, canSellTicket, canSellDrink, activeListTab, setActiveListTab]);
+
+  return (
+  <div className="order-1 lg:order-2 lg:col-span-4 bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col">
     <div className="flex items-center gap-2 mb-4 border-b border-slate-100 pb-2">
-      <button onClick={() => setActiveListTab('TICKETS')} className={`flex-1 text-xs font-bold py-2 rounded-lg transition ${activeListTab === 'TICKETS' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'text-slate-500 hover:bg-slate-50'}`}>
-        <Ticket className="w-4 h-4 inline-block mr-1.5" /> Vé Tham Quan
-      </button>
-      <button onClick={() => setActiveListTab('PRODUCTS')} className={`flex-1 text-xs font-bold py-2 rounded-lg transition ${activeListTab === 'PRODUCTS' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'text-slate-500 hover:bg-slate-50'}`}>
-        <Package className="w-4 h-4 inline-block mr-1.5" /> Dịch Vụ / Nước
-      </button>
+      {canSellTicket && (
+        <button onClick={() => setActiveListTab('TICKETS')} className={`flex-1 text-xs font-bold py-2 rounded-lg transition ${activeListTab === 'TICKETS' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'text-slate-500 hover:bg-slate-50'}`}>
+          <Ticket className="w-4 h-4 inline-block mr-1.5" /> Vé Tham Quan
+        </button>
+      )}
+      {canSellDrink && (
+        <button onClick={() => setActiveListTab('PRODUCTS')} className={`flex-1 text-xs font-bold py-2 rounded-lg transition ${activeListTab === 'PRODUCTS' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'text-slate-500 hover:bg-slate-50'}`}>
+          <Package className="w-4 h-4 inline-block mr-1.5" /> Dịch Vụ / Nước
+        </button>
+      )}
     </div>
 
     <div className="space-y-2 flex-1 overflow-y-auto pr-1 text-xs scrollbar-thin max-h-[460px]">
@@ -99,4 +118,5 @@ export const POSCatalog: React.FC<POSCatalogProps> = ({
       )}
     </div>
   </div>
-);
+  );
+};

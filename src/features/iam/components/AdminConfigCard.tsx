@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import { toast } from '../../../shared/utils/toast';
+import { ConfirmModal } from '../../../shared/components/ConfirmModal';
 
 export interface ColumnDef<T> {
   header: string;
@@ -17,6 +18,8 @@ interface AdminConfigCardProps<T> {
   onDelete?: (selectedIds: (string | number)[]) => void;
   onToggleActive?: (id: string | number, currentActive: boolean) => void;
   activeField?: string;
+  hideAddButton?: boolean;
+  hideDeleteButton?: boolean;
 }
 
 export function AdminConfigCard<T extends { id: string | number }>({
@@ -28,8 +31,11 @@ export function AdminConfigCard<T extends { id: string | number }>({
   onDelete,
   onToggleActive,
   activeField = 'is_active',
+  hideAddButton = false,
+  hideDeleteButton = false,
 }: AdminConfigCardProps<T>) {
   const [selectedIds, setSelectedIds] = useState<(string | number)[]>([]);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
@@ -67,12 +73,15 @@ export function AdminConfigCard<T extends { id: string | number }>({
       toast.error('Vui lòng chọn ít nhất 1 dòng cần xóa!');
       return;
     }
-    if (confirm(`Bạn có chắc chắn muốn xóa ${selectedIds.length} dòng đã chọn?`)) {
-      if (onDelete) {
-        onDelete(selectedIds);
-        setSelectedIds([]);
-      }
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = () => {
+    if (onDelete) {
+      onDelete(selectedIds);
+      setSelectedIds([]);
     }
+    setShowDeleteConfirm(false);
   };
 
   const isAllSelected = data.length > 0 && selectedIds.length === data.length;
@@ -86,13 +95,15 @@ export function AdminConfigCard<T extends { id: string | number }>({
 
       {/* Action Buttons Toolbar */}
       <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={onAddNew}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm px-3.5 py-2 rounded-md flex items-center gap-1.5 transition shadow-sm"
-        >
-          <Plus className="w-4 h-4" /> Thêm mới
-        </button>
+        {!hideAddButton && (
+          <button
+            type="button"
+            onClick={onAddNew}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm px-3.5 py-2 rounded-md flex items-center gap-1.5 transition shadow-sm"
+          >
+            <Plus className="w-4 h-4" /> Thêm mới
+          </button>
+        )}
         <button
           type="button"
           onClick={handleEditClick}
@@ -100,18 +111,20 @@ export function AdminConfigCard<T extends { id: string | number }>({
         >
           <Edit className="w-4 h-4" /> Sửa
         </button>
-        <button
-          type="button"
-          onClick={handleDeleteClick}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm px-3.5 py-2 rounded-md flex items-center gap-1.5 transition shadow-sm"
-        >
-          <Trash2 className="w-4 h-4" /> Xóa
-        </button>
+        {!hideDeleteButton && (
+          <button
+            type="button"
+            onClick={handleDeleteClick}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm px-3.5 py-2 rounded-md flex items-center gap-1.5 transition shadow-sm"
+          >
+            <Trash2 className="w-4 h-4" /> Xóa
+          </button>
+        )}
       </div>
 
       {/* Table Area */}
       <div className="overflow-x-auto border border-slate-200 rounded-lg shadow-sm">
-        <table className="w-full text-left text-xs sm:text-sm border-collapse">
+        <table className="w-full text-left text-xs sm:text-sm border-collapse whitespace-nowrap">
           <thead>
             <tr className="bg-slate-100 text-slate-900 font-bold border-b border-slate-200">
               <th className="p-3 text-center w-12">
@@ -209,6 +222,17 @@ export function AdminConfigCard<T extends { id: string | number }>({
           </tbody>
         </table>
       </div>
+
+      {/* Reusable Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={confirmDelete}
+        title="Xác nhận xóa"
+        message={`Bạn có chắc chắn muốn xóa ${selectedIds.length} dòng đã chọn? Hệ thống sẽ ghi nhận lịch sử thay đổi này.`}
+        type="danger"
+        confirmText="Xác nhận xóa"
+      />
     </div>
   );
 }

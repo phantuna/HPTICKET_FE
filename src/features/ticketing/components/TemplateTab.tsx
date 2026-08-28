@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Ticket } from 'lucide-react';
 import { AdminConfigCard } from '../../iam/components/AdminConfigCard';
-import { TicketTemplate, AudienceType, TicketZone } from '../../../shared/types/hpticket';
+import { TicketTemplate, AudienceType, ControlZone } from '../../../shared/types/hpticket';
 import { ticketingService } from '../../../api/ticketingService';
 import { toast } from '../../../shared/utils/toast';
 
@@ -9,7 +9,6 @@ interface TemplateTabProps {
   ticketTemplates: TicketTemplate[];
   setTicketTemplates: React.Dispatch<React.SetStateAction<TicketTemplate[]>>;
   audienceTypes: AudienceType[];
-  ticketZones: TicketZone[];
   refreshData: () => void;
 }
 
@@ -17,7 +16,6 @@ export const TemplateTab: React.FC<TemplateTabProps> = ({
   ticketTemplates,
   setTicketTemplates,
   audienceTypes,
-  ticketZones,
   refreshData
 }) => {
   const [showModal, setShowModal] = useState(false);
@@ -28,7 +26,6 @@ export const TemplateTab: React.FC<TemplateTabProps> = ({
   const [newTplPrice, setNewTplPrice] = useState<number>(100000);
   const [newTplTaxPercent, setNewTplTaxPercent] = useState<number>(8);
   const [selectedAudId, setSelectedAudId] = useState(audienceTypes[0]?.id || '');
-  const [selectedTicketZoneId, setSelectedTicketZoneId] = useState(ticketZones[0]?.id || '');
   const [newValidDays, setNewValidDays] = useState<string[]>(['2', '3', '4', '5', '6', '7', '8']);
   const [newIsHoliday, setNewIsHoliday] = useState<boolean>(false);
   const [newIsPromo, setNewIsPromo] = useState<boolean>(false);
@@ -52,7 +49,6 @@ export const TemplateTab: React.FC<TemplateTabProps> = ({
         price: newTplPrice,
         tax_percent: newTplTaxPercent,
         audience_type_id: selectedAudId,
-        ticket_zone_id: selectedTicketZoneId,
         ticket_type: newTicketType,
         validity_days: newValidityDays,
         valid_days: newValidDays.join(','),
@@ -65,8 +61,8 @@ export const TemplateTab: React.FC<TemplateTabProps> = ({
       const item: TicketTemplate = {
         id: `tpl-${Date.now()}`,
         code: newTplCode.toUpperCase(),
-        ticket_zone_id: selectedTicketZoneId,
         name: newTplName,
+        control_zone_ids: [],
         price: newTplPrice,
         tax_percent: newTplTaxPercent,
         audience_type_id: selectedAudId,
@@ -94,7 +90,7 @@ export const TemplateTab: React.FC<TemplateTabProps> = ({
     setTicketTemplates(prev => prev.map(t => t.id === id ? { ...t, is_active: newActive, isActive: newActive, active: newActive } : t));
     try {
       await ticketingService.updateTicketTemplateStatus(id, newActive);
-    } catch (err) {}
+    } catch (err) { }
   };
 
   const handleDelete = async (ids: (string | number)[]) => {
@@ -110,21 +106,10 @@ export const TemplateTab: React.FC<TemplateTabProps> = ({
         title="KHAI BÁO CÁC LOẠI VÉ"
         data={ticketTemplates}
         columns={[
-          { header: 'ID', accessor: (row, idx) => 1007 + idx, className: 'w-20 font-mono' },
+          { header: 'ID', accessor: (row, idx) => idx + 1, className: 'w-16 font-mono text-center' },
           { header: 'Mã vé', accessor: 'code', className: 'font-mono font-bold text-slate-800' },
           { header: 'Tên vé', accessor: 'name', className: 'font-semibold text-slate-900' },
-          {
-            header: 'Nhóm vé áp dụng',
-            accessor: (row: any) => {
-              const zone = ticketZones.find((z) => z.id === (row.ticket_zone_id || row.ticket_name_id));
-              return (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-purple-100 text-purple-700 border border-purple-200">
-                  {zone ? zone.name : 'Chưa gắn'}
-                </span>
-              );
-            },
-            className: 'text-center',
-          },
+
           {
             header: 'Đối tượng',
             accessor: (row: any) => {
@@ -186,7 +171,7 @@ export const TemplateTab: React.FC<TemplateTabProps> = ({
                     try {
                       const updated = { ...row, is_promotion_applicable: val };
                       await ticketingService.updateTicketTemplate(row.id, updated);
-                    } catch (err) {}
+                    } catch (err) { }
                   }}
                   className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                 />
@@ -202,7 +187,6 @@ export const TemplateTab: React.FC<TemplateTabProps> = ({
           setNewTplPrice(100000);
           setNewTplTaxPercent(8);
           setSelectedAudId(audienceTypes[0]?.id || '');
-          setSelectedTicketZoneId(ticketZones[0]?.id || '');
           setNewValidDays(['2', '3', '4', '5', '6', '7', '8']);
           setNewIsHoliday(false);
           setNewIsPromo(false);
@@ -218,7 +202,6 @@ export const TemplateTab: React.FC<TemplateTabProps> = ({
           setNewTplPrice(item.price);
           setNewTplTaxPercent(item.tax_percent !== undefined ? item.tax_percent : 8);
           setSelectedAudId(item.audience_type_id || audienceTypes[0]?.id || '');
-          setSelectedTicketZoneId(item.ticket_zone_id || item.ticket_name_id || ticketZones[0]?.id || '');
           setNewValidDays(item.valid_days ? item.valid_days.split(',') : ['2', '3', '4', '5', '6', '7', '8']);
           setNewIsHoliday(item.is_holiday_applicable || false);
           setNewIsPromo(item.is_promotion_applicable || false);
@@ -252,21 +235,7 @@ export const TemplateTab: React.FC<TemplateTabProps> = ({
                   ))}
                 </select>
               </div>
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">Nhóm Vé Áp Dụng (Khu Vực):</label>
-                <select
-                  value={selectedTicketZoneId}
-                  onChange={(e) => setSelectedTicketZoneId(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 outline-none focus:ring-1 focus:ring-purple-500 font-medium"
-                >
-                  <option value="">-- Chọn Nhóm Vé (Khu vực áp dụng) --</option>
-                  {ticketZones.filter(isItemActive).map((z) => (
-                    <option key={z.id} value={z.id}>
-                      {z.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+
               <div>
                 <label className="block text-slate-700 font-semibold mb-1">Mã Mẫu Vé:</label>
                 <input

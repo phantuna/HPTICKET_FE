@@ -31,7 +31,7 @@ export const POSCartTable: React.FC<POSCartTableProps> = ({
                    (selectedGroup && (selectedGroup.name.toLowerCase().includes('lẻ') || selectedGroup.name.toLowerCase().includes('retail')));
 
   return (
-  <div className="lg:col-span-8 bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs space-y-6">
+  <div className="order-2 lg:order-1 lg:col-span-8 bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs space-y-6">
     <div className="overflow-x-auto">
       <table className="w-full text-left text-xs border-collapse">
         <thead>
@@ -40,7 +40,7 @@ export const POSCartTable: React.FC<POSCartTableProps> = ({
             <th className="py-2.5 px-3 text-center">Số lượt</th>
             <th className="py-2.5 px-3 text-center">Số lượng</th>
             <th className="py-2.5 px-3 text-right">Đơn giá</th>
-            <th className="py-2.5 px-3 text-center">Giảm giá %</th>
+            <th className="py-2.5 px-3 text-center">GG Nhóm KH</th>
             <th className="py-2.5 px-3 text-right">Trước thuế</th>
             <th className="py-2.5 px-3 text-right">Thuế VAT</th>
             <th className="py-2.5 px-3 text-right">Thành tiền</th>
@@ -55,7 +55,7 @@ export const POSCartTable: React.FC<POSCartTableProps> = ({
           ) : (
             lineItems.map((item, index) => {
               const qty = Number(item.quantity) || 0;
-              const lineTotal = Math.round(item.unit_price * qty * (1 - item.discount_percent / 100));
+              const lineTotal = Math.round(item.unit_price * qty * (1 - (item.discount_percent || 0) / 100));
               const taxPercent = item.tax_percent !== undefined ? item.tax_percent : (item.item_type === ItemType.PRODUCT ? 10 : 8);
               const taxMultiplier = 1 + (taxPercent / 100);
               const lineBeforeVat = Math.round(lineTotal / taxMultiplier);
@@ -126,10 +126,10 @@ export const POSCartTable: React.FC<POSCartTableProps> = ({
                   </td>
                   <td className="py-2.5 px-3 text-right font-mono text-slate-700">{item.unit_price.toLocaleString('vi-VN')}</td>
                   <td className="py-2.5 px-3 text-center font-mono">
-                    <div className="inline-flex items-center justify-center">
-                      <input type="number" value={item.discount_percent} min={0} max={100} onChange={(e) => updateLineItem(index, 'discount_percent', parseFloat(e.target.value) || 0)} className="w-12 bg-white border border-slate-200 rounded px-1 py-1 text-center text-amber-600 font-semibold text-[11px]" />
-                      <span className="ml-0.5 text-amber-600 font-bold">%</span>
-                    </div>
+                    {item.discount_percent > 0 
+                      ? <span className="inline-flex items-center gap-0.5 bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-full text-[11px] border border-emerald-200">{item.discount_percent}%</span>
+                      : <span className="text-slate-300">—</span>
+                    }
                   </td>
                   <td className="py-2.5 px-3 text-right font-mono text-slate-500">{lineBeforeVat.toLocaleString('vi-VN')}</td>
                   <td className="py-2.5 px-3 text-right font-mono text-slate-500">{lineVat.toLocaleString('vi-VN')}</td>

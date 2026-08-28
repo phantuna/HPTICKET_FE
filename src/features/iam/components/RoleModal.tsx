@@ -98,7 +98,17 @@ export const RoleModal: React.FC<RoleModalProps> = ({
                      mod === 'SYSTEM' ? 'Hệ thống' : mod}
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {perms.map((perm: any) => (
+                    {perms.sort((a: any, b: any) => {
+                      const sortOrder = ['MANAGE', 'VIEW', 'CREATE', 'UPDATE', 'DELETE'];
+                      const getAction = (p: any) => sortOrder.findIndex(action => (p.name || p.code || '').toUpperCase().startsWith(action));
+                      const idxA = getAction(a);
+                      const idxB = getAction(b);
+                      
+                      if (idxA !== idxB) {
+                        return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+                      }
+                      return (a.name || a.code || '').localeCompare(b.name || b.code || '');
+                    }).map((perm: any) => (
                       <label key={perm.id || perm.name} className="flex items-start gap-2 cursor-pointer hover:bg-emerald-50 p-1.5 rounded-lg transition" title={perm.description || perm.name}>
                         <input
                           type="checkbox"

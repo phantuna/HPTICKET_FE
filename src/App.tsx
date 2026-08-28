@@ -35,6 +35,19 @@ export default function App() {
   const [userContextKey, setUserContextKey] = useState<number>(0);
   const [isLocked, setIsLocked] = useState<boolean>(dbStore.isSystemLocked());
 
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 1024) {
+        setSidebarOpen(false);
+      } else {
+        setSidebarOpen(true);
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Check system lock state periodically (every 1 second)
   useEffect(() => {
     const checkLockState = () => {

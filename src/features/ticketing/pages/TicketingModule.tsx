@@ -62,7 +62,6 @@ export const TicketingModule: React.FC<TicketingModuleProps> = ({ subTab = 'Khai
           ticketTemplates={ticketTemplates}
           setTicketTemplates={setTicketTemplates}
           audienceTypes={audienceTypes}
-          ticketZones={ticketZones}
           refreshData={refreshData}
         />
       )}
@@ -83,8 +82,6 @@ export const TicketingModule: React.FC<TicketingModuleProps> = ({ subTab = 'Khai
       {/* ---------------------------------------------------- */}
       {currentTab === 'KhaiBaoVe_KS' && (
         <TicketZoneTab
-          ticketZones={ticketZones}
-          setTicketZones={setTicketZones}
           controlZones={controlZones}
           ticketTemplates={ticketTemplates}
           refreshData={refreshData}

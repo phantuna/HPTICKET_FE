@@ -67,7 +67,7 @@ export const SourceTab: React.FC<SourceTabProps> = ({ sources, setSources, group
         title="KHAI BÁO NGUỒN KHÁCH"
         data={sources}
         columns={[
-          { header: 'ID', accessor: (row: any, idx) => 2001 + idx, className: 'w-24 font-mono' },
+          { header: 'ID', accessor: (row: any, idx) => idx + 1, className: 'w-16 font-mono text-center' },
           { header: 'Mã nguồn khách', accessor: 'code', className: 'font-mono font-bold text-slate-800' },
           { header: 'Tên công ty / Nguồn khách', accessor: 'company_name', className: 'font-semibold text-slate-900' },
           { header: 'Sử dụng', accessor: 'is_active', className: 'text-center w-24' },

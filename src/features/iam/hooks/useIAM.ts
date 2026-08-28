@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { iamService } from '../../../api/iamService';
+import { salesService } from '../../../api/salesService';
 import { User, Role, Permission } from '../../../shared/types/hpticket';
+import { toast } from '../../../shared/utils/toast';
 
 const globalIamCache: any = { users: null, roles: null, perms: null };
 
@@ -55,7 +57,17 @@ export const useIAM = (initialTab: string) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [phone, setPhone] = useState('');
+  const [qrCode, setQrCode] = useState('');
   const [roleId, setRoleId] = useState('');
+  const [selectedCounterIds, setSelectedCounterIds] = useState<string[]>([]);
+  const [salesCounters, setSalesCounters] = useState<any[]>([]);
+
+  // Load sales counters when needed
+  useEffect(() => {
+    if (activeSubTab === 'KhaibaoDangNhap' || activeSubTab === 'KhaiBaoThe_NV') {
+      salesService.fetchSalesCounters().then(res => setSalesCounters(res.data || []));
+    }
+  }, [activeSubTab]);
 
   // Set default roleId when roles load
   useEffect(() => {
@@ -73,14 +85,16 @@ export const useIAM = (initialTab: string) => {
             fullname,
             username,
             phone,
+            qr_code: qrCode || undefined,
             role_id: roleId,
+            assigned_counter_ids: selectedCounterIds,
             ...(password ? { password } : {})
         });
         if (res.code === 200) {
-            setUsers(prev => prev.map(u => u.id === editingUserId ? {...u, fullname, username, phone, role_id: roleId} : u));
+            setUsers(prev => prev.map(u => u.id === editingUserId ? {...u, fullname, username, phone, qr_code: qrCode || u.qr_code, role_id: roleId} : u));
         }
     } else {
-        const qrCodeStr = `EMP-${roleId.toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
+        const qrCodeStr = qrCode || `EMP-${roleId.toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
         const res = await iamService.createUser({
           fullname,
           username,
@@ -88,6 +102,7 @@ export const useIAM = (initialTab: string) => {
           phone,
           qr_code: qrCodeStr,
           role_id: roleId,
+          assigned_counter_ids: selectedCounterIds,
           is_active: true,
         });
 
@@ -102,6 +117,8 @@ export const useIAM = (initialTab: string) => {
     setUsername('');
     setPassword('');
     setPhone('');
+    setQrCode('');
+    setSelectedCounterIds([]);
   };
 
   const handleDeleteUsers = async (ids: (string | number)[]) => {
@@ -125,7 +142,9 @@ export const useIAM = (initialTab: string) => {
     setUsername('');
     setPassword('');
     setPhone('');
+    setQrCode('');
     setRoleId(roles[1]?.id || roles[0]?.id || 'role-2');
+    setSelectedCounterIds([]);
     setShowUserModal(true);
   };
 
@@ -135,7 +154,11 @@ export const useIAM = (initialTab: string) => {
     setUsername(item.username);
     setPassword('');
     setPhone(item.phone || '');
+    setQrCode(item.qr_code || '');
     setRoleId(item.role_id || roles[1]?.id || 'role-2');
+    // Load các quầy đang được gán cho user này
+    const existingCounterIds = (item.assigned_counters || []).map((c: any) => c.id).filter(Boolean);
+    setSelectedCounterIds(existingCounterIds);
     setShowUserModal(true);
   };
 
@@ -176,7 +199,8 @@ export const useIAM = (initialTab: string) => {
       setRoleCode('');
       setRoleName('');
       setRolePermissions([]);
-    } catch (err) {
+    } catch (err: any) {
+      toast.error(err.message || 'Thao tác thất bại');
       console.error(err);
     }
   };
@@ -187,7 +211,8 @@ export const useIAM = (initialTab: string) => {
         await iamService.deleteRole(String(id));
       }
       setRoles(prev => prev.filter(r => !ids.includes(r.id)));
-    } catch (err) {
+    } catch (err: any) {
+      toast.error(err.message || 'Thao tác thất bại');
       console.error(err);
     }
   };
@@ -199,7 +224,8 @@ export const useIAM = (initialTab: string) => {
     );
     try {
       await iamService.updateRoleStatus(String(id), newActive);
-    } catch (err) {
+    } catch (err: any) {
+      toast.error(err.message || 'Thao tác thất bại');
       console.error(err);
     }
   };
@@ -236,7 +262,10 @@ export const useIAM = (initialTab: string) => {
     username, setUsername,
     password, setPassword,
     phone, setPhone,
+    qrCode, setQrCode,
     roleId, setRoleId,
+    selectedCounterIds, setSelectedCounterIds,
+    salesCounters,
     handleCreateOrUpdateUser,
     handleDeleteUsers,
     handleToggleUserActive,

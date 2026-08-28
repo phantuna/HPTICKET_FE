@@ -46,6 +46,7 @@ export const useInvoice = (): UseInvoiceReturn => {
   const clearSelection = () => setSelectedOrderIds([]);
 
   const isEligibleForInvoice = (order: any) => {
+    if (order.status === 'CANCELLED') return false;
     const status = order.invoice_status || (order.invoice_number ? 'ISSUED' : 'UNISSUED');
     return status !== 'ISSUED' && status !== 'ISSUED_BULK' && status !== 'PENDING';
   };

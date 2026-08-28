@@ -14,16 +14,54 @@ interface TicketReportTabProps {
   totalRevenue: number; totalCash: number; totalBankTransfer: number;
   issuedTickets: any[]; rawOrders: any[];
   page: number; setPage: React.Dispatch<React.SetStateAction<number>>; pageSize: number;
+  onFilterFocus?: () => void;
 }
 
-export const TicketReportTab: React.FC<TicketReportTabProps> = ({
+export const TicketReportTab: React.FC<TicketReportTabProps & { ticketTotalRevenue?: number, ticketTotalCash?: number, ticketTotalBankTransfer?: number }> = ({
   fromDate, setFromDate, toDate, setToDate, posFilter, setPosFilter,
   sellerFilter, setSellerFilter, customerGroupFilter, setCustomerGroupFilter,
   customerSourceFilter, setCustomerSourceFilter, setSearchTrigger, handleExportExcel,
   salesCounters, users, customerGroups, customerSources,
-  totalRevenue, totalCash, totalBankTransfer, issuedTickets, rawOrders,
-  page, setPage, pageSize
-}) => (
+  totalRevenue, totalCash, totalBankTransfer, 
+  ticketTotalRevenue, ticketTotalCash, ticketTotalBankTransfer,
+  issuedTickets, rawOrders,
+  page, setPage, pageSize, onFilterFocus
+}) => {
+  const ticketTotals = React.useMemo(() => {
+    let rev = 0;
+    let cash = 0;
+    let bank = 0;
+
+    const orderMap = new Map();
+    rawOrders.forEach(o => {
+      orderMap.set(o.id || (o as any).order_id, o);
+    });
+
+    issuedTickets.forEach(t => {
+      const parentOrder = orderMap.get(t.order_id);
+      const isCash = parentOrder?.payment_method === 'TIEN_MAT' || parentOrder?.payment_method === 'CASH';
+      
+      const details = parentOrder?.details || (parentOrder as any)?.items || [];
+      const orderDetail = details.find((d: any) => d.item_id === t.ticket_template_id || (d.item_type === 'TICKET' && d.item_name === t.ticket_template_name));
+      
+      const fallbackUnitPrice = orderDetail?.unit_price || orderDetail?.price || orderDetail?.pre_tax_price || 0;
+      const orderTotal = (parentOrder?.total_amount && parentOrder.total_amount > 0) ? parentOrder.total_amount : 1;
+      const orderDiscount = parentOrder?.applied_discount_amount || parentOrder?.discount_amount || 0;
+      const fallbackItemDiscount = Math.round((fallbackUnitPrice / orderTotal) * orderDiscount);
+      
+      const unitPrice = t.unit_price ?? fallbackUnitPrice;
+      const itemDiscount = t.discount_amount ?? fallbackItemDiscount;
+      const itemRevenue = t.revenue ?? (unitPrice - itemDiscount);
+
+      rev += itemRevenue;
+      if (isCash) cash += itemRevenue;
+      else bank += itemRevenue;
+    });
+
+    return { rev, cash, bank };
+  }, [issuedTickets, rawOrders]);
+
+  return (
   <div className="space-y-6">
     <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4">
       <h2 className="text-base font-extrabold text-slate-900 uppercase tracking-wide">BÁO CÁO DOANH THU CHI TIẾT THEO VÉ</h2>
@@ -39,35 +77,35 @@ export const TicketReportTab: React.FC<TicketReportTabProps> = ({
           </div>
           <div className="flex items-center gap-2">
             <span className="text-slate-700 font-semibold whitespace-nowrap">Quầy vé :</span>
-            <select value={posFilter} onChange={(e) => setPosFilter(e.target.value)} className="bg-white border border-slate-200 px-2.5 py-1.5 text-slate-900 font-medium rounded-lg outline-none focus:border-emerald-500 w-full shadow-xs">
+            <select onFocus={onFilterFocus} onMouseEnter={onFilterFocus} value={posFilter} onChange={(e) => setPosFilter(e.target.value)} className="bg-white border border-slate-200 px-2.5 py-1.5 text-slate-900 font-medium rounded-lg outline-none focus:border-emerald-500 w-full shadow-xs">
               <option value="all">Tất cả</option>
               {salesCounters.map((p) => <option key={p.id} value={p.code}>{p.name}</option>)}
             </select>
           </div>
           <div className="text-xs space-y-0.5 text-slate-700 font-medium md:text-right border-l md:border-l-0 border-slate-200 pl-3 md:pl-0">
-            <p>Tổng doanh thu: <span className="font-bold text-emerald-700 font-mono">{totalRevenue.toLocaleString('vi-VN')} đ</span></p>
-            <p>Tổng tiền mặt: <span className="font-bold text-amber-700 font-mono">{totalCash.toLocaleString('vi-VN')} đ</span></p>
-            <p>Tổng chuyển khoản: <span className="font-bold text-blue-700 font-mono">{totalBankTransfer.toLocaleString('vi-VN')} đ</span></p>
+            <p>Tổng doanh thu: <span className="font-bold text-emerald-700 font-mono">{ticketTotals.rev.toLocaleString('vi-VN')} đ</span></p>
+            <p>Tổng tiền mặt: <span className="font-bold text-amber-700 font-mono">{ticketTotals.cash.toLocaleString('vi-VN')} đ</span></p>
+            <p>Tổng chuyển khoản: <span className="font-bold text-blue-700 font-mono">{ticketTotals.bank.toLocaleString('vi-VN')} đ</span></p>
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs items-center pt-2 border-t border-slate-200">
           <div className="flex items-center gap-2">
             <span className="text-slate-700 font-semibold whitespace-nowrap">Người bán :</span>
-            <select value={sellerFilter} onChange={(e) => setSellerFilter(e.target.value)} className="bg-white border border-slate-200 px-2.5 py-1.5 text-slate-900 font-medium rounded-lg outline-none focus:border-emerald-500 w-full shadow-xs">
+            <select onFocus={onFilterFocus} onMouseEnter={onFilterFocus} value={sellerFilter} onChange={(e) => setSellerFilter(e.target.value)} className="bg-white border border-slate-200 px-2.5 py-1.5 text-slate-900 font-medium rounded-lg outline-none focus:border-emerald-500 w-full shadow-xs">
               <option value="all">Tất cả</option>
               {users.map((u) => <option key={u.id} value={u.username}>{u.fullname}</option>)}
             </select>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-slate-700 font-semibold whitespace-nowrap">Nhóm nguồn khách:</span>
-            <select value={customerGroupFilter} onChange={(e) => setCustomerGroupFilter(e.target.value)} className="bg-white border border-slate-200 px-2.5 py-1.5 text-slate-900 font-medium rounded-lg outline-none focus:border-emerald-500 w-full shadow-xs">
+            <select onFocus={onFilterFocus} onMouseEnter={onFilterFocus} value={customerGroupFilter} onChange={(e) => setCustomerGroupFilter(e.target.value)} className="bg-white border border-slate-200 px-2.5 py-1.5 text-slate-900 font-medium rounded-lg outline-none focus:border-emerald-500 w-full shadow-xs">
               <option value="all">Tất cả</option>
               {customerGroups.map((g) => <option key={g.id} value={g.code}>{g.name}</option>)}
             </select>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-slate-700 font-semibold whitespace-nowrap">Nguồn khách :</span>
-            <select value={customerSourceFilter} onChange={(e) => setCustomerSourceFilter(e.target.value)} className="bg-white border border-slate-200 px-2.5 py-1.5 text-slate-900 font-medium rounded-lg outline-none focus:border-emerald-500 w-full shadow-xs">
+            <select onFocus={onFilterFocus} onMouseEnter={onFilterFocus} value={customerSourceFilter} onChange={(e) => setCustomerSourceFilter(e.target.value)} className="bg-white border border-slate-200 px-2.5 py-1.5 text-slate-900 font-medium rounded-lg outline-none focus:border-emerald-500 w-full shadow-xs">
               <option value="all">Không chọn / Tất cả</option>
               {customerSources.map((s) => <option key={s.id} value={s.code}>{s.company_name}</option>)}
             </select>
@@ -87,7 +125,7 @@ export const TicketReportTab: React.FC<TicketReportTabProps> = ({
         </h3>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-xs text-slate-700">
+        <table className="w-full text-left text-xs text-slate-700 whitespace-nowrap">
           <thead className="bg-slate-50 text-slate-500 font-mono uppercase text-[10px] border-b border-slate-200">
             <tr>
               <th className="p-3 w-10 text-center">#</th>
@@ -107,11 +145,14 @@ export const TicketReportTab: React.FC<TicketReportTabProps> = ({
               const details = parentOrder?.details || (parentOrder as any)?.items || [];
               const orderDetail = details.find((d: any) => d.item_id === t.ticket_template_id || (d.item_type === 'TICKET' && d.item_name === t.ticket_template_name));
               
-              const unitPrice = orderDetail?.unit_price || orderDetail?.price || orderDetail?.pre_tax_price || 0;
+              const fallbackUnitPrice = orderDetail?.unit_price || orderDetail?.price || orderDetail?.pre_tax_price || 0;
               const orderTotal = (parentOrder?.total_amount && parentOrder.total_amount > 0) ? parentOrder.total_amount : 1;
               const orderDiscount = parentOrder?.applied_discount_amount || parentOrder?.discount_amount || 0;
-              const itemDiscount = Math.round((unitPrice / orderTotal) * orderDiscount);
-              const itemRevenue = unitPrice - itemDiscount;
+              const fallbackItemDiscount = Math.round((fallbackUnitPrice / orderTotal) * orderDiscount);
+              
+              const unitPrice = t.unit_price ?? fallbackUnitPrice;
+              const itemDiscount = t.discount_amount ?? fallbackItemDiscount;
+              const itemRevenue = t.revenue ?? (unitPrice - itemDiscount);
 
               const isCash = parentOrder?.payment_method === 'TIEN_MAT' || parentOrder?.payment_method === 'CASH';
               const paymentMethodStr = parentOrder ? (isCash ? 'Tiền mặt' : 'Chuyển khoản') : '---';
@@ -151,4 +192,5 @@ export const TicketReportTab: React.FC<TicketReportTabProps> = ({
       </div>
     </div>
   </div>
-);
+  );
+};

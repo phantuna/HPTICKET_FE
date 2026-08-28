@@ -29,11 +29,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 
         setSuccessMsg(`Đăng nhập thành công! Đang tải dữ liệu hệ thống...`);
         
-        // Tự động đồng bộ với backend nếu đang chế độ Live
-        if (true) {
-          await dbStore.syncFromBackend(true);
-        }
-
+        // Đã xóa hàm tự động kéo toàn bộ dữ liệu (Fat Client) ở đây để tăng tốc login
         setTimeout(() => {
           onLoginSuccess();
         }, 1000);

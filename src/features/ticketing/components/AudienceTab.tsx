@@ -19,7 +19,7 @@ export const AudienceTab: React.FC<AudienceTabProps> = ({ audienceTypes, setAudi
 
   const handleSave = async () => {
     if (!newAudCode || !newAudName) { toast.error('Vui lòng nhập đầy đủ Mã và Tên Đối tượng vé!'); return; }
-    
+
     if (editingAud) {
       const updatedItem = { ...editingAud, code: newAudCode.toUpperCase(), name: newAudName };
       await ticketingService.updateAudienceType(editingAud.id, updatedItem);
@@ -36,7 +36,7 @@ export const AudienceTab: React.FC<AudienceTabProps> = ({ audienceTypes, setAudi
       };
       await ticketingService.createAudienceType(item);
     }
-    
+
     refreshData();
     setShowModal(false);
   };
@@ -46,7 +46,7 @@ export const AudienceTab: React.FC<AudienceTabProps> = ({ audienceTypes, setAudi
     setAudienceTypes(prev => prev.map(a => a.id === id ? { ...a, is_active: newActive, isActive: newActive, active: newActive } : a));
     try {
       await ticketingService.updateAudienceTypeStatus(id, newActive);
-    } catch (err) {}
+    } catch (err) { }
   };
 
   const handleDelete = async (ids: (string | number)[]) => {
@@ -62,7 +62,7 @@ export const AudienceTab: React.FC<AudienceTabProps> = ({ audienceTypes, setAudi
         title="KHAI BÁO ĐỐI TƯỢNG"
         data={audienceTypes}
         columns={[
-          { header: 'ID', accessor: (row, idx) => idx + 1, className: 'w-20 font-mono' },
+          { header: 'ID', accessor: (row, idx) => idx + 1, className: 'w-16 font-mono text-center' },
           { header: 'Mã đối tượng', accessor: 'code', className: 'font-mono font-bold text-slate-800' },
           { header: 'Tên đối tượng', accessor: 'name', className: 'font-semibold text-slate-900' },
           { header: 'Sử dụng', accessor: 'is_active', className: 'text-center w-24' },

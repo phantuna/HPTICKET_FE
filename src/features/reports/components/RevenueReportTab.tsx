@@ -21,18 +21,21 @@ export const RevenueReportTab: React.FC<RevenueReportTabProps> = ({
   totalRevenue, totalTicketsSold, chartView, setChartView, chartData, ticketStatsArray
 }) => (
   <div className="space-y-6">
-    <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-wrap items-center gap-6">
-      <div className="flex items-center gap-2">
-        <span className="text-slate-600 font-medium text-sm">Từ ngày:</span>
-        <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="border border-slate-200 rounded-md px-3 py-1.5 outline-none focus:border-emerald-500 text-sm text-slate-800" />
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-white p-4 rounded-md shadow-sm border border-slate-100 mb-6">
+      <div className="flex flex-col">
+        <span className="text-slate-600 font-medium text-sm mb-1">Từ ngày:</span>
+        <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="w-full border border-slate-200 rounded-md px-3 py-1.5 outline-none focus:border-emerald-500 text-sm text-slate-800" />
       </div>
-      <div className="flex items-center gap-2">
-        <span className="text-slate-600 font-medium text-sm">Đến ngày:</span>
-        <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="border border-slate-200 rounded-md px-3 py-1.5 outline-none focus:border-emerald-500 text-sm text-slate-800" />
+      <div className="flex flex-col">
+        <span className="text-slate-600 font-medium text-sm mb-1">Đến ngày:</span>
+        <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="w-full border border-slate-200 rounded-md px-3 py-1.5 outline-none focus:border-emerald-500 text-sm text-slate-800" />
       </div>
-      <div className="flex-1"></div>
-      <button onClick={() => setSearchTrigger(prev => prev + 1)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-sm transition"><Search className="w-4 h-4" /> Tìm kiếm</button>
-      <button onClick={() => handleExportExcel('BaoCaoDoanhThu')} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-sm transition"><Download className="w-4 h-4" /> Xuất Excel</button>
+      <div className="flex items-end">
+        <button onClick={() => setSearchTrigger(prev => prev + 1)} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 shadow-sm transition"><Search className="w-4 h-4" /> Tìm kiếm</button>
+      </div>
+      <div className="flex items-end">
+        <button onClick={() => handleExportExcel('BaoCaoDoanhThu')} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 shadow-sm transition"><Download className="w-4 h-4" /> Xuất Excel</button>
+      </div>
     </div>
 
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -64,8 +67,9 @@ export const RevenueReportTab: React.FC<RevenueReportTabProps> = ({
               <option value="quarter">Theo quý</option>
             </select>
           </div>
-          <div style={{ width: '100%', height: 'calc(100% - 60px)' }}>
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="w-full h-[calc(100%-60px)] overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-slate-200">
+            <div style={{ minWidth: '600px', width: '100%', height: '100%' }}>
+              <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dy={10} />
@@ -74,6 +78,7 @@ export const RevenueReportTab: React.FC<RevenueReportTabProps> = ({
                 <Bar dataKey="DoanhThu" fill="#0ea5e9" radius={[4, 4, 0, 0]} barSize={40} />
               </BarChart>
             </ResponsiveContainer>
+            </div>
           </div>
         </div>
       </div>

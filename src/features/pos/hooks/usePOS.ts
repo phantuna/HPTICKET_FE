@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { salesService } from '../../../api/salesService';
+import { iamService } from '../../../api/iamService';
 import { apiClient, API_ENDPOINTS } from '../../../api/apiConfig';
 import { PaymentMethod, ItemType, Order, IssuedTicket } from '../../../shared/types/hpticket';
 import { dbStore } from '../../../shared/data/mockDatabase';
@@ -30,7 +31,7 @@ export const usePOS = () => {
   const [selectedGroupCode, setSelectedGroupCode] = useState<string>('');
   const [selectedSourceId, setSelectedSourceId] = useState<string>('');
   const [usageDate, setUsageDate] = useState<string>(new Date().toISOString().split('T')[0]);
-  
+
   const [invoiceStatus, setInvoiceStatus] = useState<'PENDING' | 'IMMEDIATE'>('PENDING');
   const [companyName, setCompanyName] = useState<string>('');
   const [companyTaxCode, setCompanyTaxCode] = useState<string>('');
@@ -85,12 +86,17 @@ export const usePOS = () => {
           apiClient.get<any>(API_ENDPOINTS.TICKETING.TEMPLATES).then(json => {
             const list = extractList(json);
             if (list.length > 0) setTicketTemplates(list.filter(isItemActive));
-          }).catch(() => {}),
+          }).catch(() => { }),
 
-          apiClient.get<any>(API_ENDPOINTS.TICKETING.ZONES).then(json => {
+          apiClient.get<any>(API_ENDPOINTS.SALES.PRODUCTS).then(json => {
             const list = extractList(json);
-            if (list.length > 0) setTicketZones(list);
-          }).catch(() => {}),
+            if (list.length > 0) setProducts(list.filter(isItemActive));
+          }).catch(() => { }),
+
+          apiClient.get<any>(API_ENDPOINTS.MARKETING.CUSTOMER_SOURCES_ACTIVE).then(json => {
+            const list = extractList(json);
+            if (list.length > 0) setCustomerSources(list);
+          }).catch(() => { }),
 
           apiClient.get<any>(API_ENDPOINTS.MARKETING.CUSTOMER_GROUPS_ACTIVE).then(json => {
             const list = extractList(json);
@@ -101,31 +107,42 @@ export const usePOS = () => {
                 setSelectedGroupCode(retailGroup ? retailGroup.code : list[0].code);
               }
             }
-          }).catch(() => {}),
+          }).catch(() => { }),
 
-          apiClient.get<any>(API_ENDPOINTS.MARKETING.CUSTOMER_SOURCES_ACTIVE).then(json => {
-            const list = extractList(json);
-            if (list.length > 0) setCustomerSources(list);
-          }).catch(() => {}),
-
-          apiClient.get<any>(API_ENDPOINTS.MARKETING.PROMOTIONS_ACTIVE).then(json => {
-            const list = extractList(json);
-            const activePromos = list.filter(isItemActive);
-            if (activePromos.length > 0) {
-              setPromotions(activePromos);
-              setSelectedPromotionId(activePromos[0].id);
-            }
-          }).catch(() => {}),
-
-          apiClient.get<any>(API_ENDPOINTS.SALES.COUNTERS_ACTIVE).then(json => {
-            const list = extractList(json);
+          Promise.all([
+            apiClient.get<any>(API_ENDPOINTS.SALES.COUNTERS_ACTIVE),
+            iamService.getCurrentUser()
+          ]).then(([countersRes, userRes]) => {
+            const list = extractList(countersRes);
             const activeList = list.filter(isItemActive);
-            if (activeList.length > 0) {
-              setCounters(activeList);
+            const user = userRes.data;
+
+            let allowedCounters = activeList;
+            
+            // Nếu không phải ADMIN, lọc quầy theo assigned_counters
+            const isAdmin = user?.role_id?.toLowerCase().includes('admin') || user?.roles?.some((r: any) => r.code === 'ADMIN');
+            if (!isAdmin) {
+              if (user?.assigned_counters && user.assigned_counters.length > 0) {
+                const assignedIds = user.assigned_counters.map((c: any) => c.id);
+                allowedCounters = activeList.filter((c: any) => assignedIds.includes(c.id));
+              } else {
+                // Thu ngân nhưng chưa được gán quầy nào -> Không cho xem quầy nào
+                allowedCounters = [];
+              }
+            }
+
+            if (allowedCounters.length > 0) {
+              setCounters(allowedCounters);
               setSelectedCounterId(prev => {
-                if (prev && !activeList.some((c: any) => c.id === prev)) {
+                // Nếu quầy đã chọn trước đó không nằm trong danh sách được phép
+                if (prev && !allowedCounters.some((c: any) => c.id === prev)) {
                   localStorage.removeItem('hpticket_pos_selected_counter');
+                  if (allowedCounters.length === 1) return allowedCounters[0].id;
                   return '';
+                }
+                // Nếu chưa chọn quầy nào và chỉ có duy nhất 1 quầy được phép -> Tự động chọn luôn
+                if (!prev && allowedCounters.length === 1) {
+                  return allowedCounters[0].id;
                 }
                 return prev;
               });
@@ -134,12 +151,21 @@ export const usePOS = () => {
               setSelectedCounterId('');
               localStorage.removeItem('hpticket_pos_selected_counter');
             }
-          }).catch(() => {}),
+          }).catch(() => { }),
 
-          apiClient.get<any>(API_ENDPOINTS.SALES.PRODUCTS).then(json => {
+          apiClient.get<any>(API_ENDPOINTS.TICKETING.ZONES).then(json => {
             const list = extractList(json);
-            if (list.length > 0) setProducts(list.filter(isItemActive));
-          }).catch(() => {})
+            if (list.length > 0) setTicketZones(list);
+          }).catch(() => { }),
+
+          apiClient.get<any>(API_ENDPOINTS.MARKETING.PROMOTIONS_ACTIVE).then(json => {
+            const list = extractList(json);
+            const activePromos = list.filter(isItemActive);
+            if (activePromos.length > 0) {
+              setPromotions(activePromos);
+              setSelectedPromotionId(activePromos[0].id);
+            }
+          }).catch(() => { })
         ];
 
         await Promise.all(promises);
@@ -349,19 +375,22 @@ export const usePOS = () => {
         };
         let ticketsForOrder: any[] = [];
         let retries = 0;
-        
-        while (ticketsForOrder.length === 0 && retries < 6) {
-          try {
-            await salesService.fetchIssuedTickets();
-            ticketsForOrder = dbStore.issuedTickets.filter(
-              (t) => t.order_id === orderId || (t as any).orderId === orderId
-            );
-          } catch (e) {
-            console.warn("Lỗi khi fetch vé:", e);
+
+        const hasTickets = lineItems.some(item => item.item_type === ItemType.TICKET);
+        if (hasTickets) {
+          while (ticketsForOrder.length === 0 && retries < 6) {
+            try {
+              await salesService.fetchIssuedTickets();
+              ticketsForOrder = dbStore.issuedTickets.filter(
+                (t) => t.order_id === orderId || (t as any).orderId === orderId
+              );
+            } catch (e) {
+              console.warn("Lỗi khi fetch vé:", e);
+            }
+            if (ticketsForOrder.length > 0) break;
+            await new Promise(r => setTimeout(r, 500));
+            retries++;
           }
-          if (ticketsForOrder.length > 0) break;
-          await new Promise(r => setTimeout(r, 500));
-          retries++;
         }
 
         if (ticketsForOrder.length === 0 && (res.data as any).issued_qr_codes?.length > 0) {
@@ -384,6 +413,16 @@ export const usePOS = () => {
       }
     } catch (e: any) {
       console.error('Order creation failed:', e);
+      
+      // Auto-reload on 403 (Data-Level Security rejection)
+      if (e.code === 403 || (e.message && e.message.toLowerCase().includes('quyền'))) {
+        showToast('error', 'Đã thay đổi phân quyền', 'Quyền thao tác trên quầy này đã bị thu hồi hoặc thay đổi. Hệ thống sẽ tự động tải lại...');
+        setTimeout(() => {
+          window.location.reload();
+        }, 2500);
+        return;
+      }
+      
       showToast('error', 'Lỗi thanh toán', e.message || 'Thanh toán thất bại! Vui lòng kiểm tra lại thông tin vé hoặc số lượng.');
     } finally {
       setIsProcessing(false);

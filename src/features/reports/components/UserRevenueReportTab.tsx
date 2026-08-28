@@ -6,22 +6,22 @@ interface UserRevenueReportTabProps {
   selectedMonth: string; setSelectedMonth: (v: string) => void;
   setSearchTrigger: React.Dispatch<React.SetStateAction<number>>;
   handleExportExcel: (tab: string) => void;
-  users: any[]; rawOrders: any[];
   totalRevenue: number;
+  onFilterFocus?: () => void;
 }
 
 export const UserRevenueReportTab: React.FC<UserRevenueReportTabProps> = ({
   sellerFilter, setSellerFilter, selectedMonth, setSelectedMonth,
-  setSearchTrigger, handleExportExcel, users, rawOrders, totalRevenue
+  setSearchTrigger, handleExportExcel, users, rawOrders, totalRevenue, onFilterFocus
 }) => (
   <div className="space-y-6">
     <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4">
       <h2 className="text-base font-extrabold text-slate-900 uppercase tracking-wide">BÁO CÁO DOANH THU NHÂN VIÊN THEO THÁNG</h2>
-      <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs items-center">
+      <div className="border border-slate-200 rounded-xl p-4 bg-slate-50">
+        <div className="flex flex-wrap items-center gap-4 text-xs">
           <div className="flex items-center gap-2">
             <span className="text-slate-700 font-semibold whitespace-nowrap">Người bán :</span>
-            <select value={sellerFilter} onChange={(e) => setSellerFilter(e.target.value)} className="bg-white border border-slate-200 px-2.5 py-1.5 text-slate-900 font-medium rounded-lg outline-none focus:border-emerald-500 w-full shadow-xs">
+            <select onFocus={onFilterFocus} onMouseEnter={onFilterFocus} value={sellerFilter} onChange={(e) => setSellerFilter(e.target.value)} className="bg-white border border-slate-200 px-2.5 py-1.5 text-slate-900 font-medium rounded-lg outline-none focus:border-emerald-500 w-full shadow-xs">
               <option value="all">Tất cả</option>
               {users.map((u) => <option key={u.id} value={u.username}>{u.fullname}</option>)}
             </select>
@@ -32,8 +32,8 @@ export const UserRevenueReportTab: React.FC<UserRevenueReportTabProps> = ({
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => <option key={m} value={m.toString()}>Tháng {m}</option>)}
             </select>
           </div>
-          <div className="text-xs text-slate-700 font-medium">Tổng doanh thu: <span className="font-bold text-emerald-700 font-mono">{totalRevenue.toLocaleString('vi-VN')} đ</span></div>
-          <div className="flex items-center justify-end gap-2">
+          <div className="text-xs text-slate-700 font-medium whitespace-nowrap px-2">Tổng doanh thu: <span className="font-bold text-emerald-700 font-mono text-sm ml-1">{totalRevenue.toLocaleString('vi-VN')} đ</span></div>
+          <div className="flex items-center justify-end gap-2 ml-auto">
             <button onClick={() => setSearchTrigger(prev => prev + 1)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-xs"><Search className="w-3.5 h-3.5" /> Tìm kiếm</button>
             <button onClick={() => handleExportExcel('BaoCaoDoanhThu_User_Thang')} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-xs"><Download className="w-3.5 h-3.5" /> Xuất excel</button>
           </div>

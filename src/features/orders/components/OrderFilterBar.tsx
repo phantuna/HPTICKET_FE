@@ -21,6 +21,7 @@ interface OrderFilterBarProps {
   customerSources: any[];
   isLoading: boolean;
   onSearch: () => void;
+  onFilterFocus?: () => void;
 }
 
 export const OrderFilterBar: React.FC<OrderFilterBarProps> = ({
@@ -31,7 +32,7 @@ export const OrderFilterBar: React.FC<OrderFilterBarProps> = ({
   filterBookingCode, setFilterBookingCode,
   filterSourceId, setFilterSourceId,
   ticketCounters, customerSources,
-  isLoading, onSearch
+  isLoading, onSearch, onFilterFocus
 }) => {
   if (activeSubTab === 'tickets') {
     return (
@@ -69,7 +70,7 @@ export const OrderFilterBar: React.FC<OrderFilterBarProps> = ({
         </div>
         <div className="flex flex-col gap-1.5">
           <label className="text-slate-500 font-bold uppercase text-[10px]">Quầy vé</label>
-          <select value={filterCounterId} onChange={e => setFilterCounterId(e.target.value)} className="w-full border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 px-3 py-2 bg-slate-50">
+          <select onFocus={onFilterFocus} onMouseEnter={onFilterFocus} value={filterCounterId} onChange={e => setFilterCounterId(e.target.value)} className="w-full border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 px-3 py-2 bg-slate-50">
             <option value="">Tất cả</option>
             {ticketCounters.map(c => (
               <option key={c.id} value={c.id}>{c.name}</option>
@@ -100,7 +101,7 @@ export const OrderFilterBar: React.FC<OrderFilterBarProps> = ({
         </div>
         <div className="flex flex-col gap-1.5">
           <label className="text-slate-500 font-bold uppercase text-[10px]">Nguồn khách</label>
-          <select value={filterSourceId} onChange={e => setFilterSourceId(e.target.value)} className="w-full border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 px-3 py-2 bg-slate-50">
+          <select onFocus={onFilterFocus} onMouseEnter={onFilterFocus} value={filterSourceId} onChange={e => setFilterSourceId(e.target.value)} className="w-full border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 px-3 py-2 bg-slate-50">
             <option value="">Không chọn</option>
             {customerSources.map(s => (
               <option key={s.id} value={s.id}>{s.company_name || s.code}</option>

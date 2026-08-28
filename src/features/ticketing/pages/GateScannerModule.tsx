@@ -177,7 +177,7 @@ export const GateScannerModule: React.FC = () => {
               <h2 className="text-base font-bold text-slate-900">Lịch Sử Qua Cổng Theo Thời Gian Thực</h2>
             </div>
             <span className="text-xs text-slate-600 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-full font-mono font-semibold">
-              {logs.length} Lượt
+              {logs.filter(log => log.status_result === ScanStatusResult.SUCCESS || (log as any).status_result === 'OPEN_GATE').length} Lượt
             </span>
           </div>
 

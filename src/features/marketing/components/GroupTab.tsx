@@ -63,7 +63,7 @@ export const GroupTab: React.FC<GroupTabProps> = ({ groups, setGroups, refreshDa
         title="KHAI BÁO NHÓM NGUỒN KHÁCH"
         data={groups}
         columns={[
-          { header: 'ID', accessor: (row, idx) => 1005 + idx, className: 'w-24 font-mono' },
+          { header: 'STT', accessor: (row, idx) => idx + 1, className: 'w-16 font-mono text-center' },
           { header: 'Mã nhóm nguồn khách', accessor: 'code', className: 'font-mono font-bold text-slate-800' },
           { header: 'Nhóm nguồn khách', accessor: 'name', className: 'font-semibold text-slate-900' },
           { header: 'Sử dụng', accessor: 'is_active', className: 'text-center w-24' },

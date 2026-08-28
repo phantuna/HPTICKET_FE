@@ -3,6 +3,7 @@ import { marketingService } from '../../../api/marketingService';
 import { salesService } from '../../../api/salesService';
 import { ticketingService } from '../../../api/ticketingService';
 import { Company, SalesLocation, SalesCounter, ControlZone, ControlGate } from '../../../shared/types/hpticket';
+import { toast } from '../../../shared/utils/toast';
 
 const globalLocationsCache: any = {
   company: null,
@@ -90,6 +91,7 @@ export const useLocations = (initialTab: string) => {
   const [newCounterName, setNewCounterName] = useState('');
   const [newCounterCode, setNewCounterCode] = useState('');
   const [selectedLocId, setSelectedLocId] = useState('');
+  const [newCounterTypes, setNewCounterTypes] = useState<string[]>([]);
 
   const [newZoneName, setNewZoneName] = useState('');
   const [newZoneCode, setNewZoneCode] = useState('');
@@ -163,10 +165,10 @@ export const useLocations = (initialTab: string) => {
     if (!newCounterName || !newCounterCode) return;
     if (editingCounterId) {
       const target = counters.find((c) => c.id === editingCounterId);
-      if (target) await salesService.updateSalesCounter(editingCounterId, { ...target, code: newCounterCode.toUpperCase(), name: newCounterName, sales_location_id: selectedLocId });
+      if (target) await salesService.updateSalesCounter(editingCounterId, { ...target, code: newCounterCode.toUpperCase(), name: newCounterName, sales_location_id: selectedLocId, supportedTypes: newCounterTypes as any });
     } else {
       const item: SalesCounter = {
-        id: `cnt-${Date.now()}`, code: newCounterCode.toUpperCase(), name: newCounterName, sales_location_id: selectedLocId,
+        id: `cnt-${Date.now()}`, code: newCounterCode.toUpperCase(), name: newCounterName, sales_location_id: selectedLocId, supportedTypes: newCounterTypes as any,
         is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), created_by: 'admin', updated_by: 'admin',
       };
       await salesService.createSalesCounter(item);
@@ -175,7 +177,7 @@ export const useLocations = (initialTab: string) => {
       const cntRes = await salesService.fetchSalesCounters();
       if (cntRes.data && cntRes.data.length > 0) setCounters(cntRes.data);
     } catch (err) {}
-    setNewCounterName(''); setNewCounterCode('');
+    setNewCounterName(''); setNewCounterCode(''); setNewCounterTypes([]);
     setEditingCounterId(null); setShowCounterModal(false);
   };
 
@@ -254,7 +256,7 @@ export const useLocations = (initialTab: string) => {
           if (compRes.data && compRes.data.length > 0) setCompany(compRes.data[0]);
         }
       }
-    } catch(err) { console.error(err); }
+    } catch(err: any) { toast.error(err.message || 'Lỗi lưu thông tin công ty'); console.error(err); }
     setShowCompanyModal(false);
   };
 
@@ -312,6 +314,7 @@ export const useLocations = (initialTab: string) => {
     newCounterName, setNewCounterName,
     newCounterCode, setNewCounterCode,
     selectedLocId, setSelectedLocId,
+    newCounterTypes, setNewCounterTypes,
 
     newZoneName, setNewZoneName,
     newZoneCode, setNewZoneCode,

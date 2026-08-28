@@ -31,6 +31,10 @@ export const toggleUseMockApi = (): boolean => {
 // 2. TẬP TRUNG TẤT CẢ DANH SÁCH ENDPOINTS TRONG HỆ THỐNG
 // Khi Backend đổi URL (Ví dụ: /api/v1/tickets -> /api/v2/tickets-management), chỉ cần sửa ở đây!
 export const API_ENDPOINTS = {
+  // 0. SYSTEM MASTER DATA
+  SYSTEM: {
+    MASTER_DATA: '/system/master-data',
+  },
   // 1. MODULE IAM (Xác thực & Phân quyền) - Base: /api/v1/iam
   IAM: {
     AUTH_LOGIN: '/iam/auth/login',
@@ -88,6 +92,8 @@ export const API_ENDPOINTS = {
     ISSUED_TICKET_DETAIL: (id: string) => `/sales/issued-tickets/${id}`,
     LOCK_ISSUED_TICKET: (id: string) => `/sales/issued-tickets/${id}/lock`,
     REPORTS_SUMMARY: '/sales/reports/summary',
+    REPORTS_TICKET: '/sales/reports/ticket-revenue',
+    REPORTS_PRODUCT: '/sales/reports/product-revenue',
   },
 
   // 4. MODULE TICKETING (Cấu hình vé, Khu vực, Cổng & Soát vé) - Base: /api/v1/ticketing
@@ -109,6 +115,7 @@ export const API_ENDPOINTS = {
     CONTROL_ZONE_STATUS: (id: string) => `/ticketing/control-zones/${id}/status`,
     SCAN: '/ticketing/scan',
     ACCESS_LOGS: '/ticketing/access-logs',
+    UNREGISTERED_CARDS: '/ticketing/unregistered-cards',
   },
 
   // 5. MODULE VINVOICE (Hóa đơn điện tử Viettel S-Invoice)

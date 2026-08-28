@@ -550,10 +550,11 @@ export const salesService = {
 
 
   // 4. ORDERS (/sales/orders)
-  async fetchOrders(): Promise<ApiResponse<Order[]>> {
+  async fetchOrders(params?: { fromDate?: string; toDate?: string; size?: number }): Promise<ApiResponse<Order[]>> {
     
       try {
-        const res = await apiClient.get<ApiResponse<any>>(API_ENDPOINTS.SALES.ORDERS);
+        const queryParams = { size: 2000, ...params };
+        const res = await apiClient.get<ApiResponse<any>>(API_ENDPOINTS.SALES.ORDERS, queryParams);
         const list = normalizeList<Order>(res.data);
         if (list && list.length > 0) {
           dbStore.orders = list;
@@ -796,9 +797,10 @@ export const salesService = {
           }
         }
 
-        // Generate static unique QR string for each ticket unit
+        // Sinh số ngẫu nhiên 10 chữ số (Mock)
         for (let q = 0; q < item.quantity; q++) {
-          const qrCodeStr = `HPT-PASS-${item.code}-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+          const random10 = Math.floor(1000000000 + Math.random() * 9000000000).toString();
+          const qrCodeStr = random10;
           const issuedTicket: IssuedTicket = {
             id: `tkt-${Date.now()}-${Math.floor(100000 + Math.random() * 900000)}-${q + 1}`,
             qr_code_string: qrCodeStr,

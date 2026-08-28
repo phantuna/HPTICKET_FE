@@ -1,77 +1,53 @@
 import React, { useState } from 'react';
 import { Layers } from 'lucide-react';
 import { AdminConfigCard } from '../../iam/components/AdminConfigCard';
-import { TicketZone, ControlZone, TicketTemplate } from '../../../shared/types/hpticket';
+import { ControlZone, TicketTemplate } from '../../../shared/types/hpticket';
 import { ticketingService } from '../../../api/ticketingService';
 import { toast } from '../../../shared/utils/toast';
 
 interface TicketZoneTabProps {
-  ticketZones: TicketZone[];
-  setTicketZones: React.Dispatch<React.SetStateAction<TicketZone[]>>;
   controlZones: ControlZone[];
   ticketTemplates: TicketTemplate[];
   refreshData: () => void;
 }
 
-export const TicketZoneTab: React.FC<TicketZoneTabProps> = ({ ticketZones, setTicketZones, controlZones, ticketTemplates, refreshData }) => {
+export const TicketZoneTab: React.FC<TicketZoneTabProps> = ({ controlZones, ticketTemplates, refreshData }) => {
   const [showModal, setShowModal] = useState(false);
-  const [editingZone, setEditingZone] = useState<TicketZone | null>(null);
-  const [zoneName, setZoneName] = useState('');
+  const [editingTemplate, setEditingTemplate] = useState<TicketTemplate | null>(null);
   const [selectedControlZoneIds, setSelectedControlZoneIds] = useState<string[]>([]);
 
   const handleSave = async () => {
-    if (!zoneName.trim()) { toast.error('Vui lòng nhập tên nhóm vé!'); return; }
-
-    if (editingZone) {
+    if (editingTemplate) {
       const updatedItem: any = { 
-        ...editingZone, 
-        name: zoneName, 
-        zone_ids: selectedControlZoneIds,
+        ...editingTemplate, 
+        control_zone_ids: selectedControlZoneIds,
       };
-      await ticketingService.updateTicketZone(editingZone.id, updatedItem);
-    } else {
-      const item: any = {
-        id: `tz-${Date.now()}`,
-        name: zoneName,
-        zone_ids: selectedControlZoneIds,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        created_by: 'admin',
-        updated_by: 'admin',
-      };
-      await ticketingService.createTicketZone(item);
+      await ticketingService.updateTicketTemplate(editingTemplate.id, updatedItem);
+      refreshData();
+      setShowModal(false);
+      toast.success('Đã cập nhật khu vực kiểm soát cho vé!');
     }
-    
-    refreshData();
-    setShowModal(false);
-  };
-
-  const handleDelete = async (ids: (string | number)[]) => {
-    for (const id of ids) {
-      await ticketingService.deleteTicketZone(String(id));
-    }
-    setTicketZones(prev => prev.filter(t => !ids.includes(t.id)));
   };
 
   return (
     <>
       <AdminConfigCard
         title="KHAI BÁO CÁC LOẠI VÉ THEO KHU VỰC KIỂM SOÁT"
-        data={ticketZones}
+        data={ticketTemplates}
         columns={[
           { header: 'STT', accessor: (row: any, idx) => idx + 1, className: 'w-16 font-mono text-center' },
-          { header: 'Tên nhóm vé áp dụng', accessor: 'name', className: 'font-bold text-slate-900 w-1/3' },
+          { header: 'Tên vé', accessor: 'name', className: 'font-bold text-slate-900 w-1/3' },
           {
             header: 'Tên khu vực kiểm soát',
             accessor: (row: any) => {
-              const zoneIds = row.zone_ids || [row.zone_id || row.control_zone_id].filter(Boolean);
-              const czs = zoneIds.map((id: string) => controlZones.find(z => z.id === id || (z as any).zone_id === id)).filter(Boolean);
+              const zoneIds = row.control_zone_ids || [];
+              const czs = zoneIds.map((id: string) => controlZones.find(z => z.id === id)).filter(Boolean);
               return (
                 <ul className="list-disc list-inside space-y-1 text-slate-800 font-medium">
                   {czs.length > 0 ? (
-                    czs.map((cz: any, index: number) => <li key={index}>{cz.name}</li>)
+                    czs.map((cz: any, index: number) => <li key={index}>* {cz.name}</li>)
                   ) : (
-                    <li>Chưa gán khu vực</li>
+                    <li className="text-slate-400 italic">Chưa gán khu vực</li>
                   )}
                 </ul>
               );
@@ -79,37 +55,28 @@ export const TicketZoneTab: React.FC<TicketZoneTabProps> = ({ ticketZones, setTi
             className: 'py-2',
           },
         ]}
-        onAddNew={() => {
-          setEditingZone(null);
-          setZoneName('');
-          setSelectedControlZoneIds([]);
-          setShowModal(true);
-        }}
         onEdit={(item: any) => {
-          setEditingZone(item);
-          setZoneName(item.name || '');
-          setSelectedControlZoneIds(item.zone_ids || [item.zone_id || item.control_zone_id].filter(Boolean));
+          setEditingTemplate(item);
+          setSelectedControlZoneIds(item.control_zone_ids || []);
           setShowModal(true);
         }}
-        onDelete={handleDelete}
+        hideAddButton={true}
+        hideDeleteButton={true}
+        onDelete={async () => {}}
       />
 
       {showModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl text-slate-900">
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
-              <Layers className="w-5 h-5 text-purple-600" /> {editingZone ? 'Sửa Nhóm Vé' : 'Thêm Nhóm Vé'}
+              <Layers className="w-5 h-5 text-purple-600" /> Sửa Khu Vực Kiểm Soát Cho Vé
             </h3>
             <div className="space-y-3 text-xs">
               <div>
-                <label className="block text-slate-700 font-semibold mb-1">Tên Nhóm Vé (Khu Vực):</label>
-                <input
-                  type="text"
-                  value={zoneName}
-                  onChange={(e) => setZoneName(e.target.value)}
-                  placeholder="Ví dụ: Nhóm vé Tham Quan, Cáp Treo..."
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 outline-none focus:ring-1 focus:ring-purple-500 font-medium"
-                />
+                <label className="block text-slate-700 font-semibold mb-1">Tên Vé:</label>
+                <div className="w-full bg-slate-100 border border-slate-200 rounded-xl p-2.5 text-slate-600 font-medium cursor-not-allowed">
+                  {editingTemplate?.name}
+                </div>
               </div>
               <div>
                 <label className="block text-slate-700 font-semibold mb-1">Khu Vực Kiểm Soát:</label>

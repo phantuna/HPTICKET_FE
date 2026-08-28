@@ -29,6 +29,7 @@ export const LocationModule: React.FC<LocationModuleProps> = ({ subTab = 'khaiba
     editCompLogo, setEditCompLogo, editCompInvoiceLogo, setEditCompInvoiceLogo,
     newLocName, setNewLocName, newLocCode, setNewLocCode, newLocAddress, setNewLocAddress,
     newCounterName, setNewCounterName, newCounterCode, setNewCounterCode, selectedLocId, setSelectedLocId,
+    newCounterTypes, setNewCounterTypes,
     newZoneName, setNewZoneName, newZoneCode, setNewZoneCode,
     newGateName, setNewGateName, newGateIp, setNewGateIp, newGatePort, setNewGatePort, selectedZoneId, setSelectedZoneId,
     handleToggleLocationActive, handleToggleCounterActive, handleToggleZoneActive, handleToggleGateActive,
@@ -119,7 +120,7 @@ export const LocationModule: React.FC<LocationModuleProps> = ({ subTab = 'khaiba
           title="KHAI BÁO ĐIỂM BÁN VÉ"
           data={locations}
           columns={[
-            { header: 'ID', accessor: (row, idx) => idx + 4, className: 'w-20 font-mono' },
+            { header: 'ID', accessor: (row, idx) => idx + 1, className: 'w-16 font-mono text-center' },
             { header: 'Mã điểm bán vé', accessor: 'code', className: 'font-mono font-bold text-slate-800' },
             { header: 'Tên điểm bán vé', accessor: 'name', className: 'font-semibold text-slate-900' },
             { header: 'Sử dụng', accessor: 'is_active', className: 'text-center w-24' },
@@ -140,17 +141,17 @@ export const LocationModule: React.FC<LocationModuleProps> = ({ subTab = 'khaiba
           title="KHAI BÁO QUẦY BÁN VÉ"
           data={counters}
           columns={[
-            { header: 'ID', accessor: (row, idx) => idx + 13, className: 'w-20 font-mono' },
+            { header: 'STT', accessor: (row, idx) => idx + 1, className: 'w-16 font-mono text-center' },
             { header: 'Mã quầy', accessor: 'code', className: 'font-mono font-bold text-slate-800' },
             { header: 'Tên quầy', accessor: 'name', className: 'font-semibold text-slate-900' },
             { header: 'Điểm bán vé', accessor: (row: any) => locations.find((l) => l.id === row.sales_location_id)?.name || 'Zipline', className: 'text-slate-800 font-medium' },
             { header: 'Sử dụng', accessor: 'is_active', className: 'text-center w-24' },
           ]}
           onAddNew={() => {
-            setEditingCounterId(null); setNewCounterCode(''); setNewCounterName(''); setShowCounterModal(true);
+            setEditingCounterId(null); setNewCounterCode(''); setNewCounterName(''); setNewCounterTypes([]); setShowCounterModal(true);
           }}
           onEdit={(item: any) => {
-            setEditingCounterId(item.id); setNewCounterCode(item.code); setNewCounterName(item.name); if (item.sales_location_id) setSelectedLocId(item.sales_location_id); setShowCounterModal(true);
+            setEditingCounterId(item.id); setNewCounterCode(item.code); setNewCounterName(item.name); if (item.sales_location_id) setSelectedLocId(item.sales_location_id); setNewCounterTypes(item.supportedTypes || []); setShowCounterModal(true);
           }}
           onDelete={handleDeleteCounters}
           onToggleActive={(id, currentActive) => handleToggleCounterActive(String(id), currentActive)}
@@ -162,7 +163,7 @@ export const LocationModule: React.FC<LocationModuleProps> = ({ subTab = 'khaiba
           title="KHAI BÁO KHU KIỂM SOÁT"
           data={controlZones}
           columns={[
-            { header: 'ID', accessor: (row, idx) => [1, 5, 7][idx] || idx + 1, className: 'w-20 font-mono' },
+            { header: 'STT', accessor: (row, idx) => idx + 1, className: 'w-16 font-mono text-center' },
             { header: 'Mã khu kiểm soát', accessor: 'code', className: 'font-mono font-bold text-slate-800' },
             { header: 'Tên khu kiểm soát', accessor: 'name', className: 'font-semibold text-slate-900' },
             { header: 'Sử dụng', accessor: 'is_active', className: 'text-center w-24' },
@@ -183,7 +184,7 @@ export const LocationModule: React.FC<LocationModuleProps> = ({ subTab = 'khaiba
           title="KHAI BÁO CỬA KIỂM SOÁT"
           data={controlGates}
           columns={[
-            { header: 'ID', accessor: (row, idx) => idx + 9, className: 'w-20 font-mono' },
+            { header: 'STT', accessor: (row, idx) => idx + 1, className: 'w-16 font-mono text-center' },
             { header: 'Tên thiết bị', accessor: 'device_name', className: 'font-semibold text-slate-900' },
             { header: 'Địa chỉ ip', accessor: 'ip_address', className: 'font-mono font-medium text-slate-800' },
             { header: 'Cổng thiết bị', accessor: 'device_port', className: 'font-mono text-center w-28' },
@@ -213,6 +214,7 @@ export const LocationModule: React.FC<LocationModuleProps> = ({ subTab = 'khaiba
         <CounterModal
           editingCounterId={editingCounterId} selectedLocId={selectedLocId} setSelectedLocId={setSelectedLocId}
           newCounterCode={newCounterCode} setNewCounterCode={setNewCounterCode} newCounterName={newCounterName} setNewCounterName={setNewCounterName}
+          newCounterTypes={newCounterTypes} setNewCounterTypes={setNewCounterTypes}
           locations={locations} isItemActive={isItemActive} onSubmit={handleAddCounter} onClose={() => setShowCounterModal(false)}
         />
       )}

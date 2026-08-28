@@ -35,11 +35,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
         setSuccessMsg(`Đăng nhập thành công (${userStr})! Đang kéo dữ liệu thực từ cơ sở dữ liệu PostgreSQL...`);
         window.dispatchEvent(new Event('hpticket_auth_changed'));
 
-        // Tự động đồng bộ với backend nếu đang chế độ Live
-        if (true) {
-          await dbStore.syncFromBackend(true);
-        }
-
+        // Đã xóa hàm tự động kéo toàn bộ dữ liệu (Fat Client) ở đây để tăng tốc login
         setTimeout(() => {
           onLoginSuccess(userStr, res.data.token);
           onClose();

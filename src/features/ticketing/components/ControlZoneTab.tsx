@@ -39,7 +39,7 @@ export const ControlZoneTab: React.FC<ControlZoneTabProps> = ({ controlZones, se
     setControlZones(prev => prev.map(cz => cz.id === id ? { ...cz, is_active: newActive, isActive: newActive, active: newActive } : cz));
     try {
       await ticketingService.updateControlZoneStatus(id, newActive);
-    } catch (err) {}
+    } catch (err) { }
   };
 
   const handleDelete = async (ids: (string | number)[]) => {
@@ -55,7 +55,7 @@ export const ControlZoneTab: React.FC<ControlZoneTabProps> = ({ controlZones, se
         title="KHAI BÁO KHU KIỂM SOÁT"
         data={controlZones}
         columns={[
-          { header: 'ID', accessor: (row: any, idx) => row.id || idx + 1, className: 'w-20 font-mono' },
+          { header: 'ID', accessor: (row: any, idx) => idx + 1, className: 'w-16 font-mono text-center' },
           { header: 'Mã khu kiểm soát', accessor: 'code', className: 'font-mono font-bold text-slate-800' },
           { header: 'Tên khu kiểm soát', accessor: 'name', className: 'font-semibold text-slate-900' },
           { header: 'Sử dụng', accessor: 'is_active', className: 'text-center w-24' },

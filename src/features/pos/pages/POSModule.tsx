@@ -34,28 +34,52 @@ export const POSModule: React.FC = () => {
   } = usePOS();
 
   const totalSubtotalBeforeDiscount = lineItems.reduce(
-    (acc, item) => acc + item.unit_price * item.quantity, 0
+    (acc, item) => acc + item.unit_price * (Number(item.quantity) || 0), 0
   );
 
-  const totalLineDiscounts = lineItems.reduce(
-    (acc, item) => acc + Math.round((item.unit_price * item.quantity * item.discount_percent) / 100), 0
-  );
+  // Tiền sau khi áp dụng giảm giá nhóm KH trên từng dòng vé
+  const subtotalAfterLineDiscounts = lineItems.reduce((acc, item) => {
+    const qty = Number(item.quantity) || 0;
+    const lineTotal = Math.round(item.unit_price * qty * (1 - (item.discount_percent || 0) / 100));
+    return acc + lineTotal;
+  }, 0);
 
-  const subtotalAfterLineDiscounts = totalSubtotalBeforeDiscount - totalLineDiscounts;
+  // Tổng tiền giảm của nhóm KH (chỉ để hiển thị)
+  const systemDiscountAmount = totalSubtotalBeforeDiscount - subtotalAfterLineDiscounts;
 
+  // 2. MANUAL Discount (Thu ngân gõ tay vào ô Giảm giá thêm)
+  const manualDiscountAmount = extraDiscount || 0;
+
+  // 3. PROMOTION Discount (Voucher KM) - so sánh với systemDiscount, lấy cái nào lớn hơn
   let promotionDiscountAmount = 0;
   const appliedPromo = promotions.find(p => p.id === selectedPromotionId);
   if (appliedPromo) {
     if (appliedPromo.discount_percent > 0) {
-      promotionDiscountAmount = Math.round((subtotalAfterLineDiscounts * appliedPromo.discount_percent) / 100);
+      promotionDiscountAmount = Math.round(totalSubtotalBeforeDiscount * (appliedPromo.discount_percent / 100));
     } else if (appliedPromo.discount_value > 0) {
       promotionDiscountAmount = appliedPromo.discount_value;
     }
   }
 
-  const effectiveExtraDiscount = Math.max(extraDiscount, promotionDiscountAmount);
-  const grandTotal = Math.max(0, subtotalAfterLineDiscounts - effectiveExtraDiscount);
+  // Cơ chế MAX: So sánh System (nhóm KH) vs Promotion
+  // Nếu nhóm KH giảm nhiều hơn -> Dùng giảm giá dòng (discount_percent) -> extraDiscount trên bill = 0
+  // Nếu Promotion giảm nhiều hơn -> Bỏ qua giảm giá dòng, dùng promotionDiscount trên toàn đơn
+  let effectiveExtraDiscount = 0;
+  let grandTotal = 0;
+
+  if (systemDiscountAmount >= promotionDiscountAmount) {
+    // Nhóm KH thắng: Dùng giảm giá đã tính trong từng dòng
+    effectiveExtraDiscount = Math.max(manualDiscountAmount, 0);
+    grandTotal = Math.max(0, subtotalAfterLineDiscounts - effectiveExtraDiscount);
+  } else {
+    // Promotion thắng: Bỏ qua giảm giá nhóm KH, áp promotion lên giá gốc
+    effectiveExtraDiscount = Math.max(manualDiscountAmount, promotionDiscountAmount);
+    grandTotal = Math.max(0, totalSubtotalBeforeDiscount - effectiveExtraDiscount);
+  }
+
   const remainingPayable = Math.max(0, grandTotal - depositAmount);
+
+  const selectedCounter = counters.find(c => c.id === selectedCounterId);
 
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-5 text-slate-800 print:p-0 print:m-0 print:max-w-none">
@@ -93,6 +117,7 @@ export const POSModule: React.FC = () => {
             activeListTab={activeListTab} setActiveListTab={setActiveListTab}
             ticketTemplates={ticketTemplates} ticketZones={ticketZones} products={products}
             lineItems={lineItems} handleToggleItem={handleToggleItem}
+            selectedCounter={selectedCounter}
           />
         </div>
 
@@ -116,7 +141,7 @@ export const POSModule: React.FC = () => {
               paymentMethod={paymentMethod}
               customerSourceName={selectedSourceId ? customerSources.find((s) => s.id === selectedSourceId)?.company_name || 'Khách vãng lai' : 'Khách vãng lai'}
               groupDiscountNote={appliedGroup && appliedGroup.discount_percent > 0 ? `${appliedGroup.discount_percent}%` : ''}
-              groupDiscountAmount={totalLineDiscounts}
+              groupDiscountAmount={systemDiscountAmount}
               promoDiscountNote={appliedPromo ? appliedPromo.name : ''}
               promoDiscountAmount={extraDiscount}
               onClose={() => { setCompletedOrder(null); handleResetForm(); }}

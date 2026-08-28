@@ -50,6 +50,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [baocaoOpen, setBaocaoOpen] = useState(true);
   const [dichvuOpen, setDichvuOpen] = useState(false);
 
+  const handleNavClick = (module: string, subTab?: string) => {
+    onSelectRoute(module, subTab);
+    if (window.innerWidth < 1024) {
+      onToggleSidebar();
+    }
+  };
+
+
   const declarationMenu = [
     { label: 'Khai báo thông tin công ty', module: 'location', subTab: 'khaibaocongty', icon: Building2 },
     { label: 'Khai báo nhóm nguồn khách', module: 'marketing', subTab: 'khaibaoNhomNguonKhach', icon: Users },
@@ -59,8 +67,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { label: 'Khai báo khu kiểm soát', module: 'location', subTab: 'KhaibaosKhuKiemSoat', icon: ShieldCheck },
     { label: 'Khai báo cửa kiểm soát', module: 'location', subTab: 'KhaiBaoCuaKS', icon: Server },
     { label: 'Khai báo đối tượng', module: 'ticketing', subTab: 'KhaiBaoDoiTuong', icon: Users },
-    { label: 'Khai báo nhóm vé áp dụng (Khu vực)', module: 'ticketing', subTab: 'KhaiBaoVe_KS', icon: Layers },
     { label: 'Khai báo mẫu vé / Loại vé', module: 'ticketing', subTab: 'KhaibaoVe', icon: Ticket },
+    { label: 'Khai báo nhóm vé áp dụng (Khu vực)', module: 'ticketing', subTab: 'KhaiBaoVe_KS', icon: Layers },
     { label: 'Khai báo nhóm quyền', module: 'iam', subTab: 'KhaiBaoPhanQuyen', icon: Shield },
     { label: 'Khai báo tài khoản đăng nhập', module: 'iam', subTab: 'KhaibaoDangNhap', icon: UserCheck },
     { label: 'Khai báo thẻ nhân viên / QR', module: 'iam', subTab: 'KhaiBaoThe_NV', icon: QrCode },
@@ -148,7 +156,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 return (
                   <button
                     key={idx}
-                    onClick={() => onSelectRoute(item.module, item.subTab)}
+                    onClick={() => handleNavClick(item.module, item.subTab)}
                     title={item.label}
                     className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition text-left ${active
                         ? 'bg-emerald-600 text-white font-semibold shadow-xs'
@@ -191,7 +199,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 return (
                   <button
                     key={idx}
-                    onClick={() => onSelectRoute(item.module)}
+                    onClick={() => handleNavClick(item.module)}
                     title={item.label}
                     className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition text-left ${active
                         ? 'bg-blue-600 text-white font-semibold shadow-xs'
@@ -264,7 +272,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             return (
                               <button
                                 key={cIdx}
-                                onClick={() => onSelectRoute(child.module, child.subTab)}
+                                onClick={() => handleNavClick(child.module, child.subTab)}
                                 title={child.label}
                                 className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition text-left ${cActive
                                     ? 'bg-purple-600 text-white font-semibold shadow-xs'
@@ -287,7 +295,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 return (
                   <button
                     key={idx}
-                    onClick={() => onSelectRoute(item.module, item.subTab)}
+                    onClick={() => handleNavClick(item.module, item.subTab)}
                     title={item.label}
                     className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition text-left ${active
                         ? 'bg-purple-600 text-white font-semibold shadow-xs'

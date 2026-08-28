@@ -52,6 +52,10 @@ export interface User extends BaseEntity {
   qr_code: string; // Unique employee identification string
   role_id: string;
   is_active: boolean;
+  /** Danh sách ID quầy được phân công (dùng khi gửi lên API) */
+  assigned_counter_ids?: string[];
+  /** Danh sách quầy được phân công trả về từ API (dạng {id, code, name}) */
+  assigned_counters?: { id: string; code: string; name: string }[];
 }
 
 export interface LicenseConfig {
@@ -134,7 +138,7 @@ export interface TicketZone extends BaseEntity {
 
 export interface TicketTemplate extends BaseEntity {
   code: string;
-  ticket_zone_id: string; // Points to TicketZone
+  control_zone_ids: string[]; // Points to multiple ControlZones
   name: string; // Display name derived from TicketZone
   price: number; // Stored in absolute decimal / bigint precision (VND)
   tax_percent?: number;
@@ -177,6 +181,25 @@ export interface GateAccessLog extends BaseEntity {
 // ----------------------------------------------------
 // 4. SALES MODULE ENUMS & INTERFACES
 // ----------------------------------------------------
+
+export enum PosType {
+  TICKET = 'TICKET',
+  DRINK = 'DRINK'
+}
+
+export enum ProductCategory {
+  DRINK = 'DRINK',
+  SOUVENIR = 'SOUVENIR',
+  FOOD = 'FOOD',
+  OTHER = 'OTHER'
+}
+
+export const ProductCategoryLabels: Record<ProductCategory, string> = {
+  [ProductCategory.DRINK]: 'Nước uống',
+  [ProductCategory.SOUVENIR]: 'Quà lưu niệm',
+  [ProductCategory.FOOD]: 'Đồ ăn nhanh',
+  [ProductCategory.OTHER]: 'Khác'
+};
 
 export enum PaymentMethod {
   CASH = 'TIEN_MAT',
@@ -225,6 +248,7 @@ export interface SalesCounter extends BaseEntity {
   name: string;
   sales_location_id: string;
   is_active: boolean;
+  supportedTypes?: PosType[];
 }
 
 export interface Product extends BaseEntity {
