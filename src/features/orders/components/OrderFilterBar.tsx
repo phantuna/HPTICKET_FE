@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, RefreshCw } from 'lucide-react';
+import { Search, RefreshCw, Download } from 'lucide-react';
 
 interface OrderFilterBarProps {
   activeSubTab: 'orders' | 'tickets';
@@ -22,6 +22,7 @@ interface OrderFilterBarProps {
   isLoading: boolean;
   onSearch: () => void;
   onFilterFocus?: () => void;
+  onExportOrders?: () => void;
 }
 
 export const OrderFilterBar: React.FC<OrderFilterBarProps> = ({
@@ -32,7 +33,7 @@ export const OrderFilterBar: React.FC<OrderFilterBarProps> = ({
   filterBookingCode, setFilterBookingCode,
   filterSourceId, setFilterSourceId,
   ticketCounters, customerSources,
-  isLoading, onSearch, onFilterFocus
+  isLoading, onSearch, onFilterFocus, onExportOrders
 }) => {
   if (activeSubTab === 'tickets') {
     return (
@@ -108,13 +109,21 @@ export const OrderFilterBar: React.FC<OrderFilterBarProps> = ({
             ))}
           </select>
         </div>
-        <div className="flex justify-start">
+        <div className="flex justify-start gap-2">
           <button 
             onClick={onSearch}
             className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition flex items-center justify-center gap-2 shadow-xs w-full sm:w-auto"
           >
             <Search className="w-4 h-4" /> Tìm kiếm
           </button>
+          {onExportOrders && (
+            <button 
+              onClick={onExportOrders}
+              className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition flex items-center justify-center gap-2 shadow-xs w-full sm:w-auto"
+            >
+              <Download className="w-4 h-4" /> Xuất Excel
+            </button>
+          )}
         </div>
       </div>
     </div>

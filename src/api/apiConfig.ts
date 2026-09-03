@@ -39,6 +39,9 @@ export const API_ENDPOINTS = {
   IAM: {
     AUTH_LOGIN: '/iam/auth/login',
     AUTH_ME: '/iam/auth/me',
+    AUTH_REFRESH: '/iam/auth/refresh',           // Gia hạn phịn bằng Refresh Token
+    AUTH_LOGOUT: '/iam/auth/logout',             // Đăng xuất an toàn (revoke token)
+    AUTH_CHANGE_PASSWORD: '/iam/auth/change-password', // Đổi mật khẩu
     USERS: '/iam/users',
     USERS_ACTIVE: '/iam/users/active',
     USER_DETAIL: (id: string) => `/iam/users/${id}`,
@@ -181,19 +184,56 @@ export const apiClient = {
 
       // Tự động xử lý Refresh Token / Unauthorized 401 tập trung 1 nơi
       if (response.status === 401) {
-        console.error('Unauthorized (401)! Token JWT hết hạn hoặc không hợp lệ.');
-        // Xóa token cũ để tránh kẹt
-        localStorage.removeItem('hpticket_token');
+        console.warn('[apiClient] 401 Unauthorized — thử refresh token...');
 
-        // Bắn sự kiện ra toàn bộ App để UI (React) bắt được và hiển thị Toast (nếu có config)
+        const refreshToken = localStorage.getItem('hpticket_refresh_token');
+        // Tránh vòng lặp vô tận nếu chính endpoint /refresh bị 401
+        const isRefreshEndpoint = endpoint.includes('/auth/refresh');
+
+        if (refreshToken && !isRefreshEndpoint) {
+          try {
+            const refreshRes = await fetch(
+              `${API_BASE_URL}/iam/auth/refresh`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ refresh_token: refreshToken }),
+              }
+            );
+
+            if (refreshRes.ok) {
+              const refreshData = await refreshRes.json();
+              const newAccessToken: string = refreshData?.data?.token;
+              if (newAccessToken) {
+                localStorage.setItem('hpticket_token', newAccessToken);
+                // Retry request gốc với Access Token mới
+                const retryHeaders = {
+                  ...defaultHeaders,
+                  Authorization: `Bearer ${newAccessToken}`,
+                  ...headers,
+                };
+                const retryResponse = await fetch(fullUrl, { ...mergedConfig, headers: retryHeaders });
+                if (retryResponse.ok) {
+                  return await retryResponse.json();
+                }
+              }
+            }
+          } catch (refreshErr) {
+            console.error('[apiClient] Refresh token request failed:', refreshErr);
+          }
+        }
+
+        // Refresh thất bại hoặc không có refresh token → logout hẳn
+        localStorage.removeItem('hpticket_token');
+        localStorage.removeItem('hpticket_refresh_token');
+        localStorage.removeItem('hpticket_username');
+
         window.dispatchEvent(new CustomEvent('session_expired', {
           detail: { message: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!' }
         }));
+        window.dispatchEvent(new Event('hpticket_auth_changed'));
 
-        // Chuyển hướng về login sau 1 giây
-        setTimeout(() => {
-          window.location.href = '/#/login';
-        }, 1500);
+        setTimeout(() => { window.location.href = '/#/login'; }, 1500);
       }
 
       if (!response.ok) {

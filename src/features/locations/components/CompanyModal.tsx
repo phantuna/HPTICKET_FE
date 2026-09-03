@@ -29,12 +29,8 @@ const compressImage = (file: File, callback: (base64: string) => void) => {
       canvas.height = height;
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        // Nền trắng cho ảnh trong suốt (png)
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(0, 0, width, height);
-        ctx.drawImage(img, 0, 0, width, height);
-        // Nén thành dạng JPEG chất lượng trung bình để lấy size cực nhỏ
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+        // Giữ nguyên định dạng PNG để giữ nền trong suốt cho logo
+        const dataUrl = canvas.toDataURL('image/png');
         callback(dataUrl);
       } else {
         callback(img.src);

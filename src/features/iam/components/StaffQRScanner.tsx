@@ -54,45 +54,7 @@ export const StaffQRScanner: React.FC<StaffQRScannerProps> = ({
       </button>
     </div>
 
-    <div className="bg-amber-50/80 border border-amber-200 rounded-xl p-3.5 text-xs text-amber-900 space-y-1">
-      <div className="font-bold flex items-center gap-1.5 text-amber-800">
-        <span>💡 HƯỚNG DẪN DÙNG CAMERA ĐIỆN THOẠI THÔNG THƯỜNG QUÉT MÃ QR NHÂN VIÊN</span>
-      </div>
-      <p className="text-[11px] text-amber-800 leading-relaxed">
-        Ống kính camera mặc định trên điện thoại (iPhone / Android Camera) chỉ có thể hiển thị SĐT & Họ Tên khi mã QR được tạo dưới dạng <strong>"Văn Bản & SĐT"</strong> hoặc <strong>"Danh Bạ vCard"</strong>. Khi bấm xem <i>Thẻ Nhân Viên</i>, bạn có thể chuyển chế độ QR sang <strong>Văn Bản & SĐT</strong> để khi lấy điện thoại cá nhân quét, điện thoại sẽ lập tức hiển thị thông tin nhân viên ngay trên màn hình!
-      </p>
-    </div>
 
-    <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
-      <span className="text-slate-600 text-[11px] font-medium">Quét nhanh mẫu:</span>
-      <button
-        onClick={() => {
-          setScanInput('EMP-SUPERADMIN-001');
-          handleScanStaffQR('EMP-SUPERADMIN-001');
-        }}
-        className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-mono text-[11px] border border-slate-200 transition"
-      >
-        EMP-SUPERADMIN-001 (Admin)
-      </button>
-      <button
-        onClick={() => {
-          setScanInput('EMP-CASHIER-002');
-          handleScanStaffQR('EMP-CASHIER-002');
-        }}
-        className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-mono text-[11px] border border-slate-200 transition"
-      >
-        EMP-CASHIER-002 (Thu ngân)
-      </button>
-      <button
-        onClick={() => {
-          setScanInput('0901234567');
-          handleScanStaffQR('0901234567');
-        }}
-        className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-mono text-[11px] border border-slate-200 transition"
-      >
-        Tra Theo SĐT: 0901234567
-      </button>
-    </div>
 
     {hasScanned && (
       <div className="pt-2">

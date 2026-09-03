@@ -96,7 +96,7 @@ export const OrdersTable: React.FC<OrdersTableProps> = ({
         <table className="w-full text-left text-xs text-slate-700 whitespace-nowrap">
           <thead className="bg-slate-50 text-slate-500 uppercase font-mono text-[10px] border-b border-slate-200">
             <tr>
-              <th className="p-3.5 w-10 text-center">
+              <th className="px-2.5 py-3 w-10 text-center">
                 <input
                   type="checkbox"
                   checked={isAllSelected}
@@ -104,13 +104,13 @@ export const OrdersTable: React.FC<OrdersTableProps> = ({
                   className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                 />
               </th>
-              <th className="p-3.5">Mã Đơn Hàng</th>
-              <th className="p-3.5">Thời Gian</th>
-              <th className="p-3.5">Người Bán (Thu Ngân)</th>
-              <th className="p-3.5">Hóa Đơn Điện Tử (Viettel)</th>
-              <th className="p-3.5">Thanh Toán</th>
-              <th className="p-3.5 text-right">Tổng Tiền</th>
-              <th className="p-3.5 text-center">Thao Tác</th>
+              <th className="px-2.5 py-3">Mã Đơn Hàng</th>
+              <th className="px-2.5 py-3">Thời Gian</th>
+              <th className="px-2.5 py-3">Người Bán</th>
+              <th className="px-2.5 py-3">Hóa Đơn Điện Tử</th>
+              <th className="px-2.5 py-3">Thanh Toán</th>
+              <th className="px-2.5 py-3 text-right pr-4">Tổng Tiền</th>
+              <th className="px-2.5 py-3 text-center">Thao Tác</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -137,7 +137,7 @@ export const OrdersTable: React.FC<OrdersTableProps> = ({
                       onToggleSelectOrder && onToggleSelectOrder(ord.id);
                     }}
                   >
-                    <td className="p-3.5 text-center">
+                    <td className="px-2.5 py-3 text-center">
                       <input
                         type="checkbox"
                         checked={isSelected}
@@ -147,21 +147,21 @@ export const OrdersTable: React.FC<OrdersTableProps> = ({
                         onClick={(e) => e.stopPropagation()}
                       />
                     </td>
-                    <td className="p-3.5 font-mono font-bold text-emerald-700">{ord.order_code}</td>
-                    <td className="p-3.5 text-slate-500 font-mono text-[11px]">
+                    <td className="px-2.5 py-3 font-mono font-bold text-emerald-700">{ord.order_code}</td>
+                    <td className="px-2.5 py-3 text-slate-500 font-mono text-[11px]">
                       {formatDate(ord.created_at)}
                     </td>
-                    <td className="p-3.5 font-bold text-slate-700">
+                    <td className="px-2.5 py-3 font-bold text-slate-700">
                       @{ord.created_by || 'admin'}
                     </td>
-                    <td className="p-3.5">
+                    <td className="px-2.5 py-3">
                       <InvoiceStatusBadge
                         status={invoiceStatus}
                         invoiceNo={ord.invoice_number}
                         lookupCode={ord.invoice_lookup_code}
                       />
                     </td>
-                    <td className="p-3.5 font-medium">
+                    <td className="px-2.5 py-3 font-medium">
                       {ord.status === 'CANCELLED' ? (
                         <span className="text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded">
                           ĐÃ HỦY
@@ -172,10 +172,10 @@ export const OrdersTable: React.FC<OrdersTableProps> = ({
                         </span>
                       )}
                     </td>
-                    <td className="p-3.5 text-right font-mono font-extrabold text-slate-900">
+                    <td className="px-2.5 py-3 text-right font-mono font-extrabold text-slate-900 pr-4">
                       {ord.final_amount.toLocaleString('vi-VN')} đ
                     </td>
-                    <td className="p-3.5 text-center flex items-center justify-center gap-2">
+                    <td className="px-2.5 py-3 text-center flex items-center justify-center gap-2">
                       {ord.status === 'CANCELLED' ? (
                         <span className="px-2.5 py-1 bg-rose-50 text-rose-500 text-[11px] font-semibold rounded-lg border border-rose-200 inline-flex items-center gap-1 opacity-70">
                           Đã Hủy

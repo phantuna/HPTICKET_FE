@@ -19,6 +19,9 @@ import {
 import { dbStore } from '../data/mockDatabase';
 import { LicenseManagerModal } from '../../features/iam/components/LicenseManagerModal';
 import { LoginModal } from '../../features/auth/components/LoginModal';
+import { ProfileModal } from '../../features/auth/components/ProfileModal';
+import { ChangePasswordModal } from '../../features/auth/components/ChangePasswordModal';
+import { iamService } from '../../api/iamService';
 import { toast } from '../utils/toast';
 
 interface HeaderProps {
@@ -40,6 +43,8 @@ export const Header: React.FC<HeaderProps> = ({
   const [licenseModalOpen, setLicenseModalOpen] = useState(false);
   const [isMockMode, setIsMockMode] = useState<boolean>(false);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [jwtUser, setJwtUser] = useState<string | null>(localStorage.getItem('hpticket_username'));
 
   useEffect(() => {
@@ -152,22 +157,26 @@ export const Header: React.FC<HeaderProps> = ({
                     </div>
                   </div>
                   <div className="py-1">
-                    <button className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-slate-50 transition text-sm text-slate-700 font-medium cursor-pointer">
+                    <button
+                      onClick={() => { setUserDropdownOpen(false); setProfileOpen(true); }}
+                      className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-slate-50 transition text-sm text-slate-700 font-medium cursor-pointer"
+                    >
                       <UserCheck className="w-4 h-4 text-slate-400" /> Hồ sơ cá nhân
                     </button>
-                    <button className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-slate-50 transition text-sm text-slate-700 font-medium cursor-pointer">
+                    <button
+                      onClick={() => { setUserDropdownOpen(false); setChangePasswordOpen(true); }}
+                      className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-slate-50 transition text-sm text-slate-700 font-medium cursor-pointer"
+                    >
                       <Lock className="w-4 h-4 text-slate-400" /> Đổi mật khẩu
                     </button>
                   </div>
                   <div className="border-t border-slate-100 py-1 mt-1">
                     <button
-                      onClick={() => {
-                        localStorage.removeItem('hpticket_token');
-                        localStorage.removeItem('hpticket_username');
+                      onClick={async () => {
+                        setUserDropdownOpen(false);
+                        await iamService.logout();
                         setJwtUser(null);
                         window.dispatchEvent(new Event('hpticket_auth_changed'));
-                        setUserDropdownOpen(false);
-                        // ĐẨY VỀ TRANG LOGIN NGAY LẬP TỨC
                         window.location.hash = '/login';
                       }}
                       className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-rose-50 text-rose-600 transition text-sm font-bold cursor-pointer"
@@ -199,6 +208,18 @@ export const Header: React.FC<HeaderProps> = ({
           setJwtUser(username);
           onUserSwitch();
         }}
+      />
+
+      {/* Hồ sơ cá nhân */}
+      <ProfileModal
+        isOpen={profileOpen}
+        onClose={() => setProfileOpen(false)}
+      />
+
+      {/* Đổi mật khẩu */}
+      <ChangePasswordModal
+        isOpen={changePasswordOpen}
+        onClose={() => setChangePasswordOpen(false)}
       />
     </header>
   );

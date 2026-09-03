@@ -1,5 +1,7 @@
 import React from 'react';
 import { Search, Download, Clock } from 'lucide-react';
+import { downloadExcelFromApi } from '../utils/excelExporter';
+import { toast } from '../../../shared/utils/toast';
 
 interface GateLogReportTabProps {
   fromDate: string; setFromDate: (v: string) => void;
@@ -14,8 +16,25 @@ interface GateLogReportTabProps {
 
 export const GateLogReportTab: React.FC<GateLogReportTabProps> = ({
   fromDate, setFromDate, toDate, setToDate, nameSearch, setNameSearch,
-  setSearchTrigger, handleExportExcel, rawGateLogs, gateLogs, page, setPage, pageSize
-}) => (
+  setSearchTrigger, rawGateLogs, gateLogs, page, setPage, pageSize
+}) => {
+  const handleExport = async () => {
+    if (!fromDate || !toDate) {
+      toast.info("Vui lòng chọn Từ ngày và Đến ngày để xuất Excel.");
+      return;
+    }
+    const diff = Math.ceil((new Date(toDate).getTime() - new Date(fromDate).getTime()) / (1000 * 3600 * 24));
+    if (diff < 0) return toast.info("Đến ngày phải lớn hơn hoặc bằng Từ ngày.");
+    if (diff > 7) return toast.info("Chỉ cho phép xuất báo cáo tối đa 7 ngày để đảm bảo hiệu suất hệ thống.");
+
+    try {
+      await downloadExcelFromApi('/ticketing/access-logs/export', { fromDate, toDate }, 'NhatKySoatVe.xlsx');
+    } catch (error: any) {
+      toast.error(error?.message || 'Lỗi khi xuất dữ liệu. Vui lòng thử lại sau.');
+    }
+  };
+
+  return (
   <div className="space-y-6">
     <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4">
       <h2 className="text-base font-extrabold text-slate-900 uppercase tracking-wide">BÁO CÁO RA VÀO NHÂN VIÊN</h2>
@@ -40,7 +59,7 @@ export const GateLogReportTab: React.FC<GateLogReportTabProps> = ({
           </div>
           <div className="flex items-center justify-end gap-2">
             <button onClick={() => setSearchTrigger(prev => prev + 1)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-xs"><Search className="w-3.5 h-3.5" /> Tìm kiếm</button>
-            <button onClick={() => handleExportExcel('BaoCaoRaVao')} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-xs"><Download className="w-3.5 h-3.5" /> Xuất excel</button>
+            <button onClick={handleExport} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-xs"><Download className="w-3.5 h-3.5" /> Xuất excel</button>
           </div>
         </div>
       </div>
@@ -81,4 +100,5 @@ export const GateLogReportTab: React.FC<GateLogReportTabProps> = ({
       </div>
     </div>
   </div>
-);
+  );
+};

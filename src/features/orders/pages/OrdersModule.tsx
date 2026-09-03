@@ -12,6 +12,7 @@ import { IssueInvoiceModal } from '../components/IssueInvoiceModal';
 import { salesService } from '../../../api/salesService';
 import { ReceiptPrintModal } from '../../pos/components/ReceiptPrintModal';
 import { PromptModal } from '../../../shared/components/PromptModal';
+import { downloadExcelFromApi } from '../../reports/utils/excelExporter';
 
 export const OrdersModule: React.FC = () => {
   const {
@@ -164,10 +165,34 @@ export const OrdersModule: React.FC = () => {
     });
 
   const filteredTickets = issuedTickets.filter(
-    (t) =>
+    (t: any) =>
       t.qr_code_string.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (t.ticket_template_name && t.ticket_template_name.toLowerCase().includes(searchQuery.toLowerCase()))
   );
+
+  const handleExportOrders = async () => {
+    if (!fromDate || !toDate) {
+      alert("Vui lòng chọn Từ ngày và Đến ngày để xuất Excel.");
+      return;
+    }
+    const fDate = new Date(fromDate);
+    const tDate = new Date(toDate);
+    const diffDays = Math.ceil((tDate.getTime() - fDate.getTime()) / (1000 * 3600 * 24));
+    if (diffDays < 0) {
+      alert("Đến ngày phải lớn hơn hoặc bằng Từ ngày.");
+      return;
+    }
+    if (diffDays > 7) {
+      alert("Chỉ cho phép xuất danh sách đơn hàng tối đa 7 ngày để đảm bảo hiệu suất hệ thống.");
+      return;
+    }
+
+    try {
+      await downloadExcelFromApi('/sales/orders/export', { fromDate, toDate }, 'DanhSachDonHang.xlsx');
+    } catch (error: any) {
+      alert(error?.response?.data?.message || 'Lỗi khi xuất dữ liệu. Vui lòng thử lại sau.');
+    }
+  };
 
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 relative print:p-0 print:m-0 print:space-y-0 print:max-w-none">
@@ -209,6 +234,7 @@ export const OrdersModule: React.FC = () => {
         isLoading={isLoading}
         onSearch={() => { goToPage(0); }}
         onFilterFocus={loadDropdowns}
+        onExportOrders={handleExportOrders}
       />
 
       {/* Invoice Action Bar */}

@@ -54,7 +54,10 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({ subTab = 'BaoCaoDo
       {currentTab === 'BaoCaoDoanhThu' && (
         <RevenueReportTab 
           fromDate={fromDate} setFromDate={setFromDate} toDate={toDate} setToDate={setToDate}
-          setSearchTrigger={setSearchTrigger} handleExportExcel={handleExportExcel}
+          setSearchTrigger={setSearchTrigger}
+          handleExportExcel={() => handleExportExcel('BaoCaoDoanhThu', {
+            fromDate, toDate, ticketStatsArray, totalRevenue
+          })}
           totalRevenue={totalRevenue} totalTicketsSold={totalTicketsSold}
           chartView={chartView} setChartView={setChartView} chartData={chartData} ticketStatsArray={ticketStatsArray}
         />
@@ -65,7 +68,11 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({ subTab = 'BaoCaoDo
           fromDate={fromDate} setFromDate={setFromDate} toDate={toDate} setToDate={setToDate}
           posFilter={posFilter} setPosFilter={setPosFilter} sellerFilter={sellerFilter} setSellerFilter={setSellerFilter}
           customerGroupFilter={customerGroupFilter} setCustomerGroupFilter={setCustomerGroupFilter} customerSourceFilter={customerSourceFilter} setCustomerSourceFilter={setCustomerSourceFilter}
-          setSearchTrigger={setSearchTrigger} handleExportExcel={handleExportExcel} salesCounters={salesCounters} users={users} customerGroups={customerGroups} customerSources={customerSources}
+          setSearchTrigger={setSearchTrigger}
+          handleExportExcel={() => handleExportExcel('BaoCaoVeChiTiet', {
+            fromDate, toDate, issuedTickets, rawOrders
+          })}
+          salesCounters={salesCounters} users={users} customerGroups={customerGroups} customerSources={customerSources}
           totalRevenue={totalRevenue} totalCash={totalCash} totalBankTransfer={totalBankTransfer} 
           ticketTotalRevenue={ticketTotalRevenue} ticketTotalCash={ticketTotalCash} ticketTotalBankTransfer={ticketTotalBankTransfer}
           issuedTickets={issuedTickets} rawOrders={rawOrders}
@@ -77,7 +84,11 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({ subTab = 'BaoCaoDo
       {currentTab === 'BaoCaoDoanhThu_User_Thang' && (
         <UserRevenueReportTab
           sellerFilter={sellerFilter} setSellerFilter={setSellerFilter} selectedMonth={selectedMonth} setSelectedMonth={setSelectedMonth}
-          setSearchTrigger={setSearchTrigger} handleExportExcel={handleExportExcel} users={users} rawOrders={rawOrders} totalRevenue={totalRevenue}
+          setSearchTrigger={setSearchTrigger}
+          handleExportExcel={() => handleExportExcel('BaoCaoDoanhThu_User_Thang', {
+            selectedMonth, users, rawOrders
+          })}
+          users={users} rawOrders={rawOrders} totalRevenue={totalRevenue}
           onFilterFocus={loadDropdowns}
         />
       )}
@@ -85,14 +96,23 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({ subTab = 'BaoCaoDo
       {currentTab === 'BaoCaoDoanhThu_LoaiVe' && (
         <TicketTypeRevenueReportTab
           fromDate={fromDate} setFromDate={setFromDate} toDate={toDate} setToDate={setToDate} ticketTypeFilter={ticketTypeFilter} setTicketTypeFilter={setTicketTypeFilter}
-          setSearchTrigger={setSearchTrigger} handleExportExcel={handleExportExcel} ticketTemplates={ticketTemplates} ticketTemplateStats={ticketTemplateStats}
+          setSearchTrigger={setSearchTrigger}
+          handleExportExcel={() => handleExportExcel('BaoCaoDoanhThu_LoaiVe', {
+            fromDate, toDate, ticketTemplateStats
+          })}
+          ticketTemplates={ticketTemplates} ticketTemplateStats={ticketTemplateStats}
           onFilterFocus={loadDropdowns}
         />
       )}
 
       {currentTab === 'BaoCaoDoanhThu_SanPham' && (
         <ProductRevenueReportTab
-          fromDate={fromDate} setFromDate={setFromDate} toDate={toDate} setToDate={setToDate} setSearchTrigger={setSearchTrigger} handleExportExcel={handleExportExcel} productStats={productStats}
+          fromDate={fromDate} setFromDate={setFromDate} toDate={toDate} setToDate={setToDate}
+          setSearchTrigger={setSearchTrigger}
+          handleExportExcel={() => handleExportExcel('BaoCaoDoanhThu_SanPham', {
+            fromDate, toDate, productStats
+          })}
+          productStats={productStats}
         />
       )}
 

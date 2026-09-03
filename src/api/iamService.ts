@@ -22,6 +22,10 @@ export const iamService = {
         });
         if (res?.data?.token) {
           localStorage.setItem('hpticket_token', res.data.token);
+          // Lưu Refresh Token dài hạn để tự động gia hạn phịn khi Access Token hết hạn
+          if (res.data.refresh_token) {
+            localStorage.setItem('hpticket_refresh_token', res.data.refresh_token);
+          }
         }
         return res;
       } catch (err) {
@@ -58,6 +62,35 @@ export const iamService = {
       message: 'Lấy thông tin tài khoản thành công',
       data: dbStore.getActiveUser(),
     };
+  },
+
+  /**
+   * Đổi mật khẩu (PUT /api/v1/iam/auth/change-password)
+   * Mật khẩu mới sẽ được mã hóa BCrypt trên backend trước khi lưu.
+   * Sau khi thành công, toàn bộ refresh token của user bị thu hồi.
+   */
+  async changePassword(oldPassword: string, newPassword: string): Promise<ApiResponse<void>> {
+    return await apiClient.put<ApiResponse<void>>(API_ENDPOINTS.IAM.AUTH_CHANGE_PASSWORD, {
+      oldPassword,
+      newPassword,
+    });
+  },
+
+  /**
+   * Đăng xuất an toàn (POST /api/v1/iam/auth/logout)
+   * Gọi backend revoke refresh token trước, rồi mới xóa localStorage.
+   */
+  async logout(): Promise<void> {
+    const refreshToken = localStorage.getItem('hpticket_refresh_token');
+    if (refreshToken) {
+      // Fire-and-forget — không block UI nếu backend chậm
+      apiClient.post(API_ENDPOINTS.IAM.AUTH_LOGOUT, { refresh_token: refreshToken }).catch(() => {});
+    }
+    localStorage.removeItem('hpticket_token');
+    localStorage.removeItem('hpticket_refresh_token');
+    localStorage.removeItem('hpticket_username');
+    localStorage.removeItem('hpticket_fullname');
+    localStorage.removeItem('hpticket_role');
   },
 
   async fetchUsers(): Promise<ApiResponse<User[]>> {

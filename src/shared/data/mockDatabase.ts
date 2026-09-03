@@ -91,6 +91,9 @@ export class MockDatabaseStore {
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed.licenseConfig) this.licenseConfig = parsed.licenseConfig;
+        // Khôi phục dữ liệu vé từ lần sync cuối (hiển thị khi BE offline)
+        if (parsed.issuedTickets?.length > 0) this.issuedTickets = parsed.issuedTickets;
+        if (parsed.orders?.length > 0) this.orders = parsed.orders;
       }
     } catch (e) {
       console.error('Failed to load storage:', e);
@@ -103,6 +106,9 @@ export class MockDatabaseStore {
         STORAGE_KEY,
         JSON.stringify({
           licenseConfig: this.licenseConfig,
+          // Lưu dữ liệu vé & đơn hàng để FE hiển thị đúng khi BE offline
+          issuedTickets: this.issuedTickets,
+          orders: this.orders,
         })
       );
     } catch (e) {
