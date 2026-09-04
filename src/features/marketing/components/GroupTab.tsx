@@ -8,7 +8,7 @@ import { toast } from '../../../shared/utils/toast';
 interface GroupTabProps {
   groups: CustomerGroup[];
   setGroups: React.Dispatch<React.SetStateAction<CustomerGroup[]>>;
-  refreshData: () => void;
+  refreshData: (force?: boolean) => void;
 }
 
 export const GroupTab: React.FC<GroupTabProps> = ({ groups, setGroups, refreshData }) => {
@@ -31,7 +31,7 @@ export const GroupTab: React.FC<GroupTabProps> = ({ groups, setGroups, refreshDa
     } else {
       await marketingService.createCustomerGroup(payload);
     }
-    refreshData();
+    refreshData(true);
     setShowModal(false);
   };
 

@@ -9,7 +9,7 @@ interface SourceTabProps {
   sources: CustomerSource[];
   setSources: React.Dispatch<React.SetStateAction<CustomerSource[]>>;
   groups: CustomerGroup[];
-  refreshData: () => void;
+  refreshData: (force?: boolean) => void;
 }
 
 export const SourceTab: React.FC<SourceTabProps> = ({ sources, setSources, groups, refreshData }) => {
@@ -43,7 +43,7 @@ export const SourceTab: React.FC<SourceTabProps> = ({ sources, setSources, group
     } else {
       await marketingService.createCustomerSource(payload);
     }
-    refreshData();
+    refreshData(true);
     setShowModal(false);
   };
 

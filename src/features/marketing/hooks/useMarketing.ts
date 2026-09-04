@@ -24,7 +24,14 @@ export const useMarketing = (currentTab?: string) => {
     return val !== false && val !== 'INACTIVE';
   };
 
-  const fetchAll = async () => {
+  const fetchAll = async (force: boolean = false) => {
+    if (force) {
+      globalMarketingCache.groups = null;
+      globalMarketingCache.sources = null;
+      globalMarketingCache.holidays = null;
+      globalMarketingCache.promotions = null;
+      globalMarketingCache.templates = null;
+    }
     setLoading(true);
     try {
       if (!currentTab || currentTab === 'khaibaoNhomNguonKhach') {

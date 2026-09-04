@@ -8,7 +8,7 @@ import { toast } from '../../../shared/utils/toast';
 interface HolidayTabProps {
   holidays: Holiday[];
   setHolidays: React.Dispatch<React.SetStateAction<Holiday[]>>;
-  refreshData: () => void;
+  refreshData: (force?: boolean) => void;
 }
 
 export const HolidayTab: React.FC<HolidayTabProps> = ({ holidays, setHolidays, refreshData }) => {
@@ -42,7 +42,7 @@ export const HolidayTab: React.FC<HolidayTabProps> = ({ holidays, setHolidays, r
     } else {
       await marketingService.createHoliday(payload);
     }
-    refreshData();
+    refreshData(true);
     setShowModal(false);
   };
 

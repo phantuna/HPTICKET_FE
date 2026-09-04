@@ -9,7 +9,7 @@ interface PromotionTabProps {
   promotions: Promotion[];
   setPromotions: React.Dispatch<React.SetStateAction<Promotion[]>>;
   ticketTemplates: any[];
-  refreshData: () => void;
+  refreshData: (force?: boolean) => void;
 }
 
 export const PromotionTab: React.FC<PromotionTabProps> = ({ promotions, setPromotions, ticketTemplates, refreshData }) => {
@@ -42,7 +42,7 @@ export const PromotionTab: React.FC<PromotionTabProps> = ({ promotions, setPromo
     } else {
       await marketingService.createPromotion(payload);
     }
-    refreshData();
+    refreshData(true);
     setShowModal(false);
   };
 
