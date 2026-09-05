@@ -29,7 +29,7 @@ export const CounterModal: React.FC<CounterModalProps> = ({
 
   return (
   <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-    <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl text-slate-900">
+    <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }} className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl text-slate-900">
       <h3 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
         <Store className="w-5 h-5 text-emerald-600" /> {editingCounterId ? 'Sửa Quầy Bán Vé' : 'Thêm Quầy Bán Vé Mới'}
       </h3>
@@ -67,10 +67,10 @@ export const CounterModal: React.FC<CounterModalProps> = ({
         </div>
       </div>
       <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
-        <button onClick={onClose} className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition">Hủy</button>
-        <button onClick={onSubmit} className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition shadow-xs">Lưu Khai Báo Quầy</button>
+        <button type="button" onClick={onClose} className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition">Hủy</button>
+        <button type="submit" className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition shadow-xs">Lưu Khai Báo Quầy</button>
       </div>
-    </div>
+    </form>
   </div>
   );
 };

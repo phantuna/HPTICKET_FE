@@ -204,8 +204,13 @@ export const apiClient = {
             if (refreshRes.ok) {
               const refreshData = await refreshRes.json();
               const newAccessToken: string = refreshData?.data?.token;
+              const newRefreshToken: string = refreshData?.data?.refresh_token;
               if (newAccessToken) {
                 localStorage.setItem('hpticket_token', newAccessToken);
+                // Lưu lại Refresh Token mới nếu Backend trả về (rotation)
+                if (newRefreshToken) {
+                  localStorage.setItem('hpticket_refresh_token', newRefreshToken);
+                }
                 // Retry request gốc với Access Token mới
                 const retryHeaders = {
                   ...defaultHeaders,
@@ -216,6 +221,9 @@ export const apiClient = {
                 if (retryResponse.ok) {
                   return await retryResponse.json();
                 }
+                // Retry thất bại sau khi đã refresh thành công → throw lỗi đúng cách
+                const retryError = await retryResponse.json().catch(() => ({}));
+                throw new Error(retryError.message || `API Error: ${retryResponse.status}`);
               }
             }
           } catch (refreshErr) {

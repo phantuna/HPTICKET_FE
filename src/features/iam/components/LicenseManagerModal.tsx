@@ -215,6 +215,7 @@ export const LicenseManagerModal: React.FC<LicenseManagerModalProps> = ({
               type="text"
               value={newMasterKey}
               onChange={(e) => setNewMasterKey(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleActivatePermanent(); } }}
               placeholder="Key Vĩnh Viễn (Mặc định: VIP-SYSTEM-UNLOCK-9999)..."
               className="flex-1 bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 outline-none focus:border-emerald-500 shadow-xs"
             />
