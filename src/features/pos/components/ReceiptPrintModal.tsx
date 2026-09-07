@@ -140,6 +140,7 @@ export const ReceiptPrintModal: React.FC<ReceiptPrintModalProps> = ({
             >
               {/* Header */}
               <div className="text-center space-y-0 mb-1.5 pt-1 print:pt-1">
+                <img src="/logo.png" alt="Logo" className="w-[200px] h-auto mx-auto object-contain mb-2 grayscale contrast-150 brightness-90" style={{ mixBlendMode: 'multiply' }} />
                 <div className="font-bold text-[16px] uppercase tracking-wide">KHU DU LỊCH EO GIÓ</div>
                 <div className="text-[12px]">Mã số thuế: 0100109106-501</div>
                 <div className="text-[12px]">Eo Gió, Quy Nhơn</div>
@@ -193,7 +194,10 @@ export const ReceiptPrintModal: React.FC<ReceiptPrintModalProps> = ({
 
         {/* HÓA ĐƠN THANH TOÁN (Itemized Receipt) */}
         <div className="bg-white mx-auto text-black font-sans w-full max-w-[300px] sm:max-w-[320px] pb-6 pt-6 print:mb-0 print:pb-0 print:pt-8">
-          <div className="text-center font-bold text-[17px] uppercase mb-1">KHU DU LỊCH EO GIÓ</div>
+          <div className="text-center space-y-0 mb-1.5">
+             <img src="/logo.png" alt="Logo" className="w-[200px] h-auto mx-auto object-contain mb-2 grayscale contrast-150 brightness-90" style={{ mixBlendMode: 'multiply' }} />
+             <div className="font-bold text-[17px] uppercase tracking-wide mb-1">KHU DU LỊCH EO GIÓ</div>
+          </div>
           <div className="text-center text-[15px] font-bold mb-4">HÓA ĐƠN THANH TOÁN</div>
 
           <div className="text-[13px] mb-3 space-y-1">

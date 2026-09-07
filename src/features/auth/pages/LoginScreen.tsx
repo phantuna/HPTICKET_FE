@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, User, Key, CheckCircle, AlertCircle, Shield } from 'lucide-react';
+import { Lock, User, Key, CheckCircle, AlertCircle, Shield, Loader2, ArrowRight } from 'lucide-react';
 import { iamService } from '../../../api/iamService';
 import { dbStore } from '../../../shared/data/mockDatabase';
 
@@ -28,7 +28,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         localStorage.setItem('hpticket_role', res.data.role || 'ADMIN');
 
         setSuccessMsg(`Đăng nhập thành công! Đang tải dữ liệu hệ thống...`);
-        
+
         // Đã xóa hàm tự động kéo toàn bộ dữ liệu (Fat Client) ở đây để tăng tốc login
         setTimeout(() => {
           onLoginSuccess();
@@ -45,26 +45,26 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div 
-      className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-slate-900 bg-cover bg-center bg-no-repeat"
-      style={{ backgroundImage: "url('/bg-login.png')" }}
+    <div
+      className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-slate-50 bg-cover bg-center bg-no-repeat"
+      style={{ backgroundImage: "url('/bg-office.jpg')" }}
     >
-      {/* Background decorations - Thêm một lớp Overlay làm tối ảnh đi một chút để nổi box login */}
-      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm pointer-events-none"></div>
+      {/* Background decorations - Overlay mờ nhẹ để nổi box login */}
+      <div className="absolute inset-0 bg-white/30 backdrop-blur-sm pointer-events-none"></div>
 
       <div className="w-full max-w-md relative z-10">
         {/* Logo/Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/30 mb-4">
-            <Shield className="w-8 h-8 text-white" />
+          <div className="inline-flex items-center justify-center p-3 bg-white rounded-[2rem] shadow-xl shadow-slate-300/60 mb-5 border border-slate-100/50 backdrop-blur-sm">
+            <img src="/logo.png" alt="Hoàng Phát Technology Era" className="h-24 w-auto max-w-[240px] object-contain scale-110" />
           </div>
-          <h1 className="text-3xl font-black text-white tracking-tight">HPTICKET <span className="text-emerald-400">PRO</span></h1>
-          <p className="text-slate-400 mt-2 font-medium">Hệ Thống Quản Lý Bán Vé & Kiểm Soát</p>
+          <h1 className="text-2xl font-black text-slate-800 tracking-tight mt-1">HPTICKET</h1>
+          <p className="text-slate-500 mt-1 font-medium">Hệ Thống Quản Lý Bán Vé & Kiểm Soát</p>
         </div>
 
         {/* Login Box */}
-        <div className="bg-white/10 backdrop-blur-xl border border-white/20 p-8 rounded-3xl shadow-2xl">
-          <h2 className="text-xl font-bold text-white mb-6">Đăng nhập hệ thống</h2>
+        <div className="bg-white/95 backdrop-blur-xl border border-slate-200 p-8 rounded-3xl shadow-2xl shadow-slate-300/50">
+          <h2 className="text-xl font-bold text-slate-800 mb-6">Đăng nhập hệ thống</h2>
 
           {/* Messages */}
           {errorMsg && (
@@ -83,7 +83,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
-              <label className="block text-xs font-bold text-slate-300 uppercase mb-2 tracking-wider">
+              <label className="block text-xs font-bold text-slate-600 uppercase mb-2 tracking-wider">
                 Tài khoản (Username)
               </label>
               <div className="relative">
@@ -95,13 +95,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                   onChange={(e) => setUsername(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleLogin(e); }}
                   placeholder="Nhập username..."
-                  className="w-full pl-12 pr-4 py-3 bg-slate-900/50 border border-slate-700 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all placeholder:text-slate-600"
+                  className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-2xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all placeholder:text-slate-400"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-300 uppercase mb-2 tracking-wider">
+              <label className="block text-xs font-bold text-slate-600 uppercase mb-2 tracking-wider">
                 Mật khẩu (Password)
               </label>
               <div className="relative">
@@ -113,33 +113,34 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                   onChange={(e) => setPassword(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleLogin(e); }}
                   placeholder="••••••••"
-                  className="w-full pl-12 pr-4 py-3 bg-slate-900/50 border border-slate-700 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all placeholder:text-slate-600"
+                  className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all"
                 />
               </div>
             </div>
 
             <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-bold rounded-2xl shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer mt-4"
+              type="button"
+              onClick={handleLogin}
+              disabled={loading || !username || !password}
+              className="w-full relative group overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold py-3 px-4 transition-all hover:shadow-lg hover:shadow-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>Đang xác thực...</span>
-                </>
-              ) : (
-                <>
-                  <Lock className="w-5 h-5" />
-                  <span>ĐĂNG NHẬP</span>
-                </>
-              )}
+              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-in-out"></div>
+              <span className="relative flex items-center justify-center gap-2">
+                {loading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <>
+                    <span>Đăng Nhập</span>
+                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </>
+                )}
+              </span>
             </button>
           </form>
         </div>
-        
-        <div className="text-center mt-8 text-slate-500 text-sm">
-          &copy; {new Date().getFullYear()} HPTicket Management System. V2.4 Enterprise.
+
+        <div className="text-center mt-8 text-slate-400 text-sm">
+          &copy; {new Date().getFullYear()} Công ty TNHH Phát Triển Kỹ Thuật Công Nghệ Hoàng Phát
         </div>
       </div>
     </div>

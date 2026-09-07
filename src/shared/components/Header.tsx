@@ -18,7 +18,6 @@ import {
 } from 'lucide-react';
 import { dbStore } from '../data/mockDatabase';
 import { LicenseManagerModal } from '../../features/iam/components/LicenseManagerModal';
-import { LoginModal } from '../../features/auth/components/LoginModal';
 import { ProfileModal } from '../../features/auth/components/ProfileModal';
 import { ChangePasswordModal } from '../../features/auth/components/ChangePasswordModal';
 import { iamService } from '../../api/iamService';
@@ -42,7 +41,6 @@ export const Header: React.FC<HeaderProps> = ({
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [licenseModalOpen, setLicenseModalOpen] = useState(false);
   const [isMockMode, setIsMockMode] = useState<boolean>(false);
-  const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [jwtUser, setJwtUser] = useState<string | null>(localStorage.getItem('hpticket_username'));
@@ -96,7 +94,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <h1 className="text-lg font-bold tracking-tight text-slate-900">HPTICKET</h1>
                 {!jwtUser && (
                   <button
-                    onClick={() => setLoginModalOpen(true)}
+                    onClick={() => window.location.hash = '/login'}
                     className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-bold px-3 py-1 rounded-full bg-emerald-600 text-white hover:bg-emerald-700 transition cursor-pointer shadow-xs"
                   >
                     <Lock className="w-3 h-3" />
@@ -197,16 +195,6 @@ export const Header: React.FC<HeaderProps> = ({
         onClose={() => setLicenseModalOpen(false)}
         onStateChange={() => {
           onUserSwitch(); // Trigger re-render across app
-        }}
-      />
-
-      {/* Login Modal for JWT Authentication */}
-      <LoginModal
-        isOpen={loginModalOpen}
-        onClose={() => setLoginModalOpen(false)}
-        onLoginSuccess={(username) => {
-          setJwtUser(username);
-          onUserSwitch();
         }}
       />
 
