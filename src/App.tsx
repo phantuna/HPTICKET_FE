@@ -12,6 +12,7 @@ const MarketingModule = lazy(() => import('./features/marketing/pages/MarketingM
 const IAMModule = lazy(() => import('./features/iam/pages/IAMModule').then(m => ({ default: m.IAMModule })));
 const InventoryModule = lazy(() => import('./features/inventory/pages/InventoryModule').then(m => ({ default: m.InventoryModule })));
 const ReportsModule = lazy(() => import('./features/reports/pages/ReportsModule').then(m => ({ default: m.ReportsModule })));
+const SystemModule = lazy(() => import('./features/system/pages/SystemModule').then(m => ({ default: m.SystemModule })));
 const SystemLockScreen = lazy(() => import('./features/auth/pages/SystemLockScreen').then(m => ({ default: m.SystemLockScreen })));
 const LoginScreen = lazy(() => import('./features/auth/pages/LoginScreen').then(m => ({ default: m.LoginScreen })));
 import { dbStore } from './shared/data/mockDatabase';
@@ -136,6 +137,7 @@ export default function App() {
       if (module === 'marketing') finalSubTab = 'khaibaoNhomNguonKhach';
       if (module === 'iam') finalSubTab = 'KhaiBaoPhanQuyen';
       if (module === 'reports') finalSubTab = 'BaoCaoDoanhThu';
+      if (module === 'system') finalSubTab = 'BackupRestore';
     }
     
     // Update hash to show path
@@ -225,6 +227,7 @@ export default function App() {
             {activeTab === 'iam' && <IAMModule subTab={activeSubTab} onSelectSubTab={setActiveSubTab} />}
             {activeTab === 'inventory' && <InventoryModule />}
             {activeTab === 'reports' && <ReportsModule subTab={activeSubTab} onSelectSubTab={setActiveSubTab} />}
+            {activeTab === 'system' && <SystemModule subTab={activeSubTab} onSelectSubTab={setActiveSubTab} />}
           </Suspense>
         </main>
       </div>

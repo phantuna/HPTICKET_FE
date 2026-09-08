@@ -20,6 +20,11 @@ import {
   ShoppingCart,
   Receipt,
   QrCode,
+  TerminalSquare,
+  LogOut,
+  User,
+  PanelLeftClose,
+  PanelLeftOpen,
   TrendingUp,
   Package,
   Clock,
@@ -27,6 +32,8 @@ import {
   Home,
   Menu,
   X,
+  Mail,
+  Database
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -69,12 +76,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { label: 'Khai báo đối tượng', module: 'ticketing', subTab: 'KhaiBaoDoiTuong', icon: Users },
     { label: 'Khai báo mẫu vé / Loại vé', module: 'ticketing', subTab: 'KhaibaoVe', icon: Ticket },
     { label: 'Khai báo nhóm vé áp dụng (Khu vực)', module: 'ticketing', subTab: 'KhaiBaoVe_KS', icon: Layers },
+    { label: 'Cảnh báo vé sắp hết hạn', module: 'ticketing', subTab: 'VeThangHetHan', icon: Ticket },
     { label: 'Khai báo nhóm quyền', module: 'iam', subTab: 'KhaiBaoPhanQuyen', icon: Shield },
     { label: 'Khai báo tài khoản đăng nhập', module: 'iam', subTab: 'KhaibaoDangNhap', icon: UserCheck },
     { label: 'Khai báo thẻ nhân viên / QR', module: 'iam', subTab: 'KhaiBaoThe_NV', icon: QrCode },
     { label: 'Khai báo các ngày lễ', module: 'marketing', subTab: 'Hoiday', icon: Calendar },
     { label: 'Khai báo chương trình khuyến mại', module: 'marketing', subTab: 'KhaiBaoKhuyenMai', icon: Gift },
+    { label: 'Cấu hình Email & Mẫu gửi', module: 'marketing', subTab: 'CauHinhEmail', icon: Mail },
     { label: 'Quản lý kho & Sản phẩm', module: 'inventory', icon: Package },
+    { label: 'Sao lưu & Lịch sử', module: 'system', subTab: 'BackupRestore', icon: Database },
   ];
 
   const posMenu = [

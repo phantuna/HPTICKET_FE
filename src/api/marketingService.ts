@@ -847,7 +847,7 @@ export const marketingService = {
     }
     const old = dbStore.holidays.find(x => x.id === id);
     if (old) dbStore.logAudit('DELETE', 'holidays', id, old, null);
-    dbStore.holidays = dbStore.holidays.filter((h) => h.id !== id);
+    dbStore.holidays = dbStore.holidays.filter((p) => p.id !== id);
     dbStore.saveToStorage();
     return {
       code: 200,
@@ -855,4 +855,31 @@ export const marketingService = {
       data: undefined,
     };
   },
+
+  // ==========================================
+  // 6. EMAIL SETTINGS & TEMPLATES (/marketing/email)
+  // ==========================================
+
+  async fetchEmailSettings(): Promise<ApiResponse<any>> {
+    return apiClient.get<ApiResponse<any>>(API_ENDPOINTS.MARKETING.EMAIL_SETTINGS);
+  },
+
+  async saveEmailSettings(dto: any): Promise<ApiResponse<any>> {
+    return apiClient.post<ApiResponse<any>>(API_ENDPOINTS.MARKETING.EMAIL_SETTINGS, dto);
+  },
+
+  async fetchEmailTemplates(): Promise<ApiResponse<any>> {
+    return apiClient.get<ApiResponse<any>>(API_ENDPOINTS.MARKETING.EMAIL_TEMPLATES);
+  },
+
+  async saveEmailTemplate(dto: any): Promise<ApiResponse<any>> {
+    if (dto.id) {
+      return apiClient.put<ApiResponse<any>>(API_ENDPOINTS.MARKETING.EMAIL_TEMPLATE_DETAIL(dto.id), dto);
+    }
+    return apiClient.post<ApiResponse<any>>(API_ENDPOINTS.MARKETING.EMAIL_TEMPLATES, dto);
+  },
+
+  async deleteEmailTemplate(id: string): Promise<ApiResponse<void>> {
+    return apiClient.delete<ApiResponse<void>>(API_ENDPOINTS.MARKETING.EMAIL_TEMPLATE_DETAIL(id));
+  }
 };

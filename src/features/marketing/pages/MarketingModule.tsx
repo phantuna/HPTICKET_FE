@@ -5,6 +5,7 @@ import { GroupTab } from '../components/GroupTab';
 import { SourceTab } from '../components/SourceTab';
 import { HolidayTab } from '../components/HolidayTab';
 import { PromotionTab } from '../components/PromotionTab';
+import { EmailConfigTab } from '../components/EmailConfigTab';
 
 interface MarketingModuleProps {
   subTab?: string;
@@ -67,6 +68,13 @@ export const MarketingModule: React.FC<MarketingModuleProps> = ({ subTab = 'khai
           ticketTemplates={ticketTemplates}
           refreshData={refreshData}
         />
+      )}
+
+      {/* ---------------------------------------------------- */}
+      {/* 5. CẤU HÌNH EMAIL & MẪU GỬI (/CauHinhEmail) */}
+      {/* ---------------------------------------------------- */}
+      {currentTab === 'CauHinhEmail' && (
+        <EmailConfigTab />
       )}
     </div>
   );

@@ -5,6 +5,7 @@ import { AudienceTab } from '../components/AudienceTab';
 import { TemplateTab } from '../components/TemplateTab';
 import { ControlZoneTab } from '../components/ControlZoneTab';
 import { TicketZoneTab } from '../components/TicketZoneTab';
+import ExpiringTicketsPage from './ExpiringTicketsPage';
 
 interface TicketingModuleProps {
   subTab?: string;
@@ -31,6 +32,7 @@ export const TicketingModule: React.FC<TicketingModuleProps> = ({ subTab = 'Khai
     { id: 'KhaiBaoVe_KS', label: 'Loại Vé Theo Khu Vực', route: '/KhaiBaoVe_KS', icon: Layers },
     { id: 'KhaibaoVe', label: 'Khai Báo Các Loại Vé', route: '/KhaibaoVe', icon: Ticket },
     { id: 'KhaiBaoKhuKiemSoat', label: 'Khai Báo Khu Kiểm Soát', route: '/KhaiBaoKhuKiemSoat', icon: ShieldCheck },
+    { id: 'VeThangHetHan', label: 'Cảnh báo vé sắp hết hạn', route: '/VeThangHetHan', icon: Ticket },
   ];
 
   if (loading) {
@@ -86,6 +88,13 @@ export const TicketingModule: React.FC<TicketingModuleProps> = ({ subTab = 'Khai
           ticketTemplates={ticketTemplates}
           refreshData={refreshData}
         />
+      )}
+
+      {/* ---------------------------------------------------- */}
+      {/* 5. CẢNH BÁO VÉ THÁNG SẮP HẾT HẠN (/VeThangHetHan) */}
+      {/* ---------------------------------------------------- */}
+      {currentTab === 'VeThangHetHan' && (
+        <ExpiringTicketsPage />
       )}
     </div>
   );

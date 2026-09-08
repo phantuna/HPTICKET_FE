@@ -20,6 +20,9 @@ import {
   SalesCounter,
   Product,
 } from '../shared/types/hpticket';
+
+export type { IssuedTicket };
+
 import { apiClient, API_ENDPOINTS } from './apiConfig';
 
 /**
@@ -619,6 +622,10 @@ export const salesService = {
         console.warn('[Sales Service] Backend fetchIssuedTickets failed, fallback to Mock DB:', err);
     }
     return this.getIssuedTickets();
+  },
+
+  async fetchExpiringTickets(daysAhead: number): Promise<ApiResponse<any>> {
+    return apiClient.get<ApiResponse<any>>(API_ENDPOINTS.SALES.EXPIRING_TICKETS, { daysAhead });
   },
 
   async lockIssuedTicket(id: string): Promise<ApiResponse<IssuedTicket>> {

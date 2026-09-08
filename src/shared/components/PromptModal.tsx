@@ -14,6 +14,7 @@ export interface PromptModalProps {
   confirmText?: string;
   cancelText?: string;
   required?: boolean;
+  inputType?: 'text' | 'number' | 'textarea';
 }
 
 export function PromptModal({
@@ -27,6 +28,7 @@ export function PromptModal({
   confirmText = 'Xác nhận',
   cancelText = 'Hủy',
   required = true,
+  inputType = 'textarea',
 }: PromptModalProps) {
   const [inputValue, setInputValue] = useState('');
 
@@ -77,14 +79,34 @@ export function PromptModal({
             <p className="text-sm text-slate-500 mt-2 whitespace-pre-wrap">{message}</p>
           </div>
           <div className="mt-4">
-            <textarea
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"
-              rows={3}
-              placeholder={placeholder}
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              autoFocus
-            />
+            {inputType === 'textarea' ? (
+              <textarea
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"
+                rows={3}
+                placeholder={placeholder}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                autoFocus
+              />
+            ) : (
+              <input
+                type={inputType}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                placeholder={placeholder}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                autoFocus
+                min={inputType === 'number' ? 1 : undefined}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (!(required && !inputValue.trim())) {
+                      handleConfirm();
+                    }
+                  }
+                }}
+              />
+            )}
           </div>
           <div className="flex items-center gap-3 mt-6">
             <button

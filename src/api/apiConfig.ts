@@ -74,6 +74,9 @@ export const API_ENDPOINTS = {
     HOLIDAYS: '/marketing/holidays',
     HOLIDAY_DETAIL: (id: string) => `/marketing/holidays/${id}`,
     HOLIDAY_STATUS: (id: string) => `/marketing/holidays/${id}/status`,
+    EMAIL_SETTINGS: '/marketing/email/settings',
+    EMAIL_TEMPLATES: '/marketing/email/templates',
+    EMAIL_TEMPLATE_DETAIL: (id: string) => `/marketing/email/templates/${id}`,
   },
 
   // 3. MODULE SALES (Điểm bán, Quầy bán, Hàng hóa & Đơn hàng POS) - Base: /api/v1/sales
@@ -97,6 +100,7 @@ export const API_ENDPOINTS = {
     REPORTS_SUMMARY: '/sales/reports/summary',
     REPORTS_TICKET: '/sales/reports/ticket-revenue',
     REPORTS_PRODUCT: '/sales/reports/product-revenue',
+    EXPIRING_TICKETS: '/issued-tickets/expiring-soon',
   },
 
   // 4. MODULE TICKETING (Cấu hình vé, Khu vực, Cổng & Soát vé) - Base: /api/v1/ticketing
