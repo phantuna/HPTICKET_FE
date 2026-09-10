@@ -2,6 +2,62 @@ import * as XLSX from 'xlsx';
 import { API_BASE_URL } from '../../../api/apiConfig';
 
 /**
+ * Lấy token hợp lệ hiện tại từ localStorage.
+ * apiClient tự động refresh token khi hết hạn (qua cookie HttpOnly),
+ * nhưng sau khi refresh thì token mới được lưu vào localStorage.
+ * Chúng ta chỉ cần đọc từ đó.
+ */
+const getAuthToken = (): string | null => localStorage.getItem('hpticket_token');
+
+/**
+ * Thực hiện POST lấy file Excel từ Backend, tự động retry 1 lần nếu gặp 401.
+ */
+const fetchExcelWithAuth = async (url: string, body: object): Promise<Blob> => {
+  const doFetch = async (token: string | null): Promise<Response> => {
+    return fetch(url, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+  };
+
+  let response = await doFetch(getAuthToken());
+
+  // Nếu token hết hạn, thử refresh rồi gọi lại 1 lần
+  if (response.status === 401) {
+    try {
+      const refreshRes = await fetch(`${API_BASE_URL}/iam/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({}),
+      });
+      if (refreshRes.ok) {
+        const data = await refreshRes.json();
+        const newToken: string = data?.data?.token;
+        if (newToken) {
+          localStorage.setItem('hpticket_token', newToken);
+          response = await doFetch(newToken);
+        }
+      }
+    } catch (_) {
+      // ignore refresh error, fall through to the error check below
+    }
+  }
+
+  if (!response.ok) {
+    throw new Error(`Lỗi khi xuất file từ Server (HTTP ${response.status})`);
+  }
+
+  return response.blob();
+};
+
+/**
  * Xuất dữ liệu ra file Excel (.xlsx) và trigger download về máy.
  * @param headers - Mảng tên cột (hàng tiêu đề, sẽ được in đậm + nền xám)
  * @param rows    - Mảng các hàng dữ liệu (mỗi phần tử là 1 hàng)
@@ -14,39 +70,24 @@ export const downloadExcelFromJsonApi = async (
 ): Promise<void> => {
   try {
     const url = `${API_BASE_URL}/system/exports/generate-from-json`;
-    const token = localStorage.getItem('hpticket_token');
-    
+
     // Map rows to strings for the DTO
     const stringRows = rows.map(r => r.map(c => c !== null && c !== undefined ? String(c) : ""));
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-      },
-      body: JSON.stringify({
-        fileName: fileName,
-        headers: headers,
-        rows: stringRows
-      })
+    const blob = await fetchExcelWithAuth(url, {
+      fileName: fileName,
+      headers: headers,
+      rows: stringRows,
     });
 
-    if (!response.ok) {
-      throw new Error('Lỗi khi xuất file từ Server');
-    }
-
-    const blob = await response.blob();
     const safeFileName = `${fileName}_${new Date().toISOString().slice(0, 10)}.xlsx`;
-    
     const blobUrl = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = blobUrl;
     link.setAttribute('download', safeFileName);
     document.body.appendChild(link);
     link.click();
-    
+
     link.parentNode?.removeChild(link);
     window.URL.revokeObjectURL(blobUrl);
   } catch (error) {
@@ -54,6 +95,7 @@ export const downloadExcelFromJsonApi = async (
     throw error;
   }
 };
+
 
 export const exportToExcel = (
   headers: string[],
