@@ -7,46 +7,66 @@ import { API_BASE_URL } from '../../../api/apiConfig';
  * @param rows    - Mảng các hàng dữ liệu (mỗi phần tử là 1 hàng)
  * @param fileName - Tên file xuất ra (không cần đuôi .xlsx)
  */
+export const downloadExcelFromJsonApi = async (
+  headers: string[],
+  rows: (string | number | null | undefined)[][],
+  fileName: string
+): Promise<void> => {
+  try {
+    const url = `${API_BASE_URL}/system/exports/generate-from-json`;
+    const token = localStorage.getItem('hpticket_token');
+    
+    // Map rows to strings for the DTO
+    const stringRows = rows.map(r => r.map(c => c !== null && c !== undefined ? String(c) : ""));
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({
+        fileName: fileName,
+        headers: headers,
+        rows: stringRows
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error('Lỗi khi xuất file từ Server');
+    }
+
+    const blob = await response.blob();
+    const safeFileName = `${fileName}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.setAttribute('download', safeFileName);
+    document.body.appendChild(link);
+    link.click();
+    
+    link.parentNode?.removeChild(link);
+    window.URL.revokeObjectURL(blobUrl);
+  } catch (error) {
+    console.error('Lỗi khi xuất file qua API:', error);
+    throw error;
+  }
+};
+
 export const exportToExcel = (
   headers: string[],
   rows: (string | number | null | undefined)[][],
   fileName: string
 ): void => {
-  // Ghép header vào data
-  const wsData = [headers, ...rows];
-  const ws = XLSX.utils.aoa_to_sheet(wsData);
-
-  // Style cho dòng header (in đậm, nền xám nhạt)
-  const headerRange = XLSX.utils.decode_range(ws['!ref'] || 'A1');
-  for (let col = headerRange.s.c; col <= headerRange.e.c; col++) {
-    const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
-    if (!ws[cellAddress]) continue;
-    ws[cellAddress].s = {
-      font: { bold: true, color: { rgb: '1e293b' } },
-      fill: { fgColor: { rgb: 'e2e8f0' }, patternType: 'solid' },
-      alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
-      border: {
-        bottom: { style: 'medium', color: { rgb: '94a3b8' } },
-      },
-    };
-  }
-
-  // Auto-size cột theo nội dung
-  const colWidths = headers.map((h, colIdx) => {
-    const maxLen = Math.max(
-      h.length,
-      ...rows.map(r => String(r[colIdx] ?? '').length)
-    );
-    return { wch: Math.min(Math.max(maxLen + 2, 10), 50) };
-  });
-  ws['!cols'] = colWidths;
-
-  // Tạo Workbook và ghi file
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Báo Cáo');
-
-  const safeFileName = `${fileName}_${new Date().toISOString().slice(0, 10)}.xlsx`;
-  XLSX.writeFile(wb, safeFileName);
+  // Thay vì xuất nội bộ bằng trình duyệt, gọi API để nhờ Java Backend 
+  // chèn Logo và định dạng y như Báo Cáo Hệ Thống (đảm bảo đồng nhất giao diện 100%).
+  downloadExcelFromJsonApi(headers, rows, fileName)
+    .catch(err => {
+      // Fallback fallback error
+      console.error(err);
+    });
 };
 
 /**
