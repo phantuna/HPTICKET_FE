@@ -104,7 +104,7 @@ export const API_ENDPOINTS = {
     REPORTS_SUMMARY: '/sales/reports/summary',
     REPORTS_TICKET: '/sales/reports/ticket-revenue',
     REPORTS_PRODUCT: '/sales/reports/product-revenue',
-    EXPIRING_TICKETS: '/issued-tickets/expiring-soon',
+    EXPIRING_TICKETS: '/sales/issued-tickets/expiring-soon',
   },
 
   // 4. MODULE TICKETING (Cấu hình vé, Khu vực, Cổng & Soát vé) - Base: /api/v1/ticketing
