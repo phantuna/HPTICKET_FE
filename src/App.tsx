@@ -15,6 +15,7 @@ const ReportsModule = lazy(() => import('./features/reports/pages/ReportsModule'
 const SystemModule = lazy(() => import('./features/system/pages/SystemModule').then(m => ({ default: m.SystemModule })));
 const SystemLockScreen = lazy(() => import('./features/auth/pages/SystemLockScreen').then(m => ({ default: m.SystemLockScreen })));
 const LoginScreen = lazy(() => import('./features/auth/pages/LoginScreen').then(m => ({ default: m.LoginScreen })));
+import { SessionLoginModal } from './shared/components/SessionLoginModal';
 import { dbStore } from './shared/data/mockDatabase';
 
 export default function App() {
@@ -231,6 +232,8 @@ export default function App() {
           </Suspense>
         </main>
       </div>
+
+      <SessionLoginModal />
     </div>
   );
 }

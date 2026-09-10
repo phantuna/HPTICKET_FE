@@ -120,7 +120,7 @@ export const usePOS = () => {
             let allowedCounters = activeList;
             
             // Nếu không phải ADMIN, lọc quầy theo assigned_counters
-            const isAdmin = user?.role_id?.toLowerCase().includes('admin') || user?.roles?.some((r: any) => r.code === 'ADMIN');
+            const isAdmin = user?.role_id?.toLowerCase().includes('admin') || (user as any)?.roles?.some((r: any) => r.code === 'ADMIN');
             if (!isAdmin) {
               if (user?.assigned_counters && user.assigned_counters.length > 0) {
                 const assignedIds = user.assigned_counters.map((c: any) => c.id);
@@ -175,6 +175,125 @@ export const usePOS = () => {
     fetchAll();
   }, []);
 
+  // LRU Cache cho processedEventIds để deduplication event
+  const [processedEventIds] = useState<Set<string>>(new Set());
+
+  // Kết nối WebSocket và Initial Sync Low Stock
+  useEffect(() => {
+    let ws: WebSocket | null = null;
+    let reconnectTimeout: ReturnType<typeof setTimeout>;
+    let pingInterval: ReturnType<typeof setInterval>;
+    let reconnectAttempts = 0;
+
+    const fetchLowStock = async () => {
+      try {
+        const res = await apiClient.get<any>(API_ENDPOINTS.SALES.PRODUCTS + '/low-stock');
+        let list = [];
+        if (Array.isArray(res)) list = res;
+        else if (res?.data && Array.isArray(res.data)) list = res.data;
+        else if (res?.content && Array.isArray(res.content)) list = res.content;
+        
+        if (list.length > 0) {
+          // Bắn ra DOM CustomEvent hoặc dùng setToastMessage trực tiếp 
+          // Do showToast gọi state nên dùng an toàn
+          window.dispatchEvent(new CustomEvent('toast_notification', { 
+            detail: { 
+              title: 'Cảnh báo tồn kho', 
+              message: `Có ${list.length} sản phẩm sắp hết hàng. Vui lòng kiểm tra kho!`, 
+              type: 'error'
+            } 
+          }));
+        }
+      } catch (err) {
+        console.error("Lỗi lấy danh sách low-stock:", err);
+      }
+    };
+
+    const connectWebSocket = () => {
+      // Vì POSModule có thể mount/unmount khi tab chuyển, cần check Auth trước
+      // Lấy URL WebSocket động (wss hoặc ws)
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const host = window.location.host;
+      const wsUrl = `${protocol}//${host}/ws/pos`;
+      
+      try {
+        ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+          console.log("POS WebSocket connected");
+          reconnectAttempts = 0;
+          
+          // Resync initial state
+          fetchLowStock();
+
+          // Heartbeat Ping mỗi 10s
+          pingInterval = setInterval(() => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({ type: 'PING' }));
+            }
+          }, 10000);
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'PONG') return;
+            
+            if (data.eventType === 'LOW_STOCK') {
+              if (data.eventId && processedEventIds.has(data.eventId)) {
+                return; // Bỏ qua trùng lặp
+              }
+              if (data.eventId) {
+                processedEventIds.add(data.eventId);
+                if (processedEventIds.size > 100) {
+                  const firstItem = processedEventIds.values().next().value;
+                  if (firstItem) processedEventIds.delete(firstItem);
+                }
+              }
+              
+              window.dispatchEvent(new CustomEvent('toast_notification', { 
+                detail: { 
+                  title: 'Cảnh báo: Sản phẩm sắp hết hàng', 
+                  message: `${data.productName} vừa tụt xuống mức ${data.currentStock} (Ngưỡng cảnh báo: ${data.threshold}).`, 
+                  type: 'error'
+                } 
+              }));
+            }
+          } catch (e) {
+            console.error("Lỗi xử lý WS message:", e);
+          }
+        };
+
+        ws.onclose = () => {
+          console.warn("POS WebSocket disconnected");
+          clearInterval(pingInterval);
+          
+          // Exponential Backoff Reconnect
+          const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+          reconnectAttempts++;
+          reconnectTimeout = setTimeout(connectWebSocket, delay);
+        };
+        
+        ws.onerror = (err) => {
+          console.error("POS WebSocket lỗi:", err);
+        };
+      } catch (err) {
+        console.error("Lỗi khởi tạo WebSocket:", err);
+      }
+    };
+
+    connectWebSocket();
+
+    return () => {
+      clearTimeout(reconnectTimeout);
+      clearInterval(pingInterval);
+      if (ws) {
+        ws.onclose = null; 
+        ws.close();
+      }
+    };
+  }, []);
+
   useEffect(() => {
     if (!selectedPromotionId) return;
     const promo = promotions.find((p) => p.id === selectedPromotionId);
@@ -207,8 +326,10 @@ export const usePOS = () => {
 
   const showToast = (type: 'success' | 'error', title: string, message: string) => {
     setToastMessage({ type, title, message });
-    setTimeout(() => setToastMessage(null), 3500);
+    setTimeout(() => setToastMessage(null), 4000); // 4 seconds
   };
+
+  const closeToast = () => setToastMessage(null);
 
   const handleToggleItem = (itemData: any, itemType: ItemType) => {
     const existingIndex = lineItems.findIndex((item) => item.item_id === itemData.id);
@@ -456,7 +577,7 @@ export const usePOS = () => {
     editingIndex, setEditingIndex,
     activeListTab, setActiveListTab,
     ticketTemplates, ticketZones, products, customerGroups, customerSources, promotions, selectedPromotionId, setSelectedPromotionId, counters,
-    toastMessage, showToast,
+    toastMessage, showToast, closeToast,
     handleToggleItem, updateLineItem, handleCheckBookingCode, handleResetForm, handleCheckout
   };
 };

@@ -122,6 +122,30 @@ export const useReportExport = (_setExportNotice: Dispatch<SetStateAction<string
           break;
         }
 
+        // ── Tab 6: Báo Cáo Ra Vào (Gate Access Logs) - Async Heavy Job ─────
+        case 'BaoCaoRaVao': {
+          import('../../../api/systemService').then(({ systemService }) => {
+            systemService.triggerExportJob('GATE_ACCESS_LOGS')
+              .then(() => {
+                toast.success('Đã đưa yêu cầu Xuất Nhật Ký Cổng vào hàng đợi ngầm. Hệ thống sẽ thông báo khi hoàn tất!');
+              })
+              .catch(err => toast.error('Không thể tạo tiến trình xuất báo cáo: ' + (err.response?.data?.message || err.message)));
+          });
+          return; // Return early, don't show the generic success toast below
+        }
+
+        // ── Tab 7: Báo Cáo Hệ Thống (System Logs) - Async Heavy Job ────────
+        case 'BaoCaoHeThong': {
+          import('../../../api/systemService').then(({ systemService }) => {
+            systemService.triggerExportJob('SYSTEM_LOGS')
+              .then(() => {
+                toast.success('Đã đưa yêu cầu Xuất Nhật Ký Hệ Thống vào hàng đợi ngầm. Hệ thống sẽ thông báo khi hoàn tất!');
+              })
+              .catch(err => toast.error('Không thể tạo tiến trình xuất báo cáo: ' + (err.response?.data?.message || err.message)));
+          });
+          return; // Return early
+        }
+
         default:
           toast.error(`Chưa hỗ trợ xuất Excel cho tab: ${tab}`);
           return;

@@ -12,6 +12,10 @@ export const API_BASE_URL = (typeof import.meta !== 'undefined' && (import.meta 
   ? (import.meta as any).env.VITE_API_URL
   : 'https://api.vnscout.io.vn/api/v1';
 
+export interface RequestConfig extends RequestInit {
+  params?: Record<string, string | number | boolean>;
+}
+
 // Dual-Mode Feature Flag: Cho phép chuyển qua lại giữa Real Spring Boot Backend và Offline Mock DB
 export const getUseMockApi = (): boolean => {
   return localStorage.getItem('hpticket_use_mock_api') === 'true';
@@ -132,15 +136,35 @@ export const API_ENDPOINTS = {
   },
 };
 
-// 3. API Client Wrapper / Adapter Engine (Tự động đính kèm Token, Handling Error)
-export interface RequestConfig extends RequestInit {
-  params?: Record<string, string | number | boolean>;
-}
+// Các biến toàn cục để quản lý Refresh Token Lock và Axios Queue (Phase 4)
+let isRefreshing = false;
+let failedQueue: { resolve: (token: string) => void; reject: (err: any) => void }[] = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach(prom => {
+    if (error) prom.reject(error);
+    else prom.resolve(token as string);
+  });
+  failedQueue = [];
+};
+
+// Kênh giao tiếp giữa các Tab
+const authChannel = new BroadcastChannel('hpticket_auth_channel');
+authChannel.onmessage = (event) => {
+  if (event.data.type === 'SESSION_REFRESHED' && event.data.token) {
+    localStorage.setItem('hpticket_token', event.data.token);
+    // Nếu tab này đang chờ refresh, báo cho queue chạy tiếp
+    if (isRefreshing) {
+      isRefreshing = false;
+      processQueue(null, event.data.token);
+    }
+  } else if (event.data.type === 'SESSION_EXPIRED') {
+    localStorage.removeItem('hpticket_token');
+    window.dispatchEvent(new CustomEvent('session_expired_modal'));
+  }
+};
 
 export const apiClient = {
-  /**
-   * Helper build đầy đủ URL từ Endpoint
-   */
   buildUrl(endpoint: string, params?: Record<string, string | number | boolean>): string {
     const url = new URL(endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`);
     if (params) {
@@ -153,22 +177,16 @@ export const apiClient = {
     return url.toString();
   },
 
-  /**
-   * Central Fetch Method
-   */
   async request<T>(endpoint: string, config: RequestConfig = {}): Promise<T> {
     const { params, headers, ...customConfig } = config;
-
     const fullUrl = this.buildUrl(endpoint, params);
 
-    // Default Headers tập trung
     const defaultHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
       'X-Client-Version': '2.4.0',
     };
 
-    // Tự động inject Bearer Token nếu có trong localStorage
     const token = localStorage.getItem('hpticket_token');
     if (token) {
       defaultHeaders['Authorization'] = `Bearer ${token}`;
@@ -176,87 +194,86 @@ export const apiClient = {
 
     const mergedConfig: RequestInit = {
       method: customConfig.method || 'GET',
-      headers: {
-        ...defaultHeaders,
-        ...headers,
-      },
+      headers: { ...defaultHeaders, ...headers },
+      credentials: 'include', // Bắt buộc cho HTTP-Only Cookie (Phase 4)
       ...customConfig,
     };
 
     try {
-      const response = await fetch(fullUrl, mergedConfig);
+      let response = await fetch(fullUrl, mergedConfig);
 
-      // Tự động xử lý Refresh Token / Unauthorized 401 tập trung 1 nơi
       if (response.status === 401) {
-        console.warn('[apiClient] 401 Unauthorized — thử refresh token...');
-
-        const refreshToken = localStorage.getItem('hpticket_refresh_token');
-        // Tránh vòng lặp vô tận nếu chính endpoint /refresh bị 401
         const isRefreshEndpoint = endpoint.includes('/auth/refresh');
-
-        if (refreshToken && !isRefreshEndpoint) {
-          try {
-            const refreshRes = await fetch(
-              `${API_BASE_URL}/iam/auth/refresh`,
-              {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ refresh_token: refreshToken }),
-              }
-            );
-
-            if (refreshRes.ok) {
-              const refreshData = await refreshRes.json();
-              const newAccessToken: string = refreshData?.data?.token;
-              const newRefreshToken: string = refreshData?.data?.refresh_token;
-              if (newAccessToken) {
-                localStorage.setItem('hpticket_token', newAccessToken);
-                // Lưu lại Refresh Token mới nếu Backend trả về (rotation)
-                if (newRefreshToken) {
-                  localStorage.setItem('hpticket_refresh_token', newRefreshToken);
-                }
-                // Retry request gốc với Access Token mới
-                const retryHeaders = {
-                  ...defaultHeaders,
-                  Authorization: `Bearer ${newAccessToken}`,
-                  ...headers,
-                };
-                const retryResponse = await fetch(fullUrl, { ...mergedConfig, headers: retryHeaders });
-                if (retryResponse.ok) {
-                  return await retryResponse.json();
-                }
-                // Retry thất bại sau khi đã refresh thành công → throw lỗi đúng cách
-                const retryError = await retryResponse.json().catch(() => ({}));
-                throw new Error(retryError.message || `API Error: ${retryResponse.status}`);
-              }
-            }
-          } catch (refreshErr) {
-            console.error('[apiClient] Refresh token request failed:', refreshErr);
-          }
+        
+        if (isRefreshEndpoint) {
+          throw new Error('Phiên Refresh bị lỗi 401');
         }
 
-        // Refresh thất bại hoặc không có refresh token → logout hẳn
-        localStorage.removeItem('hpticket_token');
-        localStorage.removeItem('hpticket_refresh_token');
-        localStorage.removeItem('hpticket_username');
+        // Tạm dừng các request tiếp theo bằng Queue
+        if (isRefreshing) {
+          return new Promise<T>((resolve, reject) => {
+            failedQueue.push({
+              resolve: (newToken: string) => {
+                const newHeaders = { ...mergedConfig.headers, Authorization: `Bearer ${newToken}` };
+                fetch(fullUrl, { ...mergedConfig, headers: newHeaders })
+                  .then(r => { if(r.ok) r.json().then(resolve).catch(reject); else reject(new Error('Retry failed')) })
+                  .catch(reject);
+              },
+              reject: (err) => reject(err)
+            });
+          });
+        }
 
-        window.dispatchEvent(new CustomEvent('session_expired', {
-          detail: { message: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!' }
-        }));
-        window.dispatchEvent(new Event('hpticket_auth_changed'));
+        isRefreshing = true;
+        console.warn('[apiClient] 401 Unauthorized — Đang refresh token (Locking)...');
 
-        setTimeout(() => { window.location.href = '/#/login'; }, 1500);
+        try {
+          const refreshRes = await fetch(`${API_BASE_URL}/iam/auth/refresh`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            // Không gửi body vì BE lấy từ Cookie, giữ body rỗng để tương thích ngược
+            body: JSON.stringify({}) 
+          });
+
+          if (refreshRes.ok) {
+            const refreshData = await refreshRes.json();
+            const newAccessToken: string = refreshData?.data?.token;
+
+            if (newAccessToken) {
+              localStorage.setItem('hpticket_token', newAccessToken);
+              
+              // Báo cho các Tab khác biết
+              authChannel.postMessage({ type: 'SESSION_REFRESHED', token: newAccessToken });
+              
+              isRefreshing = false;
+              processQueue(null, newAccessToken);
+
+              // Retry request hiện tại
+              const retryHeaders = { ...mergedConfig.headers, Authorization: `Bearer ${newAccessToken}` };
+              const retryResponse = await fetch(fullUrl, { ...mergedConfig, headers: retryHeaders });
+              if (retryResponse.ok) return await retryResponse.json();
+              throw new Error(`API Error: ${retryResponse.status}`);
+            }
+          }
+          throw new Error('Refresh Token không hợp lệ hoặc đã hết hạn');
+
+        } catch (refreshErr) {
+          isRefreshing = false;
+          processQueue(refreshErr, null);
+          localStorage.removeItem('hpticket_token');
+          authChannel.postMessage({ type: 'SESSION_EXPIRED' });
+          
+          // Bật Login Modal thay vì Redirect để không mất dữ liệu đang điền dở
+          window.dispatchEvent(new CustomEvent('session_expired_modal'));
+          throw new Error('Phiên đăng nhập hết hạn. Đang hiển thị Modal đăng nhập.');
+        }
       }
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         const errorMessage = errorData.message || `API Error: ${response.status} ${response.statusText}`;
-
-        // Phát thanh sự kiện lỗi ra toàn hệ thống (bắt bởi App.tsx)
-        window.dispatchEvent(new CustomEvent('api_error', {
-          detail: { message: errorMessage }
-        }));
-
+        window.dispatchEvent(new CustomEvent('api_error', { detail: { message: errorMessage } }));
         throw new Error(errorMessage);
       }
 

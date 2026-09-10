@@ -29,9 +29,19 @@ export const POSModule: React.FC = () => {
     generatedTickets,
     activeListTab, setActiveListTab,
     ticketTemplates, ticketZones, products, customerGroups, customerSources, promotions, selectedPromotionId, setSelectedPromotionId, counters,
-    toastMessage,
+    toastMessage, showToast, closeToast,
     handleToggleItem, updateLineItem, handleCheckBookingCode, handleResetForm, handleCheckout
   } = usePOS();
+
+  React.useEffect(() => {
+    const handleToast = (e: any) => {
+      if (e.detail) {
+        showToast(e.detail.type, e.detail.title, e.detail.message);
+      }
+    };
+    window.addEventListener('toast_notification', handleToast);
+    return () => window.removeEventListener('toast_notification', handleToast);
+  }, [showToast]);
 
   const totalSubtotalBeforeDiscount = lineItems.reduce(
     (acc, item) => acc + item.unit_price * (Number(item.quantity) || 0), 0
@@ -152,9 +162,25 @@ export const POSModule: React.FC = () => {
       )}
 
       {toastMessage && (
-        <div className={`fixed top-8 right-8 z-[9999] p-6 rounded-2xl shadow-2xl flex flex-col gap-2 min-w-[380px] max-w-lg transition-colors duration-300 animate-pulse ${toastMessage.type === 'error' ? 'bg-rose-600 text-white border-2 border-rose-400' : 'bg-emerald-600 text-white border-2 border-emerald-400'}`}>
-            <h4 className="text-lg font-bold flex items-center gap-2">{toastMessage.title}</h4>
-            <p className={`text-sm mt-1 leading-relaxed ${toastMessage.type === 'error' ? 'text-rose-50' : 'text-emerald-50'}`}>{toastMessage.message}</p>
+        <div className={`fixed top-8 right-8 z-[9999] p-4 rounded-xl shadow-lg flex items-start gap-3 min-w-[320px] max-w-md transform transition-all duration-300 ease-out border-l-4 ${
+          toastMessage.type === 'error' 
+            ? 'bg-white border-rose-500 text-slate-800' 
+            : 'bg-white border-emerald-500 text-slate-800'
+        }`}>
+            <div className={`mt-0.5 flex-shrink-0 ${toastMessage.type === 'error' ? 'text-rose-500' : 'text-emerald-500'}`}>
+              {toastMessage.type === 'error' ? (
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+              ) : (
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              )}
+            </div>
+            <div className="flex-1">
+               <h4 className="text-base font-semibold">{toastMessage.title}</h4>
+               <p className="text-sm mt-1 text-slate-600">{toastMessage.message}</p>
+            </div>
+            <button onClick={closeToast} className="text-slate-400 hover:text-slate-600 transition-colors p-1" title="Đóng">
+               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
         </div>
       )}
     </div>
