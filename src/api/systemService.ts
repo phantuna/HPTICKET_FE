@@ -103,9 +103,10 @@ export const systemService = {
   /**
    * Bước 3: Báo server ghép file và tùy chọn restore DB ngay.
    */
-  finalizeChunkUpload: (uploadId: string, restoreAfterUpload: boolean): Promise<string> => {
+  finalizeChunkUpload: (uploadId: string, restoreAfterUpload: boolean, expectedSha256?: string): Promise<string> => {
     const token = localStorage.getItem('hpticket_token');
     const params = new URLSearchParams({ uploadId, restoreAfterUpload: String(restoreAfterUpload) });
+    if (expectedSha256) params.append('expectedSha256', expectedSha256);
     return fetch(`${API_BASE_URL}/system/backup/upload/finalize?${params}`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}` }

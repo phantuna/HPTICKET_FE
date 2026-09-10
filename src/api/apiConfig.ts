@@ -140,6 +140,9 @@ export const API_ENDPOINTS = {
 let isRefreshing = false;
 let failedQueue: { resolve: (token: string) => void; reject: (err: any) => void }[] = [];
 
+// Quản lý Request Anti-Spam (Phase 3)
+const pendingRequests = new Map<string, Promise<any>>();
+
 const processQueue = (error: any, token: string | null = null) => {
   failedQueue.forEach(prom => {
     if (error) prom.reject(error);
@@ -199,89 +202,104 @@ export const apiClient = {
       ...customConfig,
     };
 
-    try {
-      let response = await fetch(fullUrl, mergedConfig);
+    // 3. Xử lý Chống Spam (Deduplication) cho các method thay đổi dữ liệu
+    const isModifyingRequest = mergedConfig.method !== 'GET';
+    const requestKey = isModifyingRequest ? `${mergedConfig.method}_${fullUrl}_${mergedConfig.body || ''}` : null;
 
-      if (response.status === 401) {
-        const isRefreshEndpoint = endpoint.includes('/auth/refresh');
-        
-        if (isRefreshEndpoint) {
-          throw new Error('Phiên Refresh bị lỗi 401');
-        }
-
-        // Tạm dừng các request tiếp theo bằng Queue
-        if (isRefreshing) {
-          return new Promise<T>((resolve, reject) => {
-            failedQueue.push({
-              resolve: (newToken: string) => {
-                const newHeaders = { ...mergedConfig.headers, Authorization: `Bearer ${newToken}` };
-                fetch(fullUrl, { ...mergedConfig, headers: newHeaders })
-                  .then(r => { if(r.ok) r.json().then(resolve).catch(reject); else reject(new Error('Retry failed')) })
-                  .catch(reject);
-              },
-              reject: (err) => reject(err)
-            });
-          });
-        }
-
-        isRefreshing = true;
-        console.warn('[apiClient] 401 Unauthorized — Đang refresh token (Locking)...');
-
-        try {
-          const refreshRes = await fetch(`${API_BASE_URL}/iam/auth/refresh`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            // Không gửi body vì BE lấy từ Cookie, giữ body rỗng để tương thích ngược
-            body: JSON.stringify({}) 
-          });
-
-          if (refreshRes.ok) {
-            const refreshData = await refreshRes.json();
-            const newAccessToken: string = refreshData?.data?.token;
-
-            if (newAccessToken) {
-              localStorage.setItem('hpticket_token', newAccessToken);
-              
-              // Báo cho các Tab khác biết
-              authChannel.postMessage({ type: 'SESSION_REFRESHED', token: newAccessToken });
-              
-              isRefreshing = false;
-              processQueue(null, newAccessToken);
-
-              // Retry request hiện tại
-              const retryHeaders = { ...mergedConfig.headers, Authorization: `Bearer ${newAccessToken}` };
-              const retryResponse = await fetch(fullUrl, { ...mergedConfig, headers: retryHeaders });
-              if (retryResponse.ok) return await retryResponse.json();
-              throw new Error(`API Error: ${retryResponse.status}`);
-            }
-          }
-          throw new Error('Refresh Token không hợp lệ hoặc đã hết hạn');
-
-        } catch (refreshErr) {
-          isRefreshing = false;
-          processQueue(refreshErr, null);
-          localStorage.removeItem('hpticket_token');
-          authChannel.postMessage({ type: 'SESSION_EXPIRED' });
-          
-          // Bật Login Modal thay vì Redirect để không mất dữ liệu đang điền dở
-          window.dispatchEvent(new CustomEvent('session_expired_modal'));
-          throw new Error('Phiên đăng nhập hết hạn. Đang hiển thị Modal đăng nhập.');
-        }
-      }
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.message || `API Error: ${response.status} ${response.statusText}`;
-        window.dispatchEvent(new CustomEvent('api_error', { detail: { message: errorMessage } }));
-        throw new Error(errorMessage);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error(`[API Call Failed] ${endpoint}:`, error);
-      throw error;
+    if (requestKey && pendingRequests.has(requestKey)) {
+      console.warn(`[apiClient] Deduplicating request: ${requestKey}`);
+      return pendingRequests.get(requestKey) as Promise<T>;
     }
+
+    const executeRequest = async (): Promise<T> => {
+      try {
+        let response = await fetch(fullUrl, mergedConfig);
+
+        if (response.status === 401) {
+          const isRefreshEndpoint = endpoint.includes('/auth/refresh');
+          
+          if (isRefreshEndpoint) {
+            throw new Error('Phiên Refresh bị lỗi 401');
+          }
+
+          if (isRefreshing) {
+            return new Promise<T>((resolve, reject) => {
+              failedQueue.push({
+                resolve: (newToken: string) => {
+                  const newHeaders = { ...mergedConfig.headers, Authorization: `Bearer ${newToken}` };
+                  fetch(fullUrl, { ...mergedConfig, headers: newHeaders })
+                    .then(r => { if(r.ok) r.json().then(resolve).catch(reject); else reject(new Error('Retry failed')) })
+                    .catch(reject);
+                },
+                reject: (err) => reject(err)
+              });
+            });
+          }
+
+          isRefreshing = true;
+          console.warn('[apiClient] 401 Unauthorized — Đang refresh token (Locking)...');
+
+          try {
+            const refreshRes = await fetch(`${API_BASE_URL}/iam/auth/refresh`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({}) 
+            });
+
+            if (refreshRes.ok) {
+              const refreshData = await refreshRes.json();
+              const newAccessToken: string = refreshData?.data?.token;
+
+              if (newAccessToken) {
+                localStorage.setItem('hpticket_token', newAccessToken);
+                authChannel.postMessage({ type: 'SESSION_REFRESHED', token: newAccessToken });
+                
+                isRefreshing = false;
+                processQueue(null, newAccessToken);
+
+                const retryHeaders = { ...mergedConfig.headers, Authorization: `Bearer ${newAccessToken}` };
+                const retryResponse = await fetch(fullUrl, { ...mergedConfig, headers: retryHeaders });
+                if (retryResponse.ok) return await retryResponse.json();
+                throw new Error(`API Error: ${retryResponse.status}`);
+              }
+            }
+            throw new Error('Refresh Token không hợp lệ hoặc đã hết hạn');
+
+          } catch (refreshErr) {
+            isRefreshing = false;
+            processQueue(refreshErr, null);
+            localStorage.removeItem('hpticket_token');
+            authChannel.postMessage({ type: 'SESSION_EXPIRED' });
+            
+            window.dispatchEvent(new CustomEvent('session_expired_modal'));
+            throw new Error('Phiên đăng nhập hết hạn. Đang hiển thị Modal đăng nhập.');
+          }
+        }
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          const errorMessage = errorData.message || `API Error: ${response.status} ${response.statusText}`;
+          window.dispatchEvent(new CustomEvent('api_error', { detail: { message: errorMessage } }));
+          throw new Error(errorMessage);
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.error(`[API Call Failed] ${endpoint}:`, error);
+        throw error;
+      } finally {
+        if (requestKey) {
+          pendingRequests.delete(requestKey);
+        }
+      }
+    };
+
+    const reqPromise = executeRequest();
+    if (requestKey) {
+      pendingRequests.set(requestKey, reqPromise);
+    }
+    return reqPromise;
   },
 
   get<T>(endpoint: string, params?: Record<string, string | number | boolean>, config?: RequestConfig): Promise<T> {

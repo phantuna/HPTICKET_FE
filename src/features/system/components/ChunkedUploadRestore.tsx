@@ -1,4 +1,4 @@
-﻿import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   AlertTriangle, UploadCloud, CheckCircle2, XCircle,
   RefreshCw, FileArchive, Loader2, ChevronRight
@@ -149,7 +149,22 @@ const ChunkedUploadRestore: React.FC<ChunkedUploadRestoreProps> = ({ onSuccess }
 
       // Bước 3: Finalize
       setState(prev => ({ ...prev, phase: 'finalizing' }));
-      await systemService.finalizeChunkUpload(session.uploadId, restoreAfterUpload);
+      let expectedSha256 = undefined;
+      
+      // Calculate SHA-256 for files under 500MB to verify integrity (Phase 2)
+      if (file.size <= 500 * 1024 * 1024) {
+        try {
+          setState(prev => ({ ...prev, speed: 'Đang băm SHA-256...', eta: '' }));
+          const arrayBuffer = await file.arrayBuffer();
+          const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+          const hashArray = Array.from(new Uint8Array(hashBuffer));
+          expectedSha256 = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        } catch (e) {
+          console.warn('Không thể tính toán SHA-256', e);
+        }
+      }
+
+      await systemService.finalizeChunkUpload(session.uploadId, restoreAfterUpload, expectedSha256);
 
       setState(prev => ({ ...prev, phase: 'done' }));
       toast.success(restoreAfterUpload ? 'Upload & Restore thành công!' : 'Upload hoàn tất! File đã lưu trên server.');
