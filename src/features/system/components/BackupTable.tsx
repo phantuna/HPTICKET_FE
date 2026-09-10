@@ -61,9 +61,11 @@ const BackupTable: React.FC<BackupTableProps> = ({ activeTab, files, onRefresh }
           /* Nút Tạo sao lưu đã được ẩn theo yêu cầu do server chưa cài đặt pg_dump */
           null
         ) : (
-          <button onClick={() => setArchivePrompt(true)} className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center gap-2 transition-colors">
-            <Archive className="w-4 h-4" /> Thực thi lưu trữ ngay
-          </button>
+          /* Nút Archive đã được ẩn theo yêu cầu do server chưa cài đặt psql */
+          null
+          // <button onClick={() => setArchivePrompt(true)} className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center gap-2 transition-colors">
+          //   <Archive className="w-4 h-4" /> Thực thi lưu trữ ngay
+          // </button>
         )}
       </div>
 
