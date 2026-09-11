@@ -105,6 +105,8 @@ export const API_ENDPOINTS = {
     REPORTS_TICKET: '/sales/reports/ticket-revenue',
     REPORTS_PRODUCT: '/sales/reports/product-revenue',
     EXPIRING_TICKETS: '/sales/issued-tickets/expiring-soon',
+    UPDATE_CUSTOMER_INFO: (id: string) => `/sales/issued-tickets/${id}/customer-info`,
+    RENEW_TICKET: (id: string) => `/sales/issued-tickets/${id}/renew`,
   },
 
   // 4. MODULE TICKETING (Cấu hình vé, Khu vực, Cổng & Soát vé) - Base: /api/v1/ticketing

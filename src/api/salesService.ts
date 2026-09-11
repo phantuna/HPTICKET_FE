@@ -628,6 +628,14 @@ export const salesService = {
     return apiClient.get<ApiResponse<any>>(API_ENDPOINTS.SALES.EXPIRING_TICKETS, { daysAhead });
   },
 
+  async updateCustomerInfo(id: string, customer_name: string, customer_phone: string, customer_email: string): Promise<ApiResponse<IssuedTicket>> {
+    return apiClient.put<ApiResponse<IssuedTicket>>(API_ENDPOINTS.SALES.UPDATE_CUSTOMER_INFO(id), { customer_name, customer_phone, customer_email });
+  },
+
+  async renewTicket(id: string, months: number, amount: number, payment_method: string): Promise<ApiResponse<IssuedTicket>> {
+    return apiClient.post<ApiResponse<IssuedTicket>>(API_ENDPOINTS.SALES.RENEW_TICKET(id), { months, amount, payment_method });
+  },
+
   async lockIssuedTicket(id: string): Promise<ApiResponse<IssuedTicket>> {
     
       try {

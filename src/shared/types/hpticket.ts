@@ -316,6 +316,10 @@ export interface IssuedTicket extends BaseEntity {
   ticket_type?: 'SINGLE' | 'MULTI' | 'UNLIMITED';
   ticket_template_name?: string;
   ticket_template_code?: string;
+  customer_name?: string;
+  customer_phone?: string;
+  customer_email?: string;
+  unit_price?: number;
 }
 
 // ----------------------------------------------------
