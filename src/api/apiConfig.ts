@@ -38,6 +38,7 @@ export const API_ENDPOINTS = {
   // 0. SYSTEM MASTER DATA
   SYSTEM: {
     MASTER_DATA: '/system/master-data',
+    UPLOAD_LOGO: '/system/upload/logo',
   },
   // 1. MODULE IAM (Xác thực & Phân quyền) - Base: /api/v1/iam
   IAM: {

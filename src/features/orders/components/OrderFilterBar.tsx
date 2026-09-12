@@ -1,5 +1,6 @@
 import React from 'react';
-import { Search, RefreshCw, Download } from 'lucide-react';
+import { Search, RefreshCw } from 'lucide-react';
+import { ExportExcelButton } from '../../../shared/components/ExportExcelButton';
 
 interface OrderFilterBarProps {
   activeSubTab: 'orders' | 'tickets';
@@ -22,7 +23,7 @@ interface OrderFilterBarProps {
   isLoading: boolean;
   onSearch: () => void;
   onFilterFocus?: () => void;
-  onExportOrders?: () => void;
+  onExportOrders?: () => Promise<void> | void;
 }
 
 export const OrderFilterBar: React.FC<OrderFilterBarProps> = ({
@@ -117,12 +118,10 @@ export const OrderFilterBar: React.FC<OrderFilterBarProps> = ({
             <Search className="w-4 h-4" /> Tìm kiếm
           </button>
           {onExportOrders && (
-            <button 
-              onClick={onExportOrders}
+            <ExportExcelButton 
+              onExport={onExportOrders}
               className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition flex items-center justify-center gap-2 shadow-xs w-full sm:w-auto"
-            >
-              <Download className="w-4 h-4" /> Xuất Excel
-            </button>
+            />
           )}
         </div>
       </div>

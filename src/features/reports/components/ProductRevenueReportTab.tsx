@@ -1,6 +1,7 @@
 import React from 'react';
 import { Search, Download } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { ExportExcelButton } from '../../../shared/components/ExportExcelButton';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
@@ -24,7 +25,11 @@ export const ProductRevenueReportTab: React.FC<ProductRevenueReportTabProps> = (
         <div className="flex items-center gap-2"><span className="text-slate-600 font-medium text-sm">Từ ngày:</span><input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="border border-slate-200 rounded-md px-3 py-1.5 outline-none focus:border-emerald-500 text-sm" /></div>
         <div className="flex items-center gap-2"><span className="text-slate-600 font-medium text-sm">Đến ngày:</span><input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="border border-slate-200 rounded-md px-3 py-1.5 outline-none focus:border-emerald-500 text-sm" /></div>
         <button onClick={() => setSearchTrigger(prev => prev + 1)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1.5 transition ml-auto"><Search className="w-4 h-4" /> Tìm kiếm</button>
-        <button onClick={() => handleExportExcel('BaoCaoDoanhThu_SanPham')} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1.5 transition"><Download className="w-4 h-4" /> Xuất excel</button>
+        <ExportExcelButton 
+          onExport={() => handleExportExcel('BaoCaoDoanhThu_SanPham')} 
+          className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1.5 transition"
+          buttonText="Xuất excel"
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Ticket, Search, Download } from 'lucide-react';
+import { Ticket, RefreshCw, Search, Download } from 'lucide-react';
+import { ExportExcelButton } from '../../../shared/components/ExportExcelButton';
 
 interface TicketReportTabProps {
   fromDate: string; setFromDate: (v: string) => void;
@@ -112,7 +113,11 @@ export const TicketReportTab: React.FC<TicketReportTabProps & { ticketTotalReven
           </div>
           <div className="flex items-center justify-end gap-2">
             <button onClick={() => setSearchTrigger(prev => prev + 1)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-xs"><Search className="w-3.5 h-3.5" /> Tìm kiếm</button>
-            <button onClick={() => handleExportExcel('BaoCaoVeChiTiet')} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-xs"><Download className="w-3.5 h-3.5" /> Xuất excel</button>
+            <ExportExcelButton 
+              onExport={() => handleExportExcel('BaoCaoVeChiTiet')} 
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-xs"
+              buttonText="Xuất excel"
+            />
           </div>
         </div>
       </div>

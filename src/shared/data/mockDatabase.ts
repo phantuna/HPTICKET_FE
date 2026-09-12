@@ -94,6 +94,8 @@ export class MockDatabaseStore {
         // Khôi phục dữ liệu vé từ lần sync cuối (hiển thị khi BE offline)
         if (parsed.issuedTickets?.length > 0) this.issuedTickets = parsed.issuedTickets;
         if (parsed.orders?.length > 0) this.orders = parsed.orders;
+        // Khôi phục companies để logo không bị mất khi reload/đăng nhập lại
+        if (parsed.companies?.length > 0) this.companies = parsed.companies;
       }
     } catch (e) {
       console.error('Failed to load storage:', e);
@@ -109,6 +111,8 @@ export class MockDatabaseStore {
           // Lưu dữ liệu vé & đơn hàng để FE hiển thị đúng khi BE offline
           issuedTickets: this.issuedTickets,
           orders: this.orders,
+          // Lưu dữ liệu company để giữ lại logo web/hóa đơn khi reload trang
+          companies: this.companies,
         })
       );
     } catch (e) {

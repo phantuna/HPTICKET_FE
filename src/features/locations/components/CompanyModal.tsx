@@ -1,43 +1,8 @@
 import React from 'react';
 import { Building2 } from 'lucide-react';
 
-const compressImage = (file: File, callback: (base64: string) => void) => {
-  const reader = new FileReader();
-  reader.readAsDataURL(file);
-  reader.onload = (event) => {
-    const img = new Image();
-    img.src = event.target?.result as string;
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const MAX_WIDTH = 400; // Giới hạn kích thước siêu nhỏ (vì chỉ dùng làm logo)
-      const MAX_HEIGHT = 400;
-      let width = img.width;
-      let height = img.height;
-
-      if (width > height) {
-        if (width > MAX_WIDTH) {
-          height *= MAX_WIDTH / width;
-          width = MAX_WIDTH;
-        }
-      } else {
-        if (height > MAX_HEIGHT) {
-          width *= MAX_HEIGHT / height;
-          height = MAX_HEIGHT;
-        }
-      }
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        // Giữ nguyên định dạng PNG để giữ nền trong suốt cho logo
-        const dataUrl = canvas.toDataURL('image/png');
-        callback(dataUrl);
-      } else {
-        callback(img.src);
-      }
-    };
-  };
-};
+import { systemService } from '../../../api/systemService';
+import { API_BASE_URL } from '../../../api/apiConfig';
 
 interface CompanyModalProps {
   editCompCode: string; setEditCompCode: (v: string) => void;
@@ -98,54 +63,73 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
         </div>
         <div className="col-span-2 grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-slate-700 font-semibold mb-1">Upload Ảnh Logo Web (Sẽ được nén tự động):</label>
-            <div className="flex flex-col gap-2">
-              <input 
-                type="file" 
-                accept="image/png, image/jpeg, image/svg+xml"
-                onChange={(e) => {
+            <label className="block text-slate-700 font-semibold mb-1">Upload Ảnh Logo Web (Sẽ được nén tự động trên Server):</label>
+            <div className="flex gap-4 items-center">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={async (e) => {
                   const file = e.target.files?.[0];
                   if (file) {
-                    compressImage(file, (base64) => {
-                      setEditCompLogo(base64);
-                    });
+                    // Preview immediately
+                    setEditCompLogo(URL.createObjectURL(file));
+                    // Upload to backend
+                    try {
+                      // Extract old filename from URL if it's already a backend URL
+                      let oldFilename = undefined;
+                      if (editCompLogo && editCompLogo.includes('/system/files/logos/')) {
+                         oldFilename = editCompLogo.split('/').pop();
+                      }
+                      const res = await systemService.uploadLogo(file, 'web_logo', oldFilename);
+                      if (res && res.code === 200 && res.data) {
+                        setEditCompLogo(API_BASE_URL + res.data.url);
+                      }
+                    } catch (err) {
+                      console.error("Upload failed", err);
+                    }
                   }
-                }} 
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-slate-900 text-sm outline-none focus:ring-1 focus:ring-emerald-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100" 
+                }}
+                className="text-sm border border-slate-200 rounded p-1 w-full"
               />
               {editCompLogo && (
-                <div className="h-12 w-full rounded-lg border border-slate-200 overflow-hidden bg-slate-100 flex items-center justify-center p-1 relative group">
-                  <img src={editCompLogo} alt="Preview Web" className="h-full object-contain" />
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white text-[10px]">
-                    {(editCompLogo.length / 1024).toFixed(1)} KB
-                  </div>
+                <div className="h-12 flex items-center gap-2">
+                  <img src={editCompLogo === '/logo.png' ? editCompLogo : (editCompLogo.startsWith('http') ? editCompLogo : (editCompLogo.startsWith('blob:') || editCompLogo.startsWith('data:') ? editCompLogo : API_BASE_URL + editCompLogo))} alt="Preview Web" className="h-full object-contain" />
                 </div>
               )}
             </div>
           </div>
           
           <div>
-            <label className="block text-slate-700 font-semibold mb-1">Upload Ảnh Logo Hóa Đơn (Sẽ được nén tự động):</label>
-            <div className="flex flex-col gap-2">
-              <input 
-                type="file" 
-                accept="image/png, image/jpeg, image/svg+xml"
-                onChange={(e) => {
+            <label className="block text-slate-700 font-semibold mb-1">Upload Ảnh Logo Hóa Đơn (Sẽ được nén tự động trên Server):</label>
+            <div className="flex gap-4 items-center">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={async (e) => {
                   const file = e.target.files?.[0];
                   if (file) {
-                    compressImage(file, (base64) => {
-                      setEditCompInvoiceLogo(base64);
-                    });
+                    // Preview immediately
+                    setEditCompInvoiceLogo(URL.createObjectURL(file));
+                    // Upload to backend
+                    try {
+                      let oldFilename = undefined;
+                      if (editCompInvoiceLogo && editCompInvoiceLogo.includes('/system/files/logos/')) {
+                         oldFilename = editCompInvoiceLogo.split('/').pop();
+                      }
+                      const res = await systemService.uploadLogo(file, 'invoice_logo', oldFilename);
+                      if (res && res.code === 200 && res.data) {
+                        setEditCompInvoiceLogo(API_BASE_URL + res.data.url);
+                      }
+                    } catch (err) {
+                      console.error("Upload failed", err);
+                    }
                   }
-                }} 
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-slate-900 text-sm outline-none focus:ring-1 focus:ring-emerald-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100" 
+                }}
+                className="text-sm border border-slate-200 rounded p-1 w-full"
               />
               {editCompInvoiceLogo && (
-                <div className="h-12 w-full rounded-lg border border-slate-200 overflow-hidden bg-slate-100 flex items-center justify-center p-1 relative group">
-                  <img src={editCompInvoiceLogo} alt="Preview Hóa Đơn" className="h-full object-contain" />
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white text-[10px]">
-                    {(editCompInvoiceLogo.length / 1024).toFixed(1)} KB
-                  </div>
+                <div className="h-12 flex items-center gap-2">
+                  <img src={editCompInvoiceLogo === '/logo.png' ? editCompInvoiceLogo : (editCompInvoiceLogo.startsWith('http') ? editCompInvoiceLogo : (editCompInvoiceLogo.startsWith('blob:') || editCompInvoiceLogo.startsWith('data:') ? editCompInvoiceLogo : API_BASE_URL + editCompInvoiceLogo))} alt="Preview Hóa Đơn" className="h-full object-contain" />
                 </div>
               )}
             </div>

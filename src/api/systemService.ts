@@ -1,4 +1,4 @@
-import { apiClient, API_BASE_URL } from './apiConfig';
+import { apiClient, API_BASE_URL, API_ENDPOINTS } from './apiConfig';
 
 export interface BackupFile {
   fileName: string;
@@ -131,6 +131,23 @@ export const systemService = {
   
   getExportDownloadUrl: (filePath: string) => {
     return `${API_BASE_URL}${filePath}`;
+  },
+
+  // ─── File Uploads ──────────────────────────────────────────
+  uploadLogo: async (file: File, type: 'web_logo' | 'invoice_logo', oldFilename?: string) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('type', type);
+    if (oldFilename) {
+      formData.append('oldFilename', oldFilename);
+    }
+    // Using fetch directly because apiClient might not set Content-Type correctly for FormData (boundary)
+    const token = localStorage.getItem('hpticket_token');
+    return fetch(`${API_BASE_URL}${API_ENDPOINTS.SYSTEM.UPLOAD_LOGO}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: formData
+    }).then(res => res.json());
   }
 };
 

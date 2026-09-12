@@ -1,5 +1,7 @@
 import React from 'react';
 import { UserCheck, Search, Download } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { ExportExcelButton } from '../../../shared/components/ExportExcelButton';
 
 interface UserRevenueReportTabProps {
   sellerFilter: string; setSellerFilter: (v: string) => void;
@@ -35,7 +37,11 @@ export const UserRevenueReportTab: React.FC<UserRevenueReportTabProps> = ({
           <div className="text-xs text-slate-700 font-medium whitespace-nowrap px-2">Tổng doanh thu: <span className="font-bold text-emerald-700 font-mono text-sm ml-1">{totalRevenue.toLocaleString('vi-VN')} đ</span></div>
           <div className="flex items-center justify-end gap-2 ml-auto">
             <button onClick={() => setSearchTrigger(prev => prev + 1)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-xs"><Search className="w-3.5 h-3.5" /> Tìm kiếm</button>
-            <button onClick={() => handleExportExcel('BaoCaoDoanhThu_User_Thang')} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-xs"><Download className="w-3.5 h-3.5" /> Xuất excel</button>
+            <ExportExcelButton 
+              onExport={() => handleExportExcel('BaoCaoDoanhThu_User_Thang')} 
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-xs"
+              buttonText="Xuất excel"
+            />
           </div>
         </div>
       </div>

@@ -2,6 +2,7 @@ import React from 'react';
 import { Search, Download, Clock } from 'lucide-react';
 import { downloadExcelFromApi } from '../utils/excelExporter';
 import { toast } from '../../../shared/utils/toast';
+import { ExportExcelButton } from '../../../shared/components/ExportExcelButton';
 
 interface GateLogReportTabProps {
   fromDate: string; setFromDate: (v: string) => void;
@@ -25,13 +26,8 @@ export const GateLogReportTab: React.FC<GateLogReportTabProps> = ({
     }
     const diff = Math.ceil((new Date(toDate).getTime() - new Date(fromDate).getTime()) / (1000 * 3600 * 24));
     if (diff < 0) return toast.info("Đến ngày phải lớn hơn hoặc bằng Từ ngày.");
-    if (diff > 7) return toast.info("Chỉ cho phép xuất báo cáo tối đa 7 ngày để đảm bảo hiệu suất hệ thống.");
 
-    try {
-      await downloadExcelFromApi('/ticketing/access-logs/export', { fromDate, toDate }, 'NhatKySoatVe.xlsx');
-    } catch (error: any) {
-      toast.error(error?.message || 'Lỗi khi xuất dữ liệu. Vui lòng thử lại sau.');
-    }
+    await downloadExcelFromApi('/ticketing/access-logs/export', { fromDate, toDate }, 'NhatKySoatVe.xlsx');
   };
 
   return (
@@ -59,7 +55,11 @@ export const GateLogReportTab: React.FC<GateLogReportTabProps> = ({
           </div>
           <div className="flex items-center justify-end gap-2">
             <button onClick={() => setSearchTrigger(prev => prev + 1)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-xs"><Search className="w-3.5 h-3.5" /> Tìm kiếm</button>
-            <button onClick={handleExport} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-xs"><Download className="w-3.5 h-3.5" /> Xuất excel</button>
+            <ExportExcelButton 
+              onExport={handleExport}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-xs"
+              buttonText="Xuất excel"
+            />
           </div>
         </div>
       </div>

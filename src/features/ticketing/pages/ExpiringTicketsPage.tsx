@@ -1,15 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { AlertTriangle, Search, Filter, X, CheckCircle, AlertCircle } from 'lucide-react';
+import { CalendarClock, Search, Filter, X, CheckCircle, AlertCircle } from 'lucide-react';
 import { salesService, IssuedTicket } from '../../../api/salesService';
 import { marketingService } from '../../../api/marketingService';
 import { Promotion } from '../../../shared/types/hpticket';
 import ExpiringTicketsTable from '../components/ExpiringTicketsTable';
+import { usePermission } from '../../../shared/hooks/usePermission';
+import { iamService } from '../../../api/iamService';
 
 const ExpiringTicketsPage: React.FC = () => {
   const [tickets, setTickets] = useState<IssuedTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [daysAhead, setDaysAhead] = useState(30);
   const [searchTerm, setSearchTerm] = useState('');
+  const [employeeSearch, setEmployeeSearch] = useState('all');
+  const [users, setUsers] = useState<any[]>([]);
+  
+  const { role } = usePermission();
+  const isAdminOrManager = role.toLowerCase().includes('admin') || role.toLowerCase().includes('accountant');
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(0);
@@ -36,10 +43,11 @@ const ExpiringTicketsPage: React.FC = () => {
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [selectedPromotion, setSelectedPromotion] = useState<string>('');
 
-  const fetchTickets = async (days: number, search: string = searchTerm, page: number = currentPage, size: number = pageSize) => {
+  const fetchTickets = async (days: number, search: string = searchTerm, emp: string = employeeSearch, page: number = currentPage, size: number = pageSize) => {
     try {
       setLoading(true);
-      const response = await salesService.fetchExpiringTickets(days, search, page, size);
+      const empFilter = emp === 'all' ? undefined : emp;
+      const response = await salesService.fetchExpiringTickets(days, search, page, size, empFilter);
       if (response && response.data) {
         if (response.data.content) {
           setTickets(response.data.content as any);
@@ -61,25 +69,30 @@ const ExpiringTicketsPage: React.FC = () => {
 
   const goToPage = (page: number) => {
     setCurrentPage(page);
-    fetchTickets(daysAhead, searchTerm, page, pageSize);
+    fetchTickets(daysAhead, searchTerm, employeeSearch, page, pageSize);
   };
 
   const changePageSize = (size: number) => {
     setPageSize(size);
     setCurrentPage(0);
-    fetchTickets(daysAhead, searchTerm, 0, size);
+    fetchTickets(daysAhead, searchTerm, employeeSearch, 0, size);
   };
 
   useEffect(() => {
     marketingService.fetchPromotions().then(res => {
       if (res?.data) setPromotions(res.data);
     });
-  }, []);
+    if (isAdminOrManager) {
+      iamService.fetchUsers().then(res => {
+        if (res?.data) setUsers(res.data);
+      });
+    }
+  }, [isAdminOrManager]);
 
   useEffect(() => {
     setCurrentPage(0);
-    fetchTickets(daysAhead, searchTerm, 0, pageSize);
-  }, [daysAhead]);
+    fetchTickets(daysAhead, searchTerm, employeeSearch, 0, pageSize);
+  }, [daysAhead, employeeSearch]);
 
   const filteredTickets = tickets;
 
@@ -95,7 +108,7 @@ const ExpiringTicketsPage: React.FC = () => {
   const handleRenewTicket = (ticket: IssuedTicket) => {
     setRenewMonths(1);
     setSelectedPromotion('');
-    setPaymentMethod('CASH');
+    setPaymentMethod('TIEN_MAT');
     setRenewingTicket(ticket);
   };
 
@@ -160,7 +173,7 @@ const ExpiringTicketsPage: React.FC = () => {
       <div className="flex justify-between items-center bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <AlertTriangle className="h-6 w-6 text-amber-500" />
+            <CalendarClock className="h-6 w-6 text-blue-600" />
             Quản Lý Vé Tháng
           </h1>
           <p className="text-gray-500 mt-1">Quản lý và theo dõi các vé tháng/vé năm chuẩn bị hết hạn sử dụng</p>
@@ -196,11 +209,28 @@ const ExpiringTicketsPage: React.FC = () => {
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   setCurrentPage(0);
-                  fetchTickets(daysAhead, searchTerm, 0, pageSize);
+                  fetchTickets(daysAhead, searchTerm, employeeSearch, 0, pageSize);
                 }
               }}
             />
           </div>
+
+          {isAdminOrManager && (
+            <div className="flex items-center gap-2">
+              <span className="text-slate-700 font-semibold whitespace-nowrap text-sm">Người bán :</span>
+              <select
+                value={employeeSearch}
+                onChange={(e) => setEmployeeSearch(e.target.value)}
+                className="bg-white border border-slate-200 px-3 py-2 text-slate-900 text-sm font-medium rounded-lg outline-none focus:border-blue-500 shadow-xs"
+              >
+                <option value="all">Tất cả</option>
+                {users.map((u) => (
+                  <option key={u.id} value={u.username}>{u.fullname}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div className="text-sm text-gray-500 font-medium">
             Hiển thị <span className="text-gray-900">{filteredTickets.length}</span> vé
           </div>

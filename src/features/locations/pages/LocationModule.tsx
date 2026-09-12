@@ -7,6 +7,7 @@ import { CounterModal } from '../components/CounterModal';
 import { ZoneModal } from '../components/ZoneModal';
 import { GateModal } from '../components/GateModal';
 import { CompanyModal } from '../components/CompanyModal';
+import { API_BASE_URL } from '../../../api/apiConfig';
 
 interface LocationModuleProps {
   subTab?: string;
@@ -87,7 +88,12 @@ export const LocationModule: React.FC<LocationModuleProps> = ({ subTab = 'khaiba
               <div className="flex items-center gap-4">
                 <div className="w-20 h-20 bg-white border border-slate-200 rounded-xl p-2 flex items-center justify-center shadow-sm">
                   {company?.web_logo_url ? (
-                    <img src={company.web_logo_url} alt="Logo Web" className="max-h-full max-w-full object-contain rounded" />
+                    <img src={(() => {
+                      const url = company.web_logo_url;
+                      if (!url || url === '/logo.png') return "/logo.png";
+                      if (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:')) return url;
+                      return API_BASE_URL + url;
+                    })()} alt="Logo Web" className="max-h-full max-w-full object-contain rounded" />
                   ) : (
                     <span className="text-[10px] text-slate-400">No Logo</span>
                   )}
@@ -100,7 +106,12 @@ export const LocationModule: React.FC<LocationModuleProps> = ({ subTab = 'khaiba
               <div className="flex items-center gap-4 pt-3 border-t border-slate-200">
                 <div className="w-20 h-20 bg-white border border-slate-200 rounded-xl p-2 flex items-center justify-center shadow-sm">
                   {company?.invoice_logo_url ? (
-                    <img src={company.invoice_logo_url} alt="Logo Hóa Đơn" className="max-h-full max-w-full object-contain rounded" />
+                    <img src={(() => {
+                      const url = company.invoice_logo_url;
+                      if (!url || url === '/logo.png') return "/logo.png";
+                      if (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:')) return url;
+                      return API_BASE_URL + url;
+                    })()} alt="Logo Hóa Đơn" className="max-h-full max-w-full object-contain rounded" />
                   ) : (
                     <span className="text-[10px] text-slate-400">No Logo</span>
                   )}

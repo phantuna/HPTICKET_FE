@@ -22,6 +22,10 @@ let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 let isRefreshingProactive = false;
 
+/** Cờ bật/tắt log debug để console gọn gàng. Muốn xem log, gõ localStorage.setItem('DEBUG_TOKEN', 'true') vào console */
+const DEBUG = localStorage.getItem('DEBUG_TOKEN') === 'true';
+const logDebug = (...args: any[]) => { if (DEBUG) console.info(...args); };
+
 const authChannel = typeof BroadcastChannel !== 'undefined'
   ? new BroadcastChannel('hpticket_auth_channel')
   : null;
@@ -62,7 +66,7 @@ async function doRefresh(): Promise<boolean> {
     // Thông báo các tab khác cùng cập nhật
     authChannel?.postMessage({ type: 'SESSION_REFRESHED', token: newToken });
 
-    console.info('[TokenRefresh] ✅ Gia hạn token thành công');
+    logDebug('[TokenRefresh] ✅ Gia hạn token thành công');
     return true;
   } catch (err) {
     console.error('[TokenRefresh] Lỗi khi gọi /auth/refresh:', err);
@@ -85,12 +89,12 @@ function scheduleRefresh(): void {
 
   if (msUntilRefresh <= 0) {
     // Token đã gần/hết hạn — refresh ngay lập tức
-    console.info('[TokenRefresh] Token sắp hết hạn, refresh ngay...');
+    logDebug('[TokenRefresh] Token sắp hết hạn, refresh ngay...');
     handleRefreshCycle();
     return;
   }
 
-  console.info(`[TokenRefresh] ⏱ Sẽ refresh sau ${Math.round(msUntilRefresh / 1000)}s`);
+  logDebug(`[TokenRefresh] ⏱ Sẽ refresh sau ${Math.round(msUntilRefresh / 1000)}s`);
   refreshTimer = setTimeout(handleRefreshCycle, msUntilRefresh);
 }
 
@@ -165,7 +169,7 @@ export const tokenRefreshService = {
     localStorage.setItem(EXPIRES_AT_KEY, String(expiresAt));
     scheduleRefresh();
     startHeartbeat();
-    console.info(`[TokenRefresh] 🚀 Service khởi động. Token hết hạn sau ${expiresInSeconds}s`);
+    logDebug(`[TokenRefresh] 🚀 Service khởi động. Token hết hạn sau ${expiresInSeconds}s`);
   },
 
   /**
@@ -177,7 +181,7 @@ export const tokenRefreshService = {
     if (!token || !expiresAt) return;
     scheduleRefresh();
     startHeartbeat();
-    console.info('[TokenRefresh] ▶ Tiếp tục từ phiên trước');
+    logDebug('[TokenRefresh] ▶ Tiếp tục từ phiên trước');
   },
 
   /** Dừng service hoàn toàn (khi đăng xuất). */

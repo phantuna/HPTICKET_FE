@@ -1,6 +1,7 @@
 import React from 'react';
 import { Search, Download } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { ExportExcelButton } from '../../../shared/components/ExportExcelButton';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
@@ -35,7 +36,11 @@ export const TicketTypeRevenueReportTab: React.FC<TicketTypeRevenueReportTabProp
           </select>
         </div>
         <button onClick={() => setSearchTrigger(prev => prev + 1)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1.5 transition ml-auto"><Search className="w-4 h-4" /> Tìm kiếm</button>
-        <button onClick={() => handleExportExcel('BaoCaoDoanhThu_LoaiVe')} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1.5 transition"><Download className="w-4 h-4" /> Xuất excel</button>
+        <ExportExcelButton 
+          onExport={() => handleExportExcel('BaoCaoDoanhThu_LoaiVe')} 
+          className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1.5 transition"
+          buttonText="Xuất excel"
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -63,7 +68,7 @@ export const TicketTypeRevenueReportTab: React.FC<TicketTypeRevenueReportTabProp
               <BarChart data={ticketTemplateStats} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                 <XAxis type="number" hide />
-                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} width={120} tick={{fontSize: 10, fill: '#64748b'}} />
+                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} width={120} tick={{ fontSize: 10, fill: '#64748b' }} />
                 <Tooltip formatter={(value: number) => [`${value.toLocaleString('vi-VN')} đ`, 'Doanh thu']} />
                 <Bar dataKey="revenue" fill="#3b82f6" barSize={30} radius={[0, 4, 4, 0]} />
               </BarChart>
@@ -75,11 +80,11 @@ export const TicketTypeRevenueReportTab: React.FC<TicketTypeRevenueReportTabProp
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={ticketTemplateStats} dataKey="soldQty" nameKey="name" cx="50%" cy="50%" outerRadius={70} label={({percent}) => percent > 0 ? `${(percent * 100).toFixed(0)}%` : ''}>
+                <Pie data={ticketTemplateStats} dataKey="soldQty" nameKey="name" cx="50%" cy="50%" outerRadius={70} label={({ percent }) => percent > 0 ? `${(percent * 100).toFixed(0)}%` : ''}>
                   {ticketTemplateStats.map((entry: any, index: number) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                 </Pie>
                 <Tooltip formatter={(value: number) => [`${value} vé`, 'Số lượng']} />
-                <Legend verticalAlign="bottom" height={48} wrapperStyle={{ fontSize: '11px' }}/>
+                <Legend verticalAlign="bottom" height={48} wrapperStyle={{ fontSize: '11px' }} />
               </PieChart>
             </ResponsiveContainer>
           </div>

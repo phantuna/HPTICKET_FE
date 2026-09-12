@@ -624,8 +624,8 @@ export const salesService = {
     return this.getIssuedTickets();
   },
 
-  async fetchExpiringTickets(daysAhead: number, keyword?: string, page: number = 0, size: number = 50): Promise<ApiResponse<any>> {
-    return apiClient.get<ApiResponse<any>>(API_ENDPOINTS.SALES.EXPIRING_TICKETS, { daysAhead, keyword, page, size });
+  async fetchExpiringTickets(daysAhead: number, keyword?: string, page: number = 0, size: number = 50, employee?: string): Promise<ApiResponse<any>> {
+    return apiClient.get<ApiResponse<any>>(API_ENDPOINTS.SALES.EXPIRING_TICKETS, { daysAhead, keyword, page, size, employee });
   },
 
   async updateCustomerInfo(id: string, customer_name: string, customer_phone: string, customer_email: string): Promise<ApiResponse<IssuedTicket>> {

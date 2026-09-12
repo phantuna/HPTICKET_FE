@@ -1,5 +1,6 @@
 import React from 'react';
 import { Download, Search, Banknote, ShoppingCart, Copy } from 'lucide-react';
+import { ExportExcelButton } from '../../../shared/components/ExportExcelButton';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { generateZaloReport } from '../utils/zaloReportFormatter';
 import { toast } from '../../../shared/utils/toast';
@@ -64,7 +65,11 @@ export const RevenueReportTab: React.FC<RevenueReportTabProps> = ({
           <button onClick={handleExportTxt} className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 shadow-sm transition"><Copy className="w-4 h-4" /> Xuất báo cáo</button>
         </div>
         <div className="flex items-end">
-          <button onClick={() => handleExportExcel('BaoCaoDoanhThu')} className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 shadow-sm transition"><Download className="w-4 h-4" /> Xuất Excel</button>
+          <ExportExcelButton 
+            onExport={() => handleExportExcel('BaoCaoDoanhThu')} 
+            className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 shadow-sm transition"
+            buttonText="Xuất Excel"
+          />
         </div>
       </div>
 

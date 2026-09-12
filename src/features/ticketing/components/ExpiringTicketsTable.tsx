@@ -97,7 +97,7 @@ const ExpiringTicketsTable: React.FC<ExpiringTicketsTableProps> = ({ tickets, lo
                   </span>
                 </td>
                 <td className="px-4 py-3">
-                  <div className="text-sm font-medium text-gray-700 whitespace-nowrap">{ticket.created_by || '—'}</div>
+                  <div className="text-sm font-medium text-gray-700 whitespace-nowrap">{ticket.updated_by || ticket.created_by || '—'}</div>
                   {(ticket as any).sales_counter_name && !ticket.customer_name && (
                     <div className="text-xs text-gray-400 mt-0.5 whitespace-nowrap">{(ticket as any).sales_counter_name}</div>
                   )}

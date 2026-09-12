@@ -23,7 +23,7 @@ export interface ExportParams {
 }
 
 export const useReportExport = (_setExportNotice: Dispatch<SetStateAction<string | null>>) => {
-  const handleExportExcel = (tab: string, params?: Omit<ExportParams, 'tab'>) => {
+  const handleExportExcel = async (tab: string, params?: Omit<ExportParams, 'tab'>): Promise<void> => {
     try {
       const dateTag = params?.fromDate
         ? (params.fromDate === params?.toDate ? params.fromDate : `${params.fromDate}_${params.toDate}`)
@@ -47,9 +47,10 @@ export const useReportExport = (_setExportNotice: Dispatch<SetStateAction<string
             stats.reduce((sum: number, s: any) => sum + s.qty, 0),
             stats.reduce((sum: number, s: any) => sum + s.amountBeforeVatAndDiscount, 0),
             stats.reduce((sum: number, s: any) => sum + s.discount, 0),
-            stats.reduce((sum: number, s: any) => sum + s.revenue, 0),
+            params?.totalRevenue ?? 0,
           ]);
-          exportToExcel(headers, rows, `DoanhThuTongHop_${dateTag}`);
+
+          await exportToExcel(headers, rows, `BaoCaoDoanhThu_TongHop_${dateTag}`);
           break;
         }
 
@@ -75,7 +76,7 @@ export const useReportExport = (_setExportNotice: Dispatch<SetStateAction<string
             const dateStr = isNaN(d.getTime()) ? '' : `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')} ${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
             return [idx + 1, t.qr_code_string, t.ticket_template_name, order ? (isCash ? 'Tiền mặt' : 'Chuyển khoản') : '---', unitPrice, discount, revenue, statusMap[t.status] ?? t.status, dateStr];
           });
-          exportToExcel(headers, rows, `BaoCaoVeChiTiet_${dateTag}`);
+          await exportToExcel(headers, rows, `BaoCaoVeChiTiet_${dateTag}`);
           break;
         }
 
@@ -89,7 +90,7 @@ export const useReportExport = (_setExportNotice: Dispatch<SetStateAction<string
             total > 0 ? `${((t.revenue / total) * 100).toFixed(1)}%` : '0%',
           ]);
           rows.push(['', '', 'TỔNG CỘNG', stats.reduce((s: number, t: any) => s + t.soldQty, 0), total, '100.0%']);
-          exportToExcel(headers, rows, `BaoCaoDoanhThu_LoaiVe_${dateTag}`);
+          await exportToExcel(headers, rows, `BaoCaoDoanhThu_LoaiVe_${dateTag}`);
           break;
         }
 
@@ -103,7 +104,7 @@ export const useReportExport = (_setExportNotice: Dispatch<SetStateAction<string
             total > 0 ? `${((p.revenue / total) * 100).toFixed(1)}%` : '0%',
           ]);
           rows.push(['', '', 'TỔNG CỘNG', stats.reduce((s: number, p: any) => s + p.soldQty, 0), total, '100.0%']);
-          exportToExcel(headers, rows, `BaoCaoDoanhThu_SanPham_${dateTag}`);
+          await exportToExcel(headers, rows, `BaoCaoDoanhThu_SanPham_${dateTag}`);
           break;
         }
 
@@ -118,31 +119,23 @@ export const useReportExport = (_setExportNotice: Dispatch<SetStateAction<string
             return [idx + 1, u.fullname, u.username, u.phone, userOrders.length, total];
           });
           const monthStr = params?.selectedMonth ? `Thang${params.selectedMonth}` : dateTag;
-          exportToExcel(headers, rows, `BaoCaoDoanhThu_NhanVien_${monthStr}`);
+          await exportToExcel(headers, rows, `BaoCaoDoanhThu_NhanVien_${monthStr}`);
           break;
         }
 
         // ── Tab 6: Báo Cáo Ra Vào (Gate Access Logs) - Async Heavy Job ─────
         case 'BaoCaoRaVao': {
-          import('../../../api/systemService').then(({ systemService }) => {
-            systemService.triggerExportJob('GATE_ACCESS_LOGS')
-              .then(() => {
-                toast.success('Đã đưa yêu cầu Xuất Nhật Ký Cổng vào hàng đợi ngầm. Hệ thống sẽ thông báo khi hoàn tất!');
-              })
-              .catch(err => toast.error('Không thể tạo tiến trình xuất báo cáo: ' + (err.response?.data?.message || err.message)));
-          });
+          const { systemService } = await import('../../../api/systemService');
+          await systemService.triggerExportJob('GATE_ACCESS_LOGS');
+          toast.success('Đã đưa yêu cầu Xuất Nhật Ký Cổng vào hàng đợi ngầm. Hệ thống sẽ thông báo khi hoàn tất!');
           return; // Return early, don't show the generic success toast below
         }
 
         // ── Tab 7: Báo Cáo Hệ Thống (System Logs) - Async Heavy Job ────────
         case 'BaoCaoHeThong': {
-          import('../../../api/systemService').then(({ systemService }) => {
-            systemService.triggerExportJob('SYSTEM_LOGS')
-              .then(() => {
-                toast.success('Đã đưa yêu cầu Xuất Nhật Ký Hệ Thống vào hàng đợi ngầm. Hệ thống sẽ thông báo khi hoàn tất!');
-              })
-              .catch(err => toast.error('Không thể tạo tiến trình xuất báo cáo: ' + (err.response?.data?.message || err.message)));
-          });
+          const { systemService } = await import('../../../api/systemService');
+          await systemService.triggerExportJob('SYSTEM_LOGS');
+          toast.success('Đã đưa yêu cầu Xuất Nhật Ký Hệ Thống vào hàng đợi ngầm. Hệ thống sẽ thông báo khi hoàn tất!');
           return; // Return early
         }
 
@@ -151,10 +144,10 @@ export const useReportExport = (_setExportNotice: Dispatch<SetStateAction<string
           return;
       }
 
-      toast.success('Đã xuất file Excel thành công!');
-    } catch (err) {
+      // We don't need toast.success here anymore because ExportExcelButton will handle the toast message on success!
+    } catch (err: any) {
       console.error('Export Excel error:', err);
-      toast.error('Xuất Excel thất bại. Vui lòng thử lại!');
+      throw err; // throw back so ExportExcelButton can catch it and display toast
     }
   };
 

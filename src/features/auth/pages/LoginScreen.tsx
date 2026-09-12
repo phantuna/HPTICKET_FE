@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Lock, User, Key, CheckCircle, AlertCircle, Shield, Loader2, ArrowRight } from 'lucide-react';
 import { iamService } from '../../../api/iamService';
 import { dbStore } from '../../../shared/data/mockDatabase';
+import { API_BASE_URL } from '../../../api/apiConfig';
 
 interface LoginScreenProps {
   onLoginSuccess: () => void;
@@ -56,7 +57,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         {/* Logo/Brand */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center p-3 bg-white rounded-[2rem] shadow-xl shadow-slate-300/60 mb-5 border border-slate-100/50 backdrop-blur-sm">
-            <img src="/logo.png" alt="Hoàng Phát Technology Era" className="h-24 w-auto max-w-[240px] object-contain scale-110" />
+            <img 
+              src={(() => {
+                const url = dbStore.companies?.[0]?.web_logo_url;
+                if (!url || url === '/logo.png') return "/logo.png";
+                if (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:')) return url;
+                return API_BASE_URL + url;
+              })()}
+              alt="Hoàng Phát Technology Era" 
+              className="h-24 w-auto max-w-[240px] object-contain scale-110" 
+            />
           </div>
           <h1 className="text-2xl font-black text-slate-800 tracking-tight mt-1">HPTICKET</h1>
           <p className="text-slate-500 mt-1 font-medium">Hệ Thống Quản Lý Bán Vé & Kiểm Soát</p>

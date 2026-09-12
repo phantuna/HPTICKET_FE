@@ -13,6 +13,7 @@ import { salesService } from '../../../api/salesService';
 import { ReceiptPrintModal } from '../../pos/components/ReceiptPrintModal';
 import { PromptModal } from '../../../shared/components/PromptModal';
 import { downloadExcelFromApi } from '../../reports/utils/excelExporter';
+import { toast } from '../../../shared/utils/toast';
 
 export const OrdersModule: React.FC = () => {
   const {
@@ -172,26 +173,18 @@ export const OrdersModule: React.FC = () => {
 
   const handleExportOrders = async () => {
     if (!fromDate || !toDate) {
-      alert("Vui lòng chọn Từ ngày và Đến ngày để xuất Excel.");
+      toast.info("Vui lòng chọn Từ ngày và Đến ngày để xuất Excel.");
       return;
     }
     const fDate = new Date(fromDate);
     const tDate = new Date(toDate);
     const diffDays = Math.ceil((tDate.getTime() - fDate.getTime()) / (1000 * 3600 * 24));
     if (diffDays < 0) {
-      alert("Đến ngày phải lớn hơn hoặc bằng Từ ngày.");
-      return;
-    }
-    if (diffDays > 7) {
-      alert("Chỉ cho phép xuất danh sách đơn hàng tối đa 7 ngày để đảm bảo hiệu suất hệ thống.");
+      toast.info("Đến ngày phải lớn hơn hoặc bằng Từ ngày.");
       return;
     }
 
-    try {
-      await downloadExcelFromApi('/sales/orders/export', { fromDate, toDate }, 'DanhSachDonHang.xlsx');
-    } catch (error: any) {
-      alert(error?.response?.data?.message || 'Lỗi khi xuất dữ liệu. Vui lòng thử lại sau.');
-    }
+    await downloadExcelFromApi('/sales/orders/export', { fromDate, toDate }, 'DanhSachDonHang.xlsx');
   };
 
   return (

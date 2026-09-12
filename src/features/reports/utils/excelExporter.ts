@@ -97,18 +97,14 @@ export const downloadExcelFromJsonApi = async (
 };
 
 
-export const exportToExcel = (
+export const exportToExcel = async (
   headers: string[],
   rows: (string | number | null | undefined)[][],
   fileName: string
-): void => {
+): Promise<void> => {
   // Thay vì xuất nội bộ bằng trình duyệt, gọi API để nhờ Java Backend 
   // chèn Logo và định dạng y như Báo Cáo Hệ Thống (đảm bảo đồng nhất giao diện 100%).
-  downloadExcelFromJsonApi(headers, rows, fileName)
-    .catch(err => {
-      // Fallback fallback error
-      console.error(err);
-    });
+  await downloadExcelFromJsonApi(headers, rows, fileName);
 };
 
 /**
