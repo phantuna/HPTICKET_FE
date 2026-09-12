@@ -7,6 +7,7 @@ import { dbStore } from '../shared/data/mockDatabase';
 import { User, Role, Permission, ApiResponse } from '../shared/types/hpticket';
 import { apiClient, API_ENDPOINTS } from './apiConfig';
 import { hasPermission } from '../shared/utils/permissionGuard';
+import { tokenRefreshService } from './tokenRefreshService';
 
 export const iamService = {
   /**
@@ -22,9 +23,13 @@ export const iamService = {
         });
         if (res?.data?.token) {
           localStorage.setItem('hpticket_token', res.data.token);
-          // Lưu Refresh Token dài hạn để tự động gia hạn phịn khi Access Token hết hạn
+          // Lưu Refresh Token dài hạn (fallback body khi Cookie không hoạt động)
           if (res.data.refresh_token) {
             localStorage.setItem('hpticket_refresh_token', res.data.refresh_token);
+          }
+          // Khởi động Proactive Token Refresh service — gia hạn ngầm trước 3 phút hết hạn
+          if (res.data.expires_in) {
+            tokenRefreshService.start(Number(res.data.expires_in));
           }
         }
         return res;
@@ -81,6 +86,8 @@ export const iamService = {
    * Gọi backend revoke refresh token trước, rồi mới xóa localStorage.
    */
   async logout(): Promise<void> {
+    // Dừng Proactive Refresh Service trước
+    tokenRefreshService.stop();
     const refreshToken = localStorage.getItem('hpticket_refresh_token');
     if (refreshToken) {
       // Fire-and-forget — không block UI nếu backend chậm
@@ -88,6 +95,7 @@ export const iamService = {
     }
     localStorage.removeItem('hpticket_token');
     localStorage.removeItem('hpticket_refresh_token');
+    localStorage.removeItem('hpticket_token_expires_at');
     localStorage.removeItem('hpticket_username');
     localStorage.removeItem('hpticket_fullname');
     localStorage.removeItem('hpticket_role');

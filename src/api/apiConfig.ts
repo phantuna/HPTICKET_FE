@@ -140,25 +140,24 @@ export const API_ENDPOINTS = {
 
 // Các biến toàn cục để quản lý Refresh Token Lock và Axios Queue (Phase 4)
 let isRefreshing = false;
-let failedQueue: { resolve: (token: string) => void; reject: (err: any) => void }[] = [];
-
-// Quản lý Request Anti-Spam (Phase 3)
-const pendingRequests = new Map<string, Promise<any>>();
+let failedQueue: Array<{ resolve: (value?: any) => void; reject: (reason?: any) => void }> = [];
 
 const processQueue = (error: any, token: string | null = null) => {
   failedQueue.forEach(prom => {
-    if (error) prom.reject(error);
-    else prom.resolve(token as string);
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
   });
   failedQueue = [];
 };
 
-// Kênh giao tiếp giữa các Tab
+// 2. Kênh giao tiếp giữa các Tab (Giữ nguyên)
 const authChannel = new BroadcastChannel('hpticket_auth_channel');
 authChannel.onmessage = (event) => {
   if (event.data.type === 'SESSION_REFRESHED' && event.data.token) {
     localStorage.setItem('hpticket_token', event.data.token);
-    // Nếu tab này đang chờ refresh, báo cho queue chạy tiếp
     if (isRefreshing) {
       isRefreshing = false;
       processQueue(null, event.data.token);
@@ -168,6 +167,13 @@ authChannel.onmessage = (event) => {
     window.dispatchEvent(new CustomEvent('session_expired_modal'));
   }
 };
+
+// Khi app khởi động lại (F5/mở tab mới), tiếp tục cơ chế Proactive Refresh nếu đã đăng nhập
+import('./tokenRefreshService').then(({ tokenRefreshService }) => {
+  tokenRefreshService.resume();
+});
+
+const pendingRequests = new Map<string, Promise<any>>();
 
 export const apiClient = {
   buildUrl(endpoint: string, params?: Record<string, string | number | boolean>): string {
@@ -200,16 +206,14 @@ export const apiClient = {
     const mergedConfig: RequestInit = {
       method: customConfig.method || 'GET',
       headers: { ...defaultHeaders, ...headers },
-      credentials: 'include', // Bắt buộc cho HTTP-Only Cookie (Phase 4)
+      credentials: 'include',
       ...customConfig,
     };
 
-    // 3. Xử lý Chống Spam (Deduplication) cho các method thay đổi dữ liệu
     const isModifyingRequest = mergedConfig.method !== 'GET';
     const requestKey = isModifyingRequest ? `${mergedConfig.method}_${fullUrl}_${mergedConfig.body || ''}` : null;
 
     if (requestKey && pendingRequests.has(requestKey)) {
-      console.warn(`[apiClient] Deduplicating request: ${requestKey}`);
       return pendingRequests.get(requestKey) as Promise<T>;
     }
 
@@ -217,20 +221,26 @@ export const apiClient = {
       try {
         let response = await fetch(fullUrl, mergedConfig);
 
+        // --- XỬ LÝ LỖI 401 VỚI CƠ CHẾ QUEUE & SILENT REFRESH ---
         if (response.status === 401) {
           const isRefreshEndpoint = endpoint.includes('/auth/refresh');
-          
+
+          // Tránh lặp vô hạn nếu chính API refresh cũng báo 401
           if (isRefreshEndpoint) {
             throw new Error('Phiên Refresh bị lỗi 401');
           }
 
+          // Nếu đang có 1 request khác làm nhiệm vụ refresh rồi -> Xếp hàng chờ
           if (isRefreshing) {
             return new Promise<T>((resolve, reject) => {
               failedQueue.push({
                 resolve: (newToken: string) => {
                   const newHeaders = { ...mergedConfig.headers, Authorization: `Bearer ${newToken}` };
                   fetch(fullUrl, { ...mergedConfig, headers: newHeaders })
-                    .then(r => { if(r.ok) r.json().then(resolve).catch(reject); else reject(new Error('Retry failed')) })
+                    .then(async r => {
+                      if (r.ok) resolve(await r.json());
+                      else reject(new Error(`Retry failed with status: ${r.status}`));
+                    })
                     .catch(reject);
                 },
                 reject: (err) => reject(err)
@@ -238,46 +248,62 @@ export const apiClient = {
             });
           }
 
+          // Nếu đây là request đầu tiên bị 401 -> Khóa cửa, đi lấy token mới
           isRefreshing = true;
           console.warn('[apiClient] 401 Unauthorized — Đang refresh token (Locking)...');
 
+          let newAccessToken = null;
           try {
-            const refreshRes = await fetch(`${API_BASE_URL}/iam/auth/refresh`, {
+            const storedRefreshToken = localStorage.getItem('hpticket_refresh_token');
+
+            const refreshRes = await fetch(`${API_BASE_URL}${API_ENDPOINTS.IAM.AUTH_REFRESH}`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               credentials: 'include',
-              body: JSON.stringify({}) 
+              body: JSON.stringify(storedRefreshToken ? { refresh_token: storedRefreshToken } : {})
             });
 
             if (refreshRes.ok) {
               const refreshData = await refreshRes.json();
-              const newAccessToken: string = refreshData?.data?.token;
-
-              if (newAccessToken) {
-                localStorage.setItem('hpticket_token', newAccessToken);
-                authChannel.postMessage({ type: 'SESSION_REFRESHED', token: newAccessToken });
-                
-                isRefreshing = false;
-                processQueue(null, newAccessToken);
-
-                const retryHeaders = { ...mergedConfig.headers, Authorization: `Bearer ${newAccessToken}` };
-                const retryResponse = await fetch(fullUrl, { ...mergedConfig, headers: retryHeaders });
-                if (retryResponse.ok) return await retryResponse.json();
-                throw new Error(`API Error: ${retryResponse.status}`);
-              }
+              newAccessToken = refreshData?.data?.token;
             }
-            throw new Error('Refresh Token không hợp lệ hoặc đã hết hạn');
-
-          } catch (refreshErr) {
-            isRefreshing = false;
-            processQueue(refreshErr, null);
-            localStorage.removeItem('hpticket_token');
-            authChannel.postMessage({ type: 'SESSION_EXPIRED' });
             
-            window.dispatchEvent(new CustomEvent('session_expired_modal'));
+            if (!newAccessToken) {
+              throw new Error('Refresh Token không hợp lệ hoặc đã hết hạn');
+            }
+
+            // 1. Lưu token mới
+            localStorage.setItem('hpticket_token', newAccessToken);
+            authChannel.postMessage({ type: 'SESSION_REFRESHED', token: newAccessToken });
+
+            // 2. Mở khóa và nhả toàn bộ request đang xếp hàng chạy tiếp
+            processQueue(null, newAccessToken);
+          } catch (refreshErr) {
+            // Lấy token mới THẤT BẠI (Hết hạn 7 ngày / bị block)
+            processQueue(refreshErr, null); // Báo lỗi cho toàn bộ hàng đợi
+            localStorage.clear();
+            authChannel.postMessage({ type: 'SESSION_EXPIRED' });
+            window.dispatchEvent(new CustomEvent('session_expired_modal')); // Bắn Event ra UI hiển thị Popup đăng nhập
             throw new Error('Phiên đăng nhập hết hạn. Đang hiển thị Modal đăng nhập.');
+          } finally {
+            isRefreshing = false; // Luôn nhớ mở khóa dù thành công hay thất bại
+          }
+
+          // 3. Chạy lại chính cái request bị lỗi 401 ban đầu (NẰM NGOÀI TRY CATCH CỦA REFRESH)
+          if (newAccessToken) {
+            const retryHeaders = { ...mergedConfig.headers, Authorization: `Bearer ${newAccessToken}` };
+            const retryResponse = await fetch(fullUrl, { ...mergedConfig, headers: retryHeaders });
+
+            if (!retryResponse.ok) {
+              const errorData = await retryResponse.json().catch(() => ({}));
+              const errorMessage = errorData.message || `API Error: ${retryResponse.status} ${retryResponse.statusText}`;
+              window.dispatchEvent(new CustomEvent('api_error', { detail: { message: errorMessage } }));
+              throw new Error(errorMessage);
+            }
+            return await retryResponse.json();
           }
         }
+        // --- KẾT THÚC XỬ LÝ 401 ---
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
@@ -288,7 +314,6 @@ export const apiClient = {
 
         return await response.json();
       } catch (error) {
-        console.error(`[API Call Failed] ${endpoint}:`, error);
         throw error;
       } finally {
         if (requestKey) {

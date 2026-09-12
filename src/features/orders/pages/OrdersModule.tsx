@@ -284,6 +284,7 @@ export const OrdersModule: React.FC = () => {
         selectedTicket={selectedTicket}
         setSelectedOrder={setSelectedOrder}
         setSelectedTicket={setSelectedTicket}
+        onRefresh={() => fetchOrderDetail(selectedOrder)}
       />
 
       <TicketQRModal

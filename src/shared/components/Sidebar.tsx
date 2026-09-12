@@ -82,9 +82,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { label: 'Khai báo thẻ nhân viên / QR', module: 'iam', subTab: 'KhaiBaoThe_NV', icon: QrCode },
     { label: 'Khai báo các ngày lễ', module: 'marketing', subTab: 'Hoiday', icon: Calendar },
     { label: 'Khai báo chương trình khuyến mại', module: 'marketing', subTab: 'KhaiBaoKhuyenMai', icon: Gift },
-    { label: 'Cấu hình Email & Mẫu gửi', module: 'marketing', subTab: 'CauHinhEmail', icon: Mail },
+
     { label: 'Quản lý kho & Sản phẩm', module: 'inventory', icon: Package },
-    { label: 'Sao lưu & Lịch sử', module: 'system', subTab: 'BackupRestore', icon: Database },
+
   ];
 
   const posMenu = [

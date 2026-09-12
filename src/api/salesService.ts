@@ -624,16 +624,16 @@ export const salesService = {
     return this.getIssuedTickets();
   },
 
-  async fetchExpiringTickets(daysAhead: number): Promise<ApiResponse<any>> {
-    return apiClient.get<ApiResponse<any>>(API_ENDPOINTS.SALES.EXPIRING_TICKETS, { daysAhead });
+  async fetchExpiringTickets(daysAhead: number, keyword?: string, page: number = 0, size: number = 50): Promise<ApiResponse<any>> {
+    return apiClient.get<ApiResponse<any>>(API_ENDPOINTS.SALES.EXPIRING_TICKETS, { daysAhead, keyword, page, size });
   },
 
   async updateCustomerInfo(id: string, customer_name: string, customer_phone: string, customer_email: string): Promise<ApiResponse<IssuedTicket>> {
     return apiClient.put<ApiResponse<IssuedTicket>>(API_ENDPOINTS.SALES.UPDATE_CUSTOMER_INFO(id), { customer_name, customer_phone, customer_email });
   },
 
-  async renewTicket(id: string, months: number, amount: number, payment_method: string): Promise<ApiResponse<IssuedTicket>> {
-    return apiClient.post<ApiResponse<IssuedTicket>>(API_ENDPOINTS.SALES.RENEW_TICKET(id), { months, amount, payment_method });
+  async renewTicket(id: string, months: number, amount: number, payment_method: string, promotion_id?: string): Promise<ApiResponse<IssuedTicket>> {
+    return apiClient.post<ApiResponse<IssuedTicket>>(API_ENDPOINTS.SALES.RENEW_TICKET(id), { months, amount, payment_method, promotion_id });
   },
 
   async lockIssuedTicket(id: string): Promise<ApiResponse<IssuedTicket>> {

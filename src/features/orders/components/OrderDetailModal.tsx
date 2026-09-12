@@ -1,5 +1,5 @@
 import React from 'react';
-import { Receipt, FileText, QrCode, Layers, ChevronRight } from 'lucide-react';
+import { Receipt, FileText, QrCode, Layers, ChevronRight, RefreshCw } from 'lucide-react';
 import { QRCodeDisplay } from '../../../shared/components/QRCodeDisplay';
 import { Order, IssuedTicket } from '../../../shared/types/hpticket';
 
@@ -10,6 +10,7 @@ interface OrderDetailModalProps {
   selectedTicket: IssuedTicket | null;
   setSelectedOrder: (order: Order | null) => void;
   setSelectedTicket: (ticket: IssuedTicket | null) => void;
+  onRefresh?: () => void;
 }
 
 const formatDate = (dateStr: string | null | undefined) => {
@@ -24,7 +25,8 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
   issuedTickets,
   selectedTicket,
   setSelectedOrder,
-  setSelectedTicket
+  setSelectedTicket,
+  onRefresh
 }) => {
   if (!selectedOrder) return null;
 
@@ -153,13 +155,27 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
 
           {/* Vé QR */}
           <div>
-            <p className="font-bold text-slate-700 mb-2 flex items-center gap-1.5">
-              <QrCode className="w-3.5 h-3.5 text-emerald-600" />
-              Vé QR thuộc đơn hàng này
-              <span className="ml-1 bg-emerald-100 text-emerald-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                {orderTickets.length}
-              </span>
-            </p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="font-bold text-slate-700 flex items-center gap-1.5">
+                <QrCode className="w-3.5 h-3.5 text-emerald-600" />
+                Vé QR thuộc đơn hàng này
+                <span className="ml-1 bg-emerald-100 text-emerald-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                  {orderTickets.length}
+                </span>
+              </p>
+              {onRefresh && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRefresh();
+                  }}
+                  className="p-1 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors"
+                  title="Tải lại vé QR"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
 
             {orderTickets.length === 0 ? (
               <div className="text-slate-400 italic text-center py-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">
