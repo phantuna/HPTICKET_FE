@@ -21,6 +21,19 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
     setErrorMsg(null);
     setSuccessMsg(null);
 
+    // Bypass API cho mục đích Demo UI
+    if (username === 'admin' && password === '123456') {
+      localStorage.setItem('hpticket_token', 'demo-token-123456');
+      localStorage.setItem('hpticket_username', 'admin');
+      localStorage.setItem('hpticket_role', 'ADMIN');
+      setSuccessMsg(`Đăng nhập thành công! (Chế độ Demo UI)`);
+      setTimeout(() => {
+        onLoginSuccess();
+      }, 1000);
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await iamService.login(username, password);
       if (res && res.data && res.data.token) {
