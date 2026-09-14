@@ -15,7 +15,7 @@ export const iamService = {
    * Tự động fallback về Mock Database nếu chọn Offline Mode hoặc Backend mất kết nối.
    */
   async login(username: string, password?: string): Promise<ApiResponse<any>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.post<ApiResponse<any>>(API_ENDPOINTS.IAM.AUTH_LOGIN, {
           username,
@@ -54,7 +54,7 @@ export const iamService = {
    * Lấy thông tin tài khoản hiện tại (GET /api/v1/iam/auth/me)
    */
   async getCurrentUser(): Promise<ApiResponse<User>> {
-    if (true) {
+    if (false) {
       try {
         return await apiClient.get<ApiResponse<User>>(API_ENDPOINTS.IAM.AUTH_ME);
       } catch (err) {
@@ -102,7 +102,7 @@ export const iamService = {
   },
 
   async fetchUsers(): Promise<ApiResponse<User[]>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.get<ApiResponse<any>>(API_ENDPOINTS.IAM.USERS);
         const list = Array.isArray(res.data) ? res.data : (res.data?.content || []);
@@ -190,7 +190,7 @@ export const iamService = {
   },
 
   async createUser(userDto: Omit<User, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'updated_by'>): Promise<ApiResponse<User>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.post<ApiResponse<User>>(API_ENDPOINTS.IAM.USERS, userDto);
         if (res?.data) {
@@ -228,7 +228,7 @@ export const iamService = {
   },
 
   async updateUser(id: string, userDto: Partial<User>): Promise<ApiResponse<User>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.put<ApiResponse<User>>(API_ENDPOINTS.IAM.USER_DETAIL(id), userDto);
         if (res?.data) {
@@ -274,7 +274,7 @@ export const iamService = {
   },
 
   async updateUserStatus(id: string, isActive: boolean): Promise<ApiResponse<User>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.patch<ApiResponse<User>>(
           API_ENDPOINTS.IAM.USER_STATUS(id),
@@ -309,7 +309,7 @@ export const iamService = {
 
 
   async deleteUser(id: string): Promise<ApiResponse<void>> {
-    if (true) {
+    if (false) {
       try {
         await apiClient.delete<ApiResponse<void>>(API_ENDPOINTS.IAM.USER_DETAIL(id));
       } catch (err) {
@@ -325,7 +325,7 @@ export const iamService = {
   },
 
   async createRole(roleDto: Omit<Role, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'updated_by'>): Promise<ApiResponse<Role>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.post<ApiResponse<Role>>(API_ENDPOINTS.IAM.ROLES, roleDto);
         if (res?.data) {
@@ -367,7 +367,7 @@ export const iamService = {
   },
 
   async updateRole(id: string, roleDto: Partial<Role>): Promise<ApiResponse<Role>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.put<ApiResponse<Role>>(API_ENDPOINTS.IAM.ROLE_DETAIL(id), roleDto);
         if (res?.data) {
@@ -403,7 +403,7 @@ export const iamService = {
   },
 
   async deleteRole(id: string): Promise<ApiResponse<void>> {
-    if (true) {
+    if (false) {
       try {
         await apiClient.delete<ApiResponse<void>>(API_ENDPOINTS.IAM.ROLE_DETAIL(id));
       } catch (err) {
@@ -419,7 +419,7 @@ export const iamService = {
   },
 
   async updateRoleStatus(id: string, isActive: boolean): Promise<ApiResponse<Role>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.patch<ApiResponse<Role>>(
           API_ENDPOINTS.IAM.ROLE_STATUS(id),

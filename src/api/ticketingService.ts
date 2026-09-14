@@ -92,7 +92,7 @@ export const ticketingService = {
 
   // 1. CONTROL GATES (/ticketing/gates)
   async fetchControlGates(): Promise<ApiResponse<ControlGate[]>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.get<ApiResponse<any>>(API_ENDPOINTS.TICKETING.GATES);
         const list = normalizeList<ControlGate>(res.data);
@@ -116,7 +116,7 @@ export const ticketingService = {
   async createControlGate(
     dto: Omit<ControlGate, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'updated_by'>
   ): Promise<ApiResponse<ControlGate>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.post<ApiResponse<ControlGate>>(API_ENDPOINTS.TICKETING.GATES, dto);
         if (res?.data) {
@@ -145,7 +145,7 @@ export const ticketingService = {
   },
 
   async updateControlGate(id: string, dto: Partial<ControlGate>): Promise<ApiResponse<ControlGate>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.put<ApiResponse<ControlGate>>(API_ENDPOINTS.TICKETING.GATE_DETAIL(id), dto);
         if (res?.data) {
@@ -177,7 +177,7 @@ export const ticketingService = {
   },
 
   async deleteControlGate(id: string): Promise<ApiResponse<void>> {
-    if (true) {
+    if (false) {
       try {
         await apiClient.delete<ApiResponse<void>>(API_ENDPOINTS.TICKETING.GATE_DETAIL(id));
       } catch (err) {
@@ -193,7 +193,7 @@ export const ticketingService = {
   },
 
   async updateControlGateStatus(id: string, isActive: boolean): Promise<ApiResponse<ControlGate>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.patch<ApiResponse<ControlGate>>(
           API_ENDPOINTS.TICKETING.GATE_STATUS(id),
@@ -223,7 +223,7 @@ export const ticketingService = {
 
   // 2. CONTROL ZONES (/ticketing/control-zones)
   async fetchControlZones(): Promise<ApiResponse<ControlZone[]>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.get<ApiResponse<any>>(API_ENDPOINTS.TICKETING.CONTROL_ZONES);
         const list = normalizeList<ControlZone>(res.data);
@@ -247,7 +247,7 @@ export const ticketingService = {
   async createControlZone(
     dto: Omit<ControlZone, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'updated_by'>
   ): Promise<ApiResponse<ControlZone>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.post<ApiResponse<ControlZone>>(API_ENDPOINTS.TICKETING.CONTROL_ZONES, dto);
         if (res?.data) {
@@ -276,7 +276,7 @@ export const ticketingService = {
   },
 
   async updateControlZone(id: string, dto: Partial<ControlZone>): Promise<ApiResponse<ControlZone>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.put<ApiResponse<ControlZone>>(API_ENDPOINTS.TICKETING.CONTROL_ZONE_DETAIL(id), dto);
         if (res?.data) {
@@ -308,7 +308,7 @@ export const ticketingService = {
   },
 
   async deleteControlZone(id: string): Promise<ApiResponse<void>> {
-    if (true) {
+    if (false) {
       try {
         await apiClient.delete<ApiResponse<void>>(API_ENDPOINTS.TICKETING.CONTROL_ZONE_DETAIL(id));
       } catch (err) {
@@ -324,7 +324,7 @@ export const ticketingService = {
   },
 
   async updateControlZoneStatus(id: string, isActive: boolean): Promise<ApiResponse<ControlZone>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.patch<ApiResponse<ControlZone>>(
           API_ENDPOINTS.TICKETING.CONTROL_ZONE_STATUS(id),
@@ -354,7 +354,7 @@ export const ticketingService = {
 
   // 3. TICKET TEMPLATES (/ticketing/templates)
   async fetchTicketTemplates(): Promise<ApiResponse<TicketTemplate[]>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.get<ApiResponse<any>>(API_ENDPOINTS.TICKETING.TEMPLATES);
         const list = normalizeList<TicketTemplate>(res.data);
@@ -378,7 +378,7 @@ export const ticketingService = {
   async createTicketTemplate(
     dto: Omit<TicketTemplate, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'updated_by'>
   ): Promise<ApiResponse<TicketTemplate>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.post<ApiResponse<TicketTemplate>>(API_ENDPOINTS.TICKETING.TEMPLATES, dto);
         if (res?.data) {
@@ -407,7 +407,7 @@ export const ticketingService = {
   },
 
   async updateTicketTemplate(id: string, dto: Partial<TicketTemplate>): Promise<ApiResponse<TicketTemplate>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.put<ApiResponse<TicketTemplate>>(API_ENDPOINTS.TICKETING.TEMPLATE_DETAIL(id), dto);
         if (res?.data) {
@@ -439,7 +439,7 @@ export const ticketingService = {
   },
 
   async deleteTicketTemplate(id: string): Promise<ApiResponse<void>> {
-    if (true) {
+    if (false) {
       try {
         await apiClient.delete<ApiResponse<void>>(API_ENDPOINTS.TICKETING.TEMPLATE_DETAIL(id));
       } catch (err) {
@@ -455,7 +455,7 @@ export const ticketingService = {
   },
 
   async updateTicketTemplateStatus(id: string, isActive: boolean): Promise<ApiResponse<TicketTemplate>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.patch<ApiResponse<TicketTemplate>>(
           API_ENDPOINTS.TICKETING.TEMPLATE_STATUS(id),
@@ -485,7 +485,7 @@ export const ticketingService = {
 
   // 3.8. TICKET ZONES (/ticketing/zones)
   async fetchTicketZones(): Promise<ApiResponse<TicketZone[]>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.get<ApiResponse<any>>(API_ENDPOINTS.TICKETING.ZONES);
         const list = normalizeList<TicketZone>(res.data).map((item: any) => ({
@@ -522,7 +522,7 @@ export const ticketingService = {
       ...dto,
       zone_ids: (dto as any).zone_ids || [(dto as any).zone_id || (dto as any).control_zone_id].filter(Boolean),
     };
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.post<ApiResponse<TicketZone>>(API_ENDPOINTS.TICKETING.ZONES, payload);
         if (res?.data) {
@@ -554,7 +554,7 @@ export const ticketingService = {
       ...dto,
       zone_ids: (dto as any).zone_ids || [(dto as any).zone_id || (dto as any).control_zone_id].filter(Boolean),
     };
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.put<ApiResponse<TicketZone>>(API_ENDPOINTS.TICKETING.ZONE_DETAIL(id), payload);
         if (res?.data) {
@@ -584,7 +584,7 @@ export const ticketingService = {
   },
 
   async deleteTicketZone(id: string): Promise<ApiResponse<void>> {
-    if (true) {
+    if (false) {
       try {
         await apiClient.delete<ApiResponse<void>>(API_ENDPOINTS.TICKETING.ZONE_DETAIL(id));
       } catch (err) {
@@ -600,7 +600,7 @@ export const ticketingService = {
   },
 
   async updateTicketZoneStatus(id: string, isActive: boolean): Promise<ApiResponse<TicketZone>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.patch<ApiResponse<TicketZone>>(
           API_ENDPOINTS.TICKETING.ZONE_STATUS(id),
@@ -622,7 +622,7 @@ export const ticketingService = {
 
   // 3.5. AUDIENCE TYPES (/ticketing/audience-types)
   async fetchAudienceTypes(): Promise<ApiResponse<AudienceType[]>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.get<ApiResponse<any>>(API_ENDPOINTS.TICKETING.AUDIENCE_TYPES);
         const list = normalizeList<AudienceType>(res.data);
@@ -642,7 +642,7 @@ export const ticketingService = {
   async createAudienceType(
     dto: Omit<AudienceType, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'updated_by'>
   ): Promise<ApiResponse<AudienceType>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.post<ApiResponse<AudienceType>>(API_ENDPOINTS.TICKETING.AUDIENCE_TYPES, dto);
         if (res?.data) {
@@ -670,7 +670,7 @@ export const ticketingService = {
   },
 
   async updateAudienceType(id: string, dto: Partial<AudienceType>): Promise<ApiResponse<AudienceType>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.put<ApiResponse<AudienceType>>(API_ENDPOINTS.TICKETING.AUDIENCE_TYPE_DETAIL(id), dto);
         if (res?.data) {
@@ -689,7 +689,7 @@ export const ticketingService = {
   },
 
   async deleteAudienceType(id: string): Promise<ApiResponse<void>> {
-    if (true) {
+    if (false) {
       try {
         await apiClient.delete<ApiResponse<void>>(API_ENDPOINTS.TICKETING.AUDIENCE_TYPE_DETAIL(id));
       } catch (err) {
@@ -705,7 +705,7 @@ export const ticketingService = {
   },
 
   async updateAudienceTypeStatus(id: string, isActive: boolean): Promise<ApiResponse<AudienceType>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.patch<ApiResponse<AudienceType>>(
           API_ENDPOINTS.TICKETING.AUDIENCE_TYPE_STATUS(id),
@@ -735,7 +735,7 @@ export const ticketingService = {
 
   // 4. ACCESS LOGS (/ticketing/access-logs)
   async fetchAccessLogs(): Promise<ApiResponse<GateAccessLog[]>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.get<ApiResponse<any>>(API_ENDPOINTS.TICKETING.ACCESS_LOGS);
         const list = normalizeList<GateAccessLog>(res.data);
@@ -763,7 +763,7 @@ export const ticketingService = {
   async scanGatePass(payload: GateScanPayload): Promise<ApiResponse<GateScanResponse>> {
     const { gate_id, qr_string } = payload;
 
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.post<ApiResponse<GateScanResponse>>(API_ENDPOINTS.TICKETING.SCAN, {
           qr_code_string: qr_string,

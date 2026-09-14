@@ -24,7 +24,7 @@ export const marketingService = {
   // ==========================================
 
   async fetchCustomerGroups(): Promise<ApiResponse<CustomerGroup[]>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.get<ApiResponse<any>>(API_ENDPOINTS.MARKETING.CUSTOMER_GROUPS);
         const list = normalizeList<CustomerGroup>(res.data);
@@ -52,7 +52,7 @@ export const marketingService = {
   async createCustomerGroup(
     dto: Omit<CustomerGroup, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'updated_by'>
   ): Promise<ApiResponse<CustomerGroup>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.post<ApiResponse<CustomerGroup>>(API_ENDPOINTS.MARKETING.CUSTOMER_GROUPS, dto);
         if (res?.data) {
@@ -88,7 +88,7 @@ export const marketingService = {
 
 
   async updateCustomerGroup(id: string, dto: Partial<CustomerGroup>): Promise<ApiResponse<CustomerGroup>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.put<ApiResponse<CustomerGroup>>(API_ENDPOINTS.MARKETING.CUSTOMER_GROUP_DETAIL(id), dto);
         if (res?.data) {
@@ -126,7 +126,7 @@ export const marketingService = {
   },
 
   async updateCustomerGroupStatus(id: string, isActive: boolean): Promise<ApiResponse<CustomerGroup>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.patch<ApiResponse<CustomerGroup>>(
           `${API_ENDPOINTS.MARKETING.CUSTOMER_GROUP_STATUS(id)}?isActive=${isActive}`
@@ -165,7 +165,7 @@ export const marketingService = {
     };
   },
   async deleteCustomerGroup(id: string): Promise<ApiResponse<void>> {
-    if (true) {
+    if (false) {
       try {
         await apiClient.delete<ApiResponse<void>>(API_ENDPOINTS.MARKETING.CUSTOMER_GROUP_DETAIL(id));
       } catch (err) {
@@ -189,7 +189,7 @@ export const marketingService = {
   // ==========================================
 
   async fetchCustomerSources(): Promise<ApiResponse<CustomerSource[]>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.get<ApiResponse<any>>(API_ENDPOINTS.MARKETING.CUSTOMER_SOURCES);
         const list = normalizeList<CustomerSource>(res.data);
@@ -217,7 +217,7 @@ export const marketingService = {
   async createCustomerSource(
     dto: Omit<CustomerSource, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'updated_by'>
   ): Promise<ApiResponse<CustomerSource>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.post<ApiResponse<CustomerSource>>(API_ENDPOINTS.MARKETING.CUSTOMER_SOURCES, dto);
         if (res?.data) {
@@ -252,7 +252,7 @@ export const marketingService = {
   },
 
   async updateCustomerSource(id: string, dto: Partial<CustomerSource>): Promise<ApiResponse<CustomerSource>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.put<ApiResponse<CustomerSource>>(API_ENDPOINTS.MARKETING.CUSTOMER_SOURCE_DETAIL(id), dto);
         if (res?.data) {
@@ -293,7 +293,7 @@ export const marketingService = {
 
 
   async updateCustomerSourceStatus(id: string, isActive: boolean): Promise<ApiResponse<any>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.patch<ApiResponse<any>>(
           `${API_ENDPOINTS.MARKETING.CUSTOMER_SOURCE_STATUS(id)}?isActive=${isActive}`
@@ -333,7 +333,7 @@ export const marketingService = {
   },
 
   async deleteCustomerSource(id: string): Promise<ApiResponse<void>> {
-    if (true) {
+    if (false) {
       try {
         await apiClient.delete<ApiResponse<void>>(API_ENDPOINTS.MARKETING.CUSTOMER_SOURCE_DETAIL(id));
       } catch (err) {
@@ -357,7 +357,7 @@ export const marketingService = {
   // ==========================================
 
   async fetchCompanies(): Promise<ApiResponse<Company[]>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.get<ApiResponse<any>>(API_ENDPOINTS.MARKETING.COMPANIES);
         const list = normalizeList<Company>(res.data);
@@ -385,7 +385,7 @@ export const marketingService = {
   async createCompany(
     dto: Omit<Company, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'updated_by'>
   ): Promise<ApiResponse<Company>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.post<ApiResponse<Company>>(API_ENDPOINTS.MARKETING.COMPANIES, dto);
         if (res?.data) {
@@ -420,7 +420,7 @@ export const marketingService = {
   },
 
   async updateCompany(id: string, dto: Partial<Company>): Promise<ApiResponse<Company>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.put<ApiResponse<Company>>(API_ENDPOINTS.MARKETING.COMPANY_DETAIL(id), dto);
         if (res?.data) {
@@ -461,7 +461,7 @@ export const marketingService = {
 
 
   async updateCompanyStatus(id: string, isActive: boolean): Promise<ApiResponse<any>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.patch<ApiResponse<any>>(
           `${API_ENDPOINTS.MARKETING.COMPANY_STATUS(id)}?isActive=${isActive}`
@@ -500,7 +500,7 @@ export const marketingService = {
   },
 
   async deleteCompany(id: string): Promise<ApiResponse<any>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.delete<ApiResponse<any>>(
           API_ENDPOINTS.MARKETING.COMPANY_DETAIL(id)
@@ -535,7 +535,7 @@ export const marketingService = {
   // ==========================================
 
   async fetchPromotions(): Promise<ApiResponse<Promotion[]>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.get<ApiResponse<any>>(API_ENDPOINTS.MARKETING.PROMOTIONS);
         const list = normalizeList<Promotion>(res.data);
@@ -564,7 +564,7 @@ export const marketingService = {
   async createPromotion(
     dto: Omit<Promotion, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'updated_by'>
   ): Promise<ApiResponse<Promotion>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.post<ApiResponse<Promotion>>(API_ENDPOINTS.MARKETING.PROMOTIONS, dto);
         if (res?.data) {
@@ -599,7 +599,7 @@ export const marketingService = {
   },
 
   async updatePromotion(id: string, dto: Partial<Promotion>): Promise<ApiResponse<Promotion>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.put<ApiResponse<Promotion>>(API_ENDPOINTS.MARKETING.PROMOTION_DETAIL(id), dto);
         if (res?.data) {
@@ -640,7 +640,7 @@ export const marketingService = {
 
 
   async updatePromotionStatus(id: string, isActive: boolean): Promise<ApiResponse<any>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.patch<ApiResponse<any>>(
           `${API_ENDPOINTS.MARKETING.PROMOTION_STATUS(id)}?isActive=${isActive}`
@@ -680,7 +680,7 @@ export const marketingService = {
   },
 
   async deletePromotion(id: string): Promise<ApiResponse<void>> {
-    if (true) {
+    if (false) {
       try {
         await apiClient.delete<ApiResponse<void>>(API_ENDPOINTS.MARKETING.PROMOTION_DETAIL(id));
       } catch (err) {
@@ -704,7 +704,7 @@ export const marketingService = {
   // ==========================================
 
   async fetchHolidays(): Promise<ApiResponse<Holiday[]>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.get<ApiResponse<any>>(API_ENDPOINTS.MARKETING.HOLIDAYS);
         const list = normalizeList<Holiday>(res.data);
@@ -732,7 +732,7 @@ export const marketingService = {
   async createHoliday(
     dto: Omit<Holiday, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'updated_by'>
   ): Promise<ApiResponse<Holiday>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.post<ApiResponse<Holiday>>(API_ENDPOINTS.MARKETING.HOLIDAYS, dto);
         if (res?.data) {
@@ -767,7 +767,7 @@ export const marketingService = {
   },
 
   async updateHoliday(id: string, dto: Partial<Holiday>): Promise<ApiResponse<Holiday>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.put<ApiResponse<Holiday>>(API_ENDPOINTS.MARKETING.HOLIDAY_DETAIL(id), dto);
         if (res?.data) {
@@ -808,7 +808,7 @@ export const marketingService = {
 
 
   async updateHolidayStatus(id: string, isActive: boolean): Promise<ApiResponse<any>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.patch<ApiResponse<any>>(
           `${API_ENDPOINTS.MARKETING.HOLIDAY_STATUS(id)}?isActive=${isActive}`
@@ -848,7 +848,7 @@ export const marketingService = {
   },
 
   async deleteHoliday(id: string): Promise<ApiResponse<void>> {
-    if (true) {
+    if (false) {
       try {
         await apiClient.delete<ApiResponse<void>>(API_ENDPOINTS.MARKETING.HOLIDAY_DETAIL(id));
       } catch (err) {
@@ -922,7 +922,7 @@ export const marketingService = {
   },
 
   async sendTicketEmail(payload: any): Promise<ApiResponse<any>> {
-    if (true) {
+    if (false) {
       try {
         const res = await apiClient.post<ApiResponse<any>>(API_ENDPOINTS.MARKETING.SEND_TICKET_EMAIL, payload);
         return res;
