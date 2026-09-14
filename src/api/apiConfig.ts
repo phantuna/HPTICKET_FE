@@ -18,7 +18,10 @@ export interface RequestConfig extends RequestInit {
 
 // Dual-Mode Feature Flag: Cho phép chuyển qua lại giữa Real Spring Boot Backend và Offline Mock DB
 export const getUseMockApi = (): boolean => {
-  return localStorage.getItem('hpticket_use_mock_api') === 'true';
+  const storedValue = localStorage.getItem('hpticket_use_mock_api');
+  // Ép mặc định bật Mock API (tránh lỗi CORS khi mới vào Vercel)
+  if (storedValue === null) return true; 
+  return storedValue === 'true';
 };
 
 export const setUseMockApi = (value: boolean): void => {
