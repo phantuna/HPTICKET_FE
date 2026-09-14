@@ -132,7 +132,7 @@ export class MockDatabaseStore {
         if (parsed.systemLogs) this.systemLogs = parsed.systemLogs;
         if (parsed.licenseConfig) this.licenseConfig = parsed.licenseConfig;
 
-        window.dispatchEvent(new Event('hpticket_mock_db_loaded'));
+        window.dispatchEvent(new Event('hpticket_data_synced'));
       }
     } catch (e) {
       console.error('Failed to load from Supabase:', e);
