@@ -22,6 +22,8 @@ interface POSInvoiceFormProps {
   companyTaxCode: string; setCompanyTaxCode: (v: string) => void;
   companyAddress: string; setCompanyAddress: (v: string) => void;
   email: string; setEmail: (v: string) => void;
+  phoneNumber: string; setPhoneNumber: (v: string) => void;
+  usageDate: string; setUsageDate: (v: string) => void;
 }
 
 export const POSInvoiceForm: React.FC<POSInvoiceFormProps> = ({
@@ -31,7 +33,7 @@ export const POSInvoiceForm: React.FC<POSInvoiceFormProps> = ({
   selectedPromotionId, setSelectedPromotionId, promotions, setExtraDiscount,
   bookingCode, setBookingCode, selectedSourceId, setSelectedSourceId, customerSources, setLineItems,
   invoiceStatus, setInvoiceStatus, customerName, setCustomerName, companyTaxCode, setCompanyTaxCode,
-  companyAddress, setCompanyAddress, email, setEmail
+  companyAddress, setCompanyAddress, email, setEmail, phoneNumber, setPhoneNumber, usageDate, setUsageDate
 }) => (
   <div className="space-y-5">
     {/* Top Search Bar */}
@@ -84,6 +86,16 @@ export const POSInvoiceForm: React.FC<POSInvoiceFormProps> = ({
             />
           </div>
           <div className="flex items-center">
+            <label className="w-[140px] shrink-0 whitespace-nowrap text-slate-700 font-semibold flex items-center gap-1">Người đặt</label>
+            <input
+              type="text"
+              value={customerName === 'Khách lẻ không lấy hóa đơn' ? '' : customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              placeholder="Tên khách hàng..."
+              className="flex-1 min-w-0 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-emerald-500 shadow-xs"
+            />
+          </div>
+          <div className="flex items-center">
             <label className="w-[140px] shrink-0 whitespace-nowrap text-slate-700 font-semibold flex items-center gap-1">Nhóm khách hàng</label>
             <select
               value={selectedGroupCode}
@@ -101,10 +113,20 @@ export const POSInvoiceForm: React.FC<POSInvoiceFormProps> = ({
               }}
               className="flex-1 min-w-0 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-emerald-500 shadow-xs"
             >
+              <option value="">Không chọn</option>
               {customerGroups.map((g) => (
                 <option key={g.id} value={g.code}>{g.name} ({g.discount_percent}% CK)</option>
               ))}
             </select>
+          </div>
+          <div className="flex items-center">
+            <label className="w-[140px] shrink-0 whitespace-nowrap text-slate-700 font-semibold flex items-center gap-1">Ngày sử dụng</label>
+            <input
+              type="date"
+              value={usageDate}
+              onChange={(e) => setUsageDate(e.target.value)}
+              className="flex-1 min-w-0 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-emerald-500 shadow-xs"
+            />
           </div>
           <div className="flex items-center">
             <label className="w-[140px] shrink-0 whitespace-nowrap text-slate-700 font-semibold flex items-center gap-1">Khuyến mại</label>
@@ -137,8 +159,28 @@ export const POSInvoiceForm: React.FC<POSInvoiceFormProps> = ({
               type="text"
               value={bookingCode}
               onChange={(e) => setBookingCode(e.target.value)}
-              placeholder="Mã tra cứu đặt giữ chỗ"
+              placeholder="Mã đặt (tùy chọn)"
               className="flex-1 min-w-0 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-slate-900 font-mono text-xs focus:outline-none focus:border-emerald-500 shadow-xs"
+            />
+          </div>
+          <div className="flex items-center">
+            <label className="w-[140px] shrink-0 whitespace-nowrap text-slate-700 font-semibold flex items-center gap-1">Số điện thoại</label>
+            <input
+              type="text"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              placeholder="SĐT khách hàng..."
+              className="flex-1 min-w-0 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-emerald-500 shadow-xs"
+            />
+          </div>
+          <div className="flex items-center">
+            <label className="w-[140px] shrink-0 whitespace-nowrap text-slate-700 font-semibold flex items-center gap-1">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email nhận vé/hóa đơn..."
+              className="flex-1 min-w-0 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-emerald-500 shadow-xs"
             />
           </div>
           <div className="flex items-center">

@@ -488,30 +488,40 @@ export const marketingService = {
       ...oldItem,
       is_active: isActive,
       updated_at: new Date().toISOString(),
-      updated_by: dbStore.getActiveUser().username,
     };
     dbStore.companies[idx] = updatedItem;
     dbStore.logAudit('UPDATE', 'companies', id, oldItem, updatedItem);
     dbStore.saveToStorage();
     return {
       code: 200,
-      message: isActive ? 'Đã bật sử dụng công ty du lịch' : 'Đã tắt sử dụng công ty du lịch',
+      message: 'Cập nhật trạng thái thành công',
       data: updatedItem,
     };
   },
 
-  async deleteCompany(id: string): Promise<ApiResponse<void>> {
+  async deleteCompany(id: string): Promise<ApiResponse<any>> {
     if (true) {
       try {
-        await apiClient.delete<ApiResponse<void>>(API_ENDPOINTS.MARKETING.COMPANY_DETAIL(id));
+        const res = await apiClient.delete<ApiResponse<any>>(
+          API_ENDPOINTS.MARKETING.COMPANY_DETAIL(id)
+        );
+        if (res?.code === 200) {
+          const old = dbStore.companies.find((x: any) => x.id === id);
+          if (old) {
+            dbStore.logAudit('DELETE', 'companies', id, old, null);
+            dbStore.companies = dbStore.companies.filter((c: any) => c.id !== id);
+            dbStore.saveToStorage();
+          }
+        }
+        return res;
       } catch (err) {
         console.warn('[Marketing Service] Backend deleteCompany failed, fallback to Mock DB:', err);
         throw err;
       }
     }
-    const old = dbStore.companies.find(x => x.id === id);
+    const old = dbStore.companies.find((x: any) => x.id === id);
     if (old) dbStore.logAudit('DELETE', 'companies', id, old, null);
-    dbStore.companies = dbStore.companies.filter((c) => c.id !== id);
+    dbStore.companies = dbStore.companies.filter((c: any) => c.id !== id);
     dbStore.saveToStorage();
     return {
       code: 200,
@@ -549,6 +559,7 @@ export const marketingService = {
       data: dbStore.promotions.filter((p) => !p.deleted_at),
     };
   },
+
 
   async createPromotion(
     dto: Omit<Promotion, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'updated_by'>
@@ -869,17 +880,61 @@ export const marketingService = {
   },
 
   async fetchEmailTemplates(): Promise<ApiResponse<any>> {
-    return apiClient.get<ApiResponse<any>>(API_ENDPOINTS.MARKETING.EMAIL_TEMPLATES);
+    const raw = localStorage.getItem('hpticket_email_templates');
+    let data = [];
+    if (raw) {
+      try { data = JSON.parse(raw); } catch (e) {}
+    }
+    return { code: 200, message: 'OK (Mock DB)', data };
   },
 
   async saveEmailTemplate(dto: any): Promise<ApiResponse<any>> {
-    if (dto.id) {
-      return apiClient.put<ApiResponse<any>>(API_ENDPOINTS.MARKETING.EMAIL_TEMPLATE_DETAIL(dto.id), dto);
+    const raw = localStorage.getItem('hpticket_email_templates');
+    let data = [];
+    if (raw) {
+      try { data = JSON.parse(raw); } catch (e) {}
     }
-    return apiClient.post<ApiResponse<any>>(API_ENDPOINTS.MARKETING.EMAIL_TEMPLATES, dto);
+    
+    if (dto.id) {
+      const idx = data.findIndex((x: any) => x.id === dto.id);
+      if (idx !== -1) {
+        data[idx] = { ...data[idx], ...dto };
+      }
+    } else {
+      dto.id = 'TPL-' + Date.now();
+      data.push(dto);
+    }
+    
+    localStorage.setItem('hpticket_email_templates', JSON.stringify(data));
+    return { code: 200, message: 'Lưu template thành công', data: dto };
   },
 
   async deleteEmailTemplate(id: string): Promise<ApiResponse<void>> {
-    return apiClient.delete<ApiResponse<void>>(API_ENDPOINTS.MARKETING.EMAIL_TEMPLATE_DETAIL(id));
+    const raw = localStorage.getItem('hpticket_email_templates');
+    if (raw) {
+      try {
+        let data = JSON.parse(raw);
+        data = data.filter((x: any) => x.id !== id);
+        localStorage.setItem('hpticket_email_templates', JSON.stringify(data));
+      } catch (e) {}
+    }
+    return { code: 200, message: 'Xóa template thành công', data: undefined };
+  },
+
+  async sendTicketEmail(payload: any): Promise<ApiResponse<any>> {
+    if (true) {
+      try {
+        const res = await apiClient.post<ApiResponse<any>>(API_ENDPOINTS.MARKETING.SEND_TICKET_EMAIL, payload);
+        return res;
+      } catch (err) {
+        console.warn('[Marketing Service] Backend sendTicketEmail failed, fallback to Mock DB:', err);
+        throw err;
+      }
+    }
+    return {
+      code: 200,
+      message: 'Gửi email thành công (Mock DB)',
+      data: null,
+    };
   }
 };

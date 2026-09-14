@@ -82,6 +82,7 @@ export const API_ENDPOINTS = {
     EMAIL_SETTINGS: '/marketing/email/settings',
     EMAIL_TEMPLATES: '/marketing/email/templates',
     EMAIL_TEMPLATE_DETAIL: (id: string) => `/marketing/email/templates/${id}`,
+    SEND_TICKET_EMAIL: '/marketing/emails/send-ticket',
   },
 
   // 3. MODULE SALES (Điểm bán, Quầy bán, Hàng hóa & Đơn hàng POS) - Base: /api/v1/sales

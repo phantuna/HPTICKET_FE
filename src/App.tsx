@@ -37,6 +37,11 @@ export default function App() {
   const [userContextKey, setUserContextKey] = useState<number>(0);
   const [isLocked, setIsLocked] = useState<boolean>(dbStore.isSystemLocked());
 
+  // Tải dữ liệu Mock từ Supabase khi khởi động
+  useEffect(() => {
+    dbStore.loadFromSupabase();
+  }, []);
+
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 1024) {

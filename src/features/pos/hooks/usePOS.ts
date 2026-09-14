@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { salesService } from '../../../api/salesService';
 import { iamService } from '../../../api/iamService';
+import { marketingService } from '../../../api/marketingService';
 import { apiClient, API_ENDPOINTS } from '../../../api/apiConfig';
 import { PaymentMethod, ItemType, Order, IssuedTicket } from '../../../shared/types/hpticket';
 import { dbStore } from '../../../shared/data/mockDatabase';
+import QRCode from 'qrcode';
 
 export interface TicketLineItem {
   item_id: string;
@@ -531,6 +533,108 @@ export const usePOS = () => {
 
         setGeneratedTickets(ticketsForOrder);
         setCompletedOrder(normalizedOrder);
+
+        // KỊCH BẢN GỬI EMAIL THÔNG BÁO VÉ
+        if (invoiceStatus === 'IMMEDIATE' && email && email.trim() !== '') {
+          try {
+            // 1. Sinh Base64 QR Code cho từng vé bằng thư viện qrcode ở Frontend
+            const emailTickets = await Promise.all(ticketsForOrder.map(async (t, idx) => {
+              let qrCodeBase64 = '';
+              try {
+                qrCodeBase64 = await QRCode.toDataURL(t.qr_code_string || t.id, { margin: 2, color: { dark: '#000000', light: '#ffffff' } });
+              } catch (qrErr) {
+                console.error('Failed to generate QR for email', qrErr);
+              }
+              
+              const price = cartForService.find(c => c.name === t.ticket_template_name)?.unit_price || 0;
+              
+              return {
+                index: idx + 1,
+                seatInfo: t.ticket_type === 'SINGLE' ? 'Ghế tự do' : 'Vé Gia Đình', // Placeholder
+                price: price.toLocaleString('vi-VN'),
+                ticketCode: t.id,
+                qrCodeBase64
+              };
+            }));
+
+            const cName = customerName || 'Khách Hàng';
+            const cPhone = phoneNumber || '';
+            const eName = 'Tham quan Vui Chơi Trải Nghiệm';
+            const sTime = usageDate + ' 08:00';
+            const loc = 'Khu du lịch sinh thái';
+            const total = (normalizedOrder.total_amount || 0).toLocaleString('vi-VN');
+
+            // 2. Fetch Active Template from Mock DB
+            let htmlTemplate = '';
+            let subjectTemplate = 'Sự kiện: Tham quan Vui Chơi Trải Nghiệm';
+            try {
+              const tmplRes = await marketingService.fetchEmailTemplates();
+              if (tmplRes && tmplRes.data && tmplRes.data.length > 0) {
+                const activeTmpl = tmplRes.data.find((x: any) => x.is_active);
+                if (activeTmpl) {
+                  htmlTemplate = activeTmpl.body_html || '';
+                  if (activeTmpl.subject) subjectTemplate = activeTmpl.subject;
+                }
+              }
+            } catch (e) { console.error('Failed to fetch templates:', e); }
+
+            // 3. Generate Ticket Details Table
+            let ticketListHtml = '<table width="100%" border="1" cellpadding="8" style="border-collapse: collapse; text-align: center; border-color: #ddd;">';
+            ticketListHtml += '<tr style="background:#f9f9f9;"><th>STT</th><th>Số ghế</th><th>Giá vé</th><th>Mã vé</th><th>Mã QR check-in</th></tr>';
+            emailTickets.forEach(t => {
+               ticketListHtml += `<tr><td>${t.index}</td><td>${t.seatInfo}</td><td>${t.price}</td><td>${t.ticketCode}</td><td><img src="${t.qrCodeBase64}" width="100" height="100" /></td></tr>`;
+            });
+            ticketListHtml += `<tr style="font-weight: bold;"><td colspan="2">Tổng tiền thanh toán</td><td colspan="3">${total} VND</td></tr></table>`;
+
+            // Default fallback if no template is saved
+            if (!htmlTemplate) {
+               htmlTemplate = `
+                <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                  <h2>Kính gửi {customer_name},</h2>
+                  <p>Cảm ơn quý khách đã mua vé tham gia sự kiện <b>{event_name}</b>.</p>
+                  <p><b>Thời gian:</b> {start_time}</p>
+                  <p><b>Địa điểm:</b> {location}</p>
+                  <h3>Thông tin vé:</h3>
+                  {ticket_details}
+                  <p style="margin-top: 20px;">Trân trọng,<br/>Đội ngũ HPTicket</p>
+                </div>
+               `;
+            }
+
+            // Replace template variables
+            const bodyHtml = htmlTemplate
+                .replace(/{customer_name}/g, cName)
+                .replace(/{event_name}/g, eName)
+                .replace(/{start_time}/g, sTime)
+                .replace(/{location}/g, loc)
+                .replace(/{total_payment}/g, total)
+                .replace(/{ticket_details}/g, ticketListHtml);
+
+            // 4. Tạo Data Payload để gửi lên Backend
+            const emailPayload = {
+              emailTo: email,
+              subject: subjectTemplate,
+              customerName: cName,
+              customerPhone: cPhone,
+              customerEmail: email,
+              eventName: eName,
+              startTime: sTime,
+              location: loc,
+              totalPayment: total,
+              tickets: emailTickets,
+              bodyHtml: bodyHtml
+            };
+            
+            console.log('[Email Payload generated at Frontend]:', emailPayload);
+            // 3. Gọi API Gửi Mail
+            await marketingService.sendTicketEmail(emailPayload);
+            showToast('success', 'Gửi Email', `Đã gửi thông báo vé thành công đến ${email}`);
+          } catch (emailErr) {
+            console.error('Failed to send email:', emailErr);
+            showToast('error', 'Lỗi Gửi Email', 'Không thể gửi email thông báo, vui lòng thử lại sau.');
+          }
+        }
+
       }
     } catch (e: any) {
       console.error('Order creation failed:', e);

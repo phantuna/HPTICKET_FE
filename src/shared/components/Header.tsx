@@ -86,12 +86,9 @@ export const Header: React.FC<HeaderProps> = ({
                 <Menu className="w-4 h-4 text-emerald-600" />
               </button>
             )}
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center font-black text-xl text-white shadow-md shadow-emerald-600/20">
-              HP
-            </div>
+            <img src="/hoang-phat-logo.jpg?v=1" alt="Hoang Phat Logo" className="h-12 w-auto object-contain mr-2 scale-110 origin-left" />
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-lg font-bold tracking-tight text-slate-900">HPTICKET</h1>
                 {!jwtUser && (
                   <button
                     onClick={() => window.location.hash = '/login'}
@@ -116,7 +113,6 @@ export const Header: React.FC<HeaderProps> = ({
                   <Server className="w-3.5 h-3.5" />
                 </button>
               </div>
-              <p className="text-xs text-slate-500">Hệ Thống Khai Báo, Bán Vé POS & Soát Vé Cổng Lễ Hội</p>
             </div>
           </div>
 

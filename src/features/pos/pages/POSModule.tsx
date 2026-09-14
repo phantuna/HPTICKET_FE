@@ -13,6 +13,8 @@ export const POSModule: React.FC = () => {
     invoiceCode, setInvoiceCode,
     bookingCode, setBookingCode,
     customerName, setCustomerName,
+    phoneNumber, setPhoneNumber,
+    usageDate, setUsageDate,
     companyAddress, setCompanyAddress,
     email, setEmail,
     selectedGroupCode, setSelectedGroupCode,
@@ -109,6 +111,7 @@ export const POSModule: React.FC = () => {
           setLineItems={setLineItems} invoiceStatus={invoiceStatus} setInvoiceStatus={setInvoiceStatus}
           customerName={customerName} setCustomerName={setCustomerName} companyTaxCode={companyTaxCode} setCompanyTaxCode={setCompanyTaxCode}
           companyAddress={companyAddress} setCompanyAddress={setCompanyAddress} email={email} setEmail={setEmail}
+          phoneNumber={phoneNumber} setPhoneNumber={setPhoneNumber} usageDate={usageDate} setUsageDate={setUsageDate}
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">

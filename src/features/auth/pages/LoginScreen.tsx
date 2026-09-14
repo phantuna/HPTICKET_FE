@@ -73,7 +73,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             <img 
               src={(() => {
                 const url = dbStore.companies?.[0]?.web_logo_url;
-                if (!url || url === '/logo.png') return "/logo.png";
+                if (!url || url === '/logo.png') return "/hoang-phat-logo.jpg";
                 if (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:')) return url;
                 return API_BASE_URL + url;
               })()}
@@ -81,7 +81,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               className="h-24 w-auto max-w-[240px] object-contain scale-110" 
             />
           </div>
-          <h1 className="text-2xl font-black text-slate-800 tracking-tight mt-1">HPTICKET</h1>
           <p className="text-slate-500 mt-1 font-medium">Hệ Thống Quản Lý Bán Vé & Kiểm Soát</p>
         </div>
 

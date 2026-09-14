@@ -37,6 +37,7 @@ import {
 } from '../types/hpticket';
 import { apiClient, API_ENDPOINTS} from '../../api/apiConfig';
 import { hasPermission } from '../utils/permissionGuard';
+import { supabase } from '../../api/supabaseClient';
 
 const STORAGE_KEY = 'hpticket_db_v3_real_backend_only';
 
@@ -102,6 +103,42 @@ export class MockDatabaseStore {
     }
   }
 
+  public async loadFromSupabase() {
+    try {
+      const { data, error } = await supabase.from('mock_db_state').select('state').eq('id', '1').single();
+      if (data && data.state) {
+        const parsed = typeof data.state === 'string' ? JSON.parse(data.state) : data.state;
+        if (parsed.permissions) this.permissions = parsed.permissions;
+        if (parsed.roles) this.roles = parsed.roles;
+        if (parsed.users) this.users = parsed.users;
+        if (parsed.company) this.company = parsed.company;
+        if (parsed.companies) this.companies = parsed.companies;
+        if (parsed.customerGroups) this.customerGroups = parsed.customerGroups;
+        if (parsed.customerSources) this.customerSources = parsed.customerSources;
+        if (parsed.holidays) this.holidays = parsed.holidays;
+        if (parsed.promotions) this.promotions = parsed.promotions;
+        if (parsed.audienceTypes) this.audienceTypes = parsed.audienceTypes;
+        if (parsed.controlZones) this.controlZones = parsed.controlZones;
+        if (parsed.ticketZones) this.ticketZones = parsed.ticketZones;
+        if (parsed.ticketTemplates) this.ticketTemplates = parsed.ticketTemplates;
+        if (parsed.controlGates) this.controlGates = parsed.controlGates;
+        if (parsed.salesLocations) this.salesLocations = parsed.salesLocations;
+        if (parsed.salesCounters) this.salesCounters = parsed.salesCounters;
+        if (parsed.products) this.products = parsed.products;
+        if (parsed.stockLogs) this.stockLogs = parsed.stockLogs;
+        if (parsed.orders) this.orders = parsed.orders;
+        if (parsed.issuedTickets) this.issuedTickets = parsed.issuedTickets;
+        if (parsed.gateAccessLogs) this.gateAccessLogs = parsed.gateAccessLogs;
+        if (parsed.systemLogs) this.systemLogs = parsed.systemLogs;
+        if (parsed.licenseConfig) this.licenseConfig = parsed.licenseConfig;
+
+        window.dispatchEvent(new Event('hpticket_mock_db_loaded'));
+      }
+    } catch (e) {
+      console.error('Failed to load from Supabase:', e);
+    }
+  }
+
   public saveToStorage() {
     try {
       localStorage.setItem(
@@ -117,6 +154,43 @@ export class MockDatabaseStore {
       );
     } catch (e) {
       console.error('Failed to save storage:', e);
+    }
+    
+    // Đẩy lên Supabase (Fire-and-forget)
+    try {
+      const fullState = {
+        permissions: this.permissions,
+        roles: this.roles,
+        users: this.users,
+        company: this.company,
+        companies: this.companies,
+        customerGroups: this.customerGroups,
+        customerSources: this.customerSources,
+        holidays: this.holidays,
+        promotions: this.promotions,
+        audienceTypes: this.audienceTypes,
+        controlZones: this.controlZones,
+        ticketZones: this.ticketZones,
+        ticketTemplates: this.ticketTemplates,
+        controlGates: this.controlGates,
+        salesLocations: this.salesLocations,
+        salesCounters: this.salesCounters,
+        products: this.products,
+        stockLogs: this.stockLogs,
+        orders: this.orders,
+        issuedTickets: this.issuedTickets,
+        gateAccessLogs: this.gateAccessLogs,
+        systemLogs: this.systemLogs,
+        licenseConfig: this.licenseConfig,
+      };
+
+      supabase.from('mock_db_state').upsert([
+        { id: '1', state: fullState, updated_at: new Date().toISOString() }
+      ], { onConflict: 'id' }).then(({ error }) => {
+        if (error) console.error('Supabase Sync Error:', error);
+      });
+    } catch (e) {
+      console.error('Failed to sync with Supabase:', e);
     }
   }
 
