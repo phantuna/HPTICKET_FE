@@ -39,7 +39,35 @@ export function PromptModal({
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  const handleConfirm = () => {
+    if (required && !inputValue.trim()) return;
+    onConfirm(inputValue.trim());
+    setInputValue('');
+  };
+
+  // Bắt sự kiện bàn phím: Escape để đóng, Enter để xác nhận (khi không phải textarea nhiều dòng)
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setInputValue('');
+        onClose();
+      } else if (e.key === 'Enter') {
+        if ((e.target as HTMLElement)?.tagName === 'TEXTAREA' && !e.ctrlKey && !e.metaKey) {
+          return; // Cho phép xuống dòng bình thường trong textarea
+        }
+        e.preventDefault();
+        if (!(required && !inputValue.trim())) {
+          handleConfirm();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, inputValue, required, onConfirm, onClose]);
 
   const config = {
     danger: {
@@ -61,11 +89,7 @@ export function PromptModal({
 
   const currentConfig = config[type];
 
-  const handleConfirm = () => {
-    if (required && !inputValue.trim()) return;
-    onConfirm(inputValue.trim());
-    setInputValue('');
-  };
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">

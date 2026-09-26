@@ -77,7 +77,12 @@ export const RoleModal: React.FC<RoleModalProps> = ({
   const totalCount = allPermissions.length;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto">
+    <div
+      className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto"
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') onClose();
+      }}
+    >
       <form
         onSubmit={onSubmit}
         className="bg-white border border-slate-200 rounded-2xl w-full max-w-5xl my-6 shadow-2xl text-slate-900"

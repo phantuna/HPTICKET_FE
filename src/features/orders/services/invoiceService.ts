@@ -28,4 +28,11 @@ export const invoiceService = {
     const params = date ? { date } : {};
     return apiClient.post<any>(API_ENDPOINTS.VINVOICE.ISSUE_BULK_RETAIL, params);
   },
+
+  /**
+   * Xuất bù HĐDT cho khoảng ngày (Khắc phục sự cố rớt mạng/sót hóa đơn).
+   */
+  async issueRecovery(fromDate: string, toDate: string) {
+    return apiClient.post<any>(`${API_ENDPOINTS.VINVOICE.ISSUE_RECOVERY}?fromDate=${fromDate}&toDate=${toDate}`);
+  },
 };

@@ -1,14 +1,17 @@
 import React from 'react';
 import { FileSpreadsheet } from 'lucide-react';
 import { useReports } from '../hooks/useReports';
-import { RevenueReportTab } from '../components/RevenueReportTab';
-import { TicketReportTab } from '../components/TicketReportTab';
-import { UserRevenueReportTab } from '../components/UserRevenueReportTab';
-import { TicketTypeRevenueReportTab } from '../components/TicketTypeRevenueReportTab';
-import { ProductRevenueReportTab } from '../components/ProductRevenueReportTab';
-import { GateLogReportTab } from '../components/GateLogReportTab';
-import { SystemLogReportTab } from '../components/SystemLogReportTab';
-import { LogSnapshotModal } from '../components/LogSnapshotModal';
+import {
+  RevenueReportTab,
+  TicketReportTab,
+  UserRevenueReportTab,
+  TicketTypeRevenueReportTab,
+  ProductRevenueReportTab,
+  GateLogReportTab,
+  SystemLogReportTab,
+  LogSnapshotModal,
+  ComparisonReportTab
+} from '../components';
 
 interface ReportsModuleProps {
   subTab?: string;
@@ -26,16 +29,21 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({ subTab = 'BaoCaoDo
     customerGroupFilter, setCustomerGroupFilter, customerSourceFilter, setCustomerSourceFilter,
     selectedMonth, setSelectedMonth, ticketTypeFilter, setTicketTypeFilter,
     nameSearch, setNameSearch, selectedLog, setSelectedLog,
-    exportNotice, page, setPage, pageSize, setSearchTrigger, handleExportExcel,
+    exportNotice, page, setPage, pageSize, setSearchTrigger, handleSearch, handleExportExcel,
     users, salesCounters, customerGroups, customerSources, ticketTemplates,
-    rawOrders, issuedTickets, rawGateLogs, gateLogs, systemLogs,
+    orders, rawOrders, issuedTickets, ticketPageResponse,
     totalRevenue, totalTicketsSold, chartData, ticketStatsArray, totalCash, totalBankTransfer,
     ticketTotalRevenue, ticketTotalCash, ticketTotalBankTransfer,
-    ticketTemplateStats, productStats, loadDropdowns
+    ticketTemplateStats, productStats, loadDropdowns, isLoading
   } = reportsData;
 
   const currentTab = onSelectSubTab ? subTab : activeSubTab;
   
+  const handleRefresh = () => {
+    setPage(1);
+    setSearchTrigger(prev => prev + 1);
+  };
+
   React.useEffect(() => {
     if (onSelectSubTab) {
       setActiveSubTab(subTab);
@@ -60,6 +68,14 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({ subTab = 'BaoCaoDo
           })}
           totalRevenue={totalRevenue} totalTicketsSold={totalTicketsSold}
           chartView={chartView} setChartView={setChartView} chartData={chartData} ticketStatsArray={ticketStatsArray}
+          ticketTotalCash={totalCash} ticketTotalBankTransfer={totalBankTransfer}
+        />
+      )}
+
+
+      {currentTab === 'BaoCaoSoSanh' && (
+        <ComparisonReportTab
+          handleExportExcel={handleExportExcel}
         />
       )}
 
@@ -69,14 +85,18 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({ subTab = 'BaoCaoDo
           posFilter={posFilter} setPosFilter={setPosFilter} sellerFilter={sellerFilter} setSellerFilter={setSellerFilter}
           customerGroupFilter={customerGroupFilter} setCustomerGroupFilter={setCustomerGroupFilter} customerSourceFilter={customerSourceFilter} setCustomerSourceFilter={setCustomerSourceFilter}
           setSearchTrigger={setSearchTrigger}
-          handleExportExcel={() => handleExportExcel('BaoCaoVeChiTiet', {
-            fromDate, toDate, issuedTickets, rawOrders
-          })}
+          handleSearch={handleSearch}
+          handleExportExcel={handleExportExcel}
           salesCounters={salesCounters} users={users} customerGroups={customerGroups} customerSources={customerSources}
           totalRevenue={totalRevenue} totalCash={totalCash} totalBankTransfer={totalBankTransfer} 
-          ticketTotalRevenue={ticketTotalRevenue} ticketTotalCash={ticketTotalCash} ticketTotalBankTransfer={ticketTotalBankTransfer}
-          issuedTickets={issuedTickets} rawOrders={rawOrders}
+          ticketTotalRevenue={ticketPageResponse?.summary?.totalRevenue ?? ticketTotalRevenue}
+          ticketTotalCash={ticketPageResponse?.summary?.totalCash ?? ticketTotalCash}
+          ticketTotalBankTransfer={ticketPageResponse?.summary?.totalBankTransfer ?? ticketTotalBankTransfer}
+          issuedTickets={ticketPageResponse?.content ?? issuedTickets}
+          rawOrders={rawOrders}
           page={page} setPage={setPage} pageSize={pageSize}
+          totalElements={ticketPageResponse?.totalElements}
+          totalPages={ticketPageResponse?.totalPages}
           onFilterFocus={loadDropdowns}
         />
       )}
@@ -86,9 +106,10 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({ subTab = 'BaoCaoDo
           sellerFilter={sellerFilter} setSellerFilter={setSellerFilter} selectedMonth={selectedMonth} setSelectedMonth={setSelectedMonth}
           setSearchTrigger={setSearchTrigger}
           handleExportExcel={() => handleExportExcel('BaoCaoDoanhThu_User_Thang', {
-            selectedMonth, users, rawOrders
+            selectedMonth, users, rawOrders: orders, sellerRevenueStats: reportsData.sellerRevenueStats
           })}
-          users={users} rawOrders={rawOrders} totalRevenue={totalRevenue}
+          users={users} orders={orders} totalRevenue={totalRevenue}
+          sellerRevenueStats={reportsData.sellerRevenueStats}
           onFilterFocus={loadDropdowns}
         />
       )}
@@ -119,14 +140,14 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({ subTab = 'BaoCaoDo
       {currentTab === 'BaoCaoRaVao' && (
         <GateLogReportTab
           fromDate={fromDate} setFromDate={setFromDate} toDate={toDate} setToDate={setToDate} nameSearch={nameSearch} setNameSearch={setNameSearch}
-          setSearchTrigger={setSearchTrigger} handleExportExcel={handleExportExcel} rawGateLogs={rawGateLogs} gateLogs={gateLogs} page={page} setPage={setPage} pageSize={pageSize}
+          setSearchTrigger={setSearchTrigger} handleExportExcel={handleExportExcel} page={page} setPage={setPage} pageSize={pageSize}
         />
       )}
 
       {currentTab === 'BaoCaoHeThong' && (
         <SystemLogReportTab
           fromDate={fromDate} setFromDate={setFromDate} toDate={toDate} setToDate={setToDate} setSearchTrigger={setSearchTrigger} handleExportExcel={handleExportExcel}
-          systemLogs={systemLogs} page={page} setPage={setPage} pageSize={pageSize} setSelectedLog={setSelectedLog}
+          page={page} setPage={setPage} pageSize={pageSize} setSelectedLog={setSelectedLog}
         />
       )}
 

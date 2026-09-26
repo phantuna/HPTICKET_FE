@@ -96,6 +96,9 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ isOpen
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4"
       onClick={(e) => e.target === e.currentTarget && handleClose()}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') handleClose();
+      }}
     >
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 overflow-hidden animate-[slideIn_0.2s_ease-out]">
         {/* Header */}

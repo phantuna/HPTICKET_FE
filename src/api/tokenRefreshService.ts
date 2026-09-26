@@ -8,7 +8,11 @@
  * - Chỉ hiện popup nhập lại mật khẩu khi Refresh Token (7 ngày) thực sự hết hạn
  */
 
-import { API_BASE_URL } from './apiConfig';
+const API_BASE_URL = (typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.VITE_API_URL)
+  ? (import.meta as any).env.VITE_API_URL
+  : 'https://api.vnscout.io.vn/api/v1';
+
+import { authState } from './authState';
 
 const TOKEN_KEY        = 'hpticket_token';
 const EXPIRES_AT_KEY   = 'hpticket_token_expires_at';
@@ -31,11 +35,11 @@ const authChannel = typeof BroadcastChannel !== 'undefined'
   : null;
 
 /**
- * Gọi /auth/refresh và cập nhật token mới vào localStorage.
- * Returns true nếu thành công, false nếu Refresh Token hết hạn.
+ * Gọi /auth/refresh và cập nhật token mới vào memory.
+ * Returns 'SUCCESS' nếu thành công, 'EXPIRED' nếu lỗi 401/403, 'ERROR' nếu lỗi mạng/server.
  */
-async function doRefresh(): Promise<boolean> {
-  if (isRefreshingProactive) return false;
+async function doRefresh(): Promise<'SUCCESS' | 'EXPIRED' | 'ERROR'> {
+  if (isRefreshingProactive) return 'ERROR';
   isRefreshingProactive = true;
 
   try {
@@ -48,17 +52,20 @@ async function doRefresh(): Promise<boolean> {
 
     if (!res.ok) {
       console.warn('[TokenRefresh] Refresh thất bại, status:', res.status);
-      return false;
+      if (res.status === 401 || res.status === 403) {
+        return 'EXPIRED';
+      }
+      return 'ERROR'; // Lỗi mạng hoặc server (5xx)
     }
 
     const data = await res.json();
     const newToken: string | undefined = data?.data?.token;
     const expiresIn: number | undefined = data?.data?.expires_in; // giây
 
-    if (!newToken) return false;
+    if (!newToken) return 'ERROR';
 
-    // Lưu token mới và thời điểm hết hạn
-    localStorage.setItem(TOKEN_KEY, newToken);
+    // Lưu token mới vào memory
+    authState.setToken(newToken);
     if (expiresIn) {
       localStorage.setItem(EXPIRES_AT_KEY, String(Date.now() + expiresIn * 1000));
     }
@@ -67,10 +74,10 @@ async function doRefresh(): Promise<boolean> {
     authChannel?.postMessage({ type: 'SESSION_REFRESHED', token: newToken });
 
     logDebug('[TokenRefresh] ✅ Gia hạn token thành công');
-    return true;
+    return 'SUCCESS';
   } catch (err) {
-    console.error('[TokenRefresh] Lỗi khi gọi /auth/refresh:', err);
-    return false;
+    console.error('[TokenRefresh] Lỗi mạng khi gọi /auth/refresh:', err);
+    return 'ERROR';
   } finally {
     isRefreshingProactive = false;
   }
@@ -102,21 +109,24 @@ function scheduleRefresh(): void {
  * Thực hiện refresh và lên lịch lần tiếp theo.
  */
 async function handleRefreshCycle(): Promise<void> {
-  const token = localStorage.getItem(TOKEN_KEY);
+  const token = authState.getToken();
   if (!token) return; // User đã đăng xuất
 
-  const success = await doRefresh();
+  const result = await doRefresh();
 
-  if (success) {
+  if (result === 'SUCCESS') {
     scheduleRefresh(); // Lên lịch cho lần tiếp theo
-  } else {
+  } else if (result === 'EXPIRED') {
     // Refresh Token hết hạn — buộc user đăng nhập lại
     stopService();
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(EXPIRES_AT_KEY);
+    authState.clearToken();
     authChannel?.postMessage({ type: 'SESSION_EXPIRED' });
     window.dispatchEvent(new CustomEvent('session_expired_modal'));
     console.warn('[TokenRefresh] Refresh Token hết hạn. Yêu cầu đăng nhập lại.');
+  } else {
+    // result === 'ERROR' (Lỗi mạng hoặc Server đang Restart)
+    // KHÔNG LOG OUT! Đợi heartbeat kích hoạt lại sau 1 phút
+    console.warn('[TokenRefresh] Gặp lỗi mạng/server, sẽ thử lại sau...');
   }
 }
 
@@ -127,7 +137,7 @@ function startHeartbeat(): void {
   if (heartbeatTimer) clearInterval(heartbeatTimer);
   heartbeatTimer = setInterval(() => {
     const expiresAt = Number(localStorage.getItem(EXPIRES_AT_KEY) || '0');
-    const token = localStorage.getItem(TOKEN_KEY);
+    const token = authState.getToken();
     if (!token || !expiresAt) return;
 
     const msLeft = expiresAt - Date.now();
@@ -146,7 +156,7 @@ function stopService(): void {
 // Lắng nghe cập nhật từ các tab khác
 authChannel?.addEventListener('message', (event) => {
   if (event.data.type === 'SESSION_REFRESHED' && event.data.token) {
-    localStorage.setItem(TOKEN_KEY, event.data.token);
+    authState.setToken(event.data.token);
     scheduleRefresh();
   } else if (event.data.type === 'SESSION_EXPIRED') {
     stopService();
@@ -155,7 +165,7 @@ authChannel?.addEventListener('message', (event) => {
 
 // Lắng nghe khi tab được focus lại (sau khi laptop ngủ/màn hình khóa)
 window.addEventListener('focus', () => {
-  const token = localStorage.getItem(TOKEN_KEY);
+  const token = authState.getToken();
   if (token) scheduleRefresh();
 });
 
@@ -164,7 +174,8 @@ export const tokenRefreshService = {
    * Khởi động service sau khi đăng nhập thành công.
    * @param expiresInSeconds - Số giây Access Token sống (từ login response.data.expires_in)
    */
-  start(expiresInSeconds: number): void {
+  start(expiresInSeconds: number, initialToken: string): void {
+    authState.setToken(initialToken);
     const expiresAt = Date.now() + expiresInSeconds * 1000;
     localStorage.setItem(EXPIRES_AT_KEY, String(expiresAt));
     scheduleRefresh();
@@ -175,15 +186,29 @@ export const tokenRefreshService = {
   /**
    * Gọi khi app khởi động lại (F5/mở tab mới) — tự tính lại timer từ localStorage.
    */
-  resume(): void {
-    const token = localStorage.getItem(TOKEN_KEY);
+  async resume(): Promise<boolean> {
     const expiresAt = localStorage.getItem(EXPIRES_AT_KEY);
-    if (!token || !expiresAt) return;
-    scheduleRefresh();
-    startHeartbeat();
-    logDebug('[TokenRefresh] ▶ Tiếp tục từ phiên trước');
+    // Nếu có session trước đó, cố gắng refresh
+    if (expiresAt) {
+      logDebug('[TokenRefresh] ▶ Khôi phục session...');
+      const result = await doRefresh();
+      if (result === 'SUCCESS') {
+        scheduleRefresh();
+        startHeartbeat();
+        return true;
+      } else {
+        authState.clearToken();
+        return false;
+      }
+    }
+    return false;
   },
 
   /** Dừng service hoàn toàn (khi đăng xuất). */
-  stop(): void { stopService(); },
+  stop(): void { 
+    stopService(); 
+    authState.clearToken();
+  },
+  
+  doRefresh // Export doRefresh for manual silent refresh if needed
 };

@@ -2,6 +2,7 @@ import React from 'react';
 import { Receipt } from 'lucide-react';
 import { useOrders } from '../hooks/useOrders';
 import { useInvoice } from '../hooks/useInvoice';
+import { usePermission } from '../../../shared/hooks/usePermission';
 import { OrderFilterBar } from '../components/OrderFilterBar';
 import { OrdersTable } from '../components/OrdersTable';
 import { TicketsGrid } from '../components/TicketsGrid';
@@ -9,9 +10,11 @@ import { OrderDetailModal } from '../components/OrderDetailModal';
 import { TicketQRModal } from '../components/TicketQRModal';
 import { InvoiceActionBar } from '../components/InvoiceActionBar';
 import { IssueInvoiceModal } from '../components/IssueInvoiceModal';
+import { InvoiceRecoveryModal } from '../components/InvoiceRecoveryModal';
 import { salesService } from '../../../api/salesService';
 import { ReceiptPrintModal } from '../../pos/components/ReceiptPrintModal';
 import { PromptModal } from '../../../shared/components/PromptModal';
+import { Wrench } from 'lucide-react';
 import { downloadExcelFromApi } from '../../reports/utils/excelExporter';
 import { toast } from '../../../shared/utils/toast';
 
@@ -50,12 +53,16 @@ export const OrdersModule: React.FC = () => {
     clearToast
   } = useInvoice();
 
+  const { can } = usePermission();
+
   const [reprintData, setReprintData] = React.useState<{order: any, tickets: any[]} | null>(null);
   const [isReprinting, setIsReprinting] = React.useState(false);
   const [isCancellingId, setIsCancellingId] = React.useState<string | undefined>();
 
   const [promptModalOpen, setPromptModalOpen] = React.useState(false);
   const [orderToCancel, setOrderToCancel] = React.useState<any>(null);
+
+  const [isRecoveryModalOpen, setIsRecoveryModalOpen] = React.useState(false);
 
   const handleCancelOrderClick = (ord: any) => {
     setOrderToCancel(ord);
@@ -212,6 +219,17 @@ export const OrdersModule: React.FC = () => {
             Quản lý và đối soát danh sách hóa đơn bán hàng
           </p>
         </div>
+        
+        {/* Nút công cụ xuất bù */}
+        {can('ISSUE_INVOICE') && (
+          <button
+            onClick={() => setIsRecoveryModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-orange-100 text-orange-700 hover:bg-orange-200 hover:text-orange-800 transition rounded-lg text-sm font-semibold shadow-sm"
+          >
+            <Wrench className="w-4 h-4" />
+            Công cụ tiện ích / Xuất bù
+          </button>
+        )}
       </div>
 
       <OrderFilterBar
@@ -226,12 +244,13 @@ export const OrdersModule: React.FC = () => {
         ticketCounters={ticketCounters} customerSources={customerSources}
         isLoading={isLoading}
         onSearch={() => { goToPage(0); }}
+        onRefresh={() => fetchData()}
         onFilterFocus={loadDropdowns}
         onExportOrders={handleExportOrders}
       />
 
       {/* Invoice Action Bar */}
-      {activeSubTab === 'orders' && (
+      {activeSubTab === 'orders' && can('ISSUE_INVOICE') && (
         <div className="mb-2">
            <InvoiceActionBar
               selectedCount={selectedOrderIds.length}
@@ -318,6 +337,11 @@ export const OrdersModule: React.FC = () => {
         required={true}
       />
 
+      <InvoiceRecoveryModal
+        isOpen={isRecoveryModalOpen}
+        onClose={() => setIsRecoveryModalOpen(false)}
+        onSuccess={() => fetchData()}
+      />
     </div>
   );
 };

@@ -37,9 +37,11 @@ import {
 } from '../types/hpticket';
 import { apiClient, API_ENDPOINTS} from '../../api/apiConfig';
 import { hasPermission } from '../utils/permissionGuard';
-import { supabase } from '../../api/supabaseClient';
+// Supabase connection removed
 
 const STORAGE_KEY = 'hpticket_db_v3_real_backend_only';
+const STOCK_LOGS_KEY = 'hpticket_stock_movement_logs_v1';
+const SYSTEM_LOGS_KEY = 'hpticket_system_logs_v1';
 
 const now = new Date().toISOString();
 const todayDate = new Date().toISOString().split('T')[0];
@@ -84,59 +86,111 @@ export class MockDatabaseStore {
 
   constructor() {
     this.loadFromStorage();
+    this.loadStockLogs();
+    this.loadSystemLogs();
+  }
+
+  public loadStockLogs(): StockMovementLog[] {
+    try {
+      // Dọn sạch key mock seed
+      localStorage.removeItem('hpticket_opening_stock_initialized_v2');
+      localStorage.removeItem('hpticket_opening_stock_initialized');
+
+      const raw = localStorage.getItem(STOCK_LOGS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Tuyệt đối không dùng mock: loại bỏ bất kỳ log giả nào tạo bởi seeder cũ
+          const clean = parsed.filter((l: any) => !l.id?.startsWith('slog-opening-'));
+          this.stockLogs = clean;
+          if (clean.length !== parsed.length) {
+            localStorage.setItem(STOCK_LOGS_KEY, JSON.stringify(clean));
+          }
+          return clean;
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load stock logs from storage:', e);
+    }
+    return this.stockLogs;
+  }
+
+  public saveStockLogs(logs?: StockMovementLog[]) {
+    try {
+      if (logs) this.stockLogs = logs;
+      localStorage.setItem(STOCK_LOGS_KEY, JSON.stringify(this.stockLogs));
+      window.dispatchEvent(new CustomEvent('hpticket_stock_logs_updated', { detail: this.stockLogs }));
+    } catch (e) {
+      console.error('Failed to save stock logs to storage:', e);
+    }
+  }
+
+  public addStockLog(log: StockMovementLog) {
+    this.loadStockLogs();
+    this.stockLogs = [log, ...this.stockLogs];
+    this.saveStockLogs();
+    window.dispatchEvent(new CustomEvent('hpticket_stock_changed', { detail: log }));
+  }
+
+  public loadSystemLogs(): SystemLog[] {
+    try {
+      const raw = localStorage.getItem(SYSTEM_LOGS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          this.systemLogs = parsed;
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load system logs:', e);
+    }
+    return this.systemLogs;
+  }
+
+  public saveSystemLogs() {
+    try {
+      const trimmed = this.systemLogs.slice(0, 200);
+      localStorage.setItem(SYSTEM_LOGS_KEY, JSON.stringify(trimmed));
+    } catch (e) {
+      console.error('Failed to save system logs:', e);
+    }
   }
 
   private loadFromStorage() {
     try {
+      // Dọn sạch các key rác cũ của phiên bản trước nếu còn sót lại trên trình duyệt
+      ['hpticket_db_v1', 'hpticket_db_v2', 'hpticket_db', 'hpticket_backup_sync'].forEach(k => localStorage.removeItem(k));
+
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed.licenseConfig) this.licenseConfig = parsed.licenseConfig;
-        // Khôi phục dữ liệu vé từ lần sync cuối (hiển thị khi BE offline)
-        if (parsed.issuedTickets?.length > 0) this.issuedTickets = parsed.issuedTickets;
-        if (parsed.orders?.length > 0) this.orders = parsed.orders;
         // Khôi phục companies để logo không bị mất khi reload/đăng nhập lại
         if (parsed.companies?.length > 0) this.companies = parsed.companies;
+
+        // Tự động dọn dẹp (prune) bloat dữ liệu vé & đơn hàng cũ tồn đọng trong localStorage để giải phóng bộ nhớ trình duyệt
+        if (parsed.issuedTickets || parsed.orders) {
+          this.saveToStorage();
+        }
       }
     } catch (e) {
       console.error('Failed to load storage:', e);
     }
   }
 
-  public async loadFromSupabase() {
-    try {
-      const { data, error } = await supabase.from('mock_db_state').select('state').eq('id', '1').single();
-      if (data && data.state) {
-        const parsed = typeof data.state === 'string' ? JSON.parse(data.state) : data.state;
-        if (parsed.permissions) this.permissions = parsed.permissions;
-        if (parsed.roles) this.roles = parsed.roles;
-        if (parsed.users) this.users = parsed.users;
-        if (parsed.company) this.company = parsed.company;
-        if (parsed.companies) this.companies = parsed.companies;
-        if (parsed.customerGroups) this.customerGroups = parsed.customerGroups;
-        if (parsed.customerSources) this.customerSources = parsed.customerSources;
-        if (parsed.holidays) this.holidays = parsed.holidays;
-        if (parsed.promotions) this.promotions = parsed.promotions;
-        if (parsed.audienceTypes) this.audienceTypes = parsed.audienceTypes;
-        if (parsed.controlZones) this.controlZones = parsed.controlZones;
-        if (parsed.ticketZones) this.ticketZones = parsed.ticketZones;
-        if (parsed.ticketTemplates) this.ticketTemplates = parsed.ticketTemplates;
-        if (parsed.controlGates) this.controlGates = parsed.controlGates;
-        if (parsed.salesLocations) this.salesLocations = parsed.salesLocations;
-        if (parsed.salesCounters) this.salesCounters = parsed.salesCounters;
-        if (parsed.products) this.products = parsed.products;
-        if (parsed.stockLogs) this.stockLogs = parsed.stockLogs;
-        if (parsed.orders) this.orders = parsed.orders;
-        if (parsed.issuedTickets) this.issuedTickets = parsed.issuedTickets;
-        if (parsed.gateAccessLogs) this.gateAccessLogs = parsed.gateAccessLogs;
-        if (parsed.systemLogs) this.systemLogs = parsed.systemLogs;
-        if (parsed.licenseConfig) this.licenseConfig = parsed.licenseConfig;
+  public clearBrowserCache() {
+    this.issuedTickets = [];
+    this.orders = [];
+    this.systemLogs = [];
+    localStorage.removeItem(SYSTEM_LOGS_KEY);
+    this.saveToStorage();
+  }
 
-        window.dispatchEvent(new Event('hpticket_data_synced'));
-      }
-    } catch (e) {
-      console.error('Failed to load from Supabase:', e);
-    }
+  public async loadFromSupabase() {
+    // Đã loại bỏ kết nối Supabase
+    // Dữ liệu mock sẽ chỉ lưu trên localStorage
+    return;
   }
 
   public saveToStorage() {
@@ -145,52 +199,12 @@ export class MockDatabaseStore {
         STORAGE_KEY,
         JSON.stringify({
           licenseConfig: this.licenseConfig,
-          // Lưu dữ liệu vé & đơn hàng để FE hiển thị đúng khi BE offline
-          issuedTickets: this.issuedTickets,
-          orders: this.orders,
-          // Lưu dữ liệu company để giữ lại logo web/hóa đơn khi reload trang
+          // Chỉ lưu cấu hình bản quyền & company (logo web/hóa đơn), KHÔNG nhồi hàng ngàn vé/đơn hàng vào localStorage
           companies: this.companies,
         })
       );
     } catch (e) {
       console.error('Failed to save storage:', e);
-    }
-    
-    // Đẩy lên Supabase (Fire-and-forget)
-    try {
-      const fullState = {
-        permissions: this.permissions,
-        roles: this.roles,
-        users: this.users,
-        company: this.company,
-        companies: this.companies,
-        customerGroups: this.customerGroups,
-        customerSources: this.customerSources,
-        holidays: this.holidays,
-        promotions: this.promotions,
-        audienceTypes: this.audienceTypes,
-        controlZones: this.controlZones,
-        ticketZones: this.ticketZones,
-        ticketTemplates: this.ticketTemplates,
-        controlGates: this.controlGates,
-        salesLocations: this.salesLocations,
-        salesCounters: this.salesCounters,
-        products: this.products,
-        stockLogs: this.stockLogs,
-        orders: this.orders,
-        issuedTickets: this.issuedTickets,
-        gateAccessLogs: this.gateAccessLogs,
-        systemLogs: this.systemLogs,
-        licenseConfig: this.licenseConfig,
-      };
-
-      supabase.from('mock_db_state').upsert([
-        { id: '1', state: fullState, updated_at: new Date().toISOString() }
-      ], { onConflict: 'id' }).then(({ error }) => {
-        if (error) console.error('Supabase Sync Error:', error);
-      });
-    } catch (e) {
-      console.error('Failed to sync with Supabase:', e);
     }
   }
 
@@ -298,6 +312,10 @@ export class MockDatabaseStore {
       updated_by: activeUser.username,
     };
     this.systemLogs.unshift(log);
+    if (this.systemLogs.length > 200) {
+      this.systemLogs.length = 200;
+    }
+    this.saveSystemLogs();
     this.saveToStorage();
   }
 

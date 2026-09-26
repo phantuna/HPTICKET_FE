@@ -6,10 +6,11 @@ interface InventoryTabsProps {
   setTab: (t: string) => void;
   productsCount: number;
   stockLogsCount: number;
-  onAddNew: () => void;
+  onAddNew?: () => void;
+  hideAddButton?: boolean;
 }
 
-export const InventoryTabs: React.FC<InventoryTabsProps> = ({ currentTab, setTab, productsCount, stockLogsCount, onAddNew }) => (
+export const InventoryTabs: React.FC<InventoryTabsProps> = ({ currentTab, setTab, productsCount, stockLogsCount, onAddNew, hideAddButton }) => (
   <div className="bg-white border border-slate-200 rounded-2xl p-3 flex items-center justify-between gap-3 shadow-xs overflow-x-auto scrollbar-none">
     <div className="flex items-center gap-2">
       <button onClick={() => setTab('KhoHang')} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${currentTab === 'KhoHang' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}>
@@ -19,8 +20,10 @@ export const InventoryTabs: React.FC<InventoryTabsProps> = ({ currentTab, setTab
         <History className="w-4 h-4" /><span>Lịch Sử Nhập Xuất Kho ({stockLogsCount})</span>
       </button>
     </div>
-    <button onClick={onAddNew} className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition whitespace-nowrap">
-      <Plus className="w-4 h-4" /><span>Khai Báo Sản Phẩm Mới</span>
-    </button>
+    {!hideAddButton && onAddNew && (
+      <button onClick={onAddNew} className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition whitespace-nowrap">
+        <Plus className="w-4 h-4" /><span>Khai Báo Sản Phẩm Mới</span>
+      </button>
+    )}
   </div>
 );

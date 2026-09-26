@@ -1,13 +1,12 @@
 import * as XLSX from 'xlsx';
 import { API_BASE_URL } from '../../../api/apiConfig';
+import { tokenRefreshService } from '../../../api/tokenRefreshService';
+import { authState } from '../../../api/authState';
 
 /**
- * Lấy token hợp lệ hiện tại từ localStorage.
- * apiClient tự động refresh token khi hết hạn (qua cookie HttpOnly),
- * nhưng sau khi refresh thì token mới được lưu vào localStorage.
- * Chúng ta chỉ cần đọc từ đó.
+ * Lấy token hợp lệ hiện tại từ memory.
  */
-const getAuthToken = (): string | null => localStorage.getItem('hpticket_token');
+const getAuthToken = (): string | null => authState.getToken();
 
 /**
  * Thực hiện POST lấy file Excel từ Backend, tự động retry 1 lần nếu gặp 401.
@@ -31,19 +30,9 @@ const fetchExcelWithAuth = async (url: string, body: object): Promise<Blob> => {
   // Nếu token hết hạn, thử refresh rồi gọi lại 1 lần
   if (response.status === 401) {
     try {
-      const refreshRes = await fetch(`${API_BASE_URL}/iam/auth/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({}),
-      });
-      if (refreshRes.ok) {
-        const data = await refreshRes.json();
-        const newToken: string = data?.data?.token;
-        if (newToken) {
-          localStorage.setItem('hpticket_token', newToken);
-          response = await doFetch(newToken);
-        }
+      const refreshResult = await tokenRefreshService.doRefresh();
+      if (refreshResult === 'SUCCESS') {
+        response = await doFetch(authState.getToken());
       }
     } catch (_) {
       // ignore refresh error, fall through to the error check below
@@ -122,7 +111,7 @@ export const downloadExcelFromApi = async (
     const query = new URLSearchParams(params).toString();
     const url = `${API_BASE_URL}${endpoint}${query ? `?${query}` : ''}`;
     
-    const token = localStorage.getItem('hpticket_token');
+    const token = authState.getToken();
     const headers: HeadersInit = {
       'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     };

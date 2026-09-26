@@ -26,7 +26,7 @@ export const useReportFilters = (initialTab: string) => {
   const [sellerFilter, setSellerFilter] = useState<string>('all');
   const [customerGroupFilter, setCustomerGroupFilter] = useState<string>('all');
   const [customerSourceFilter, setCustomerSourceFilter] = useState<string>('all');
-  const [selectedMonth, setSelectedMonth] = useState<string>('1');
+  const [selectedMonth, setSelectedMonth] = useState<string>((today.getMonth() + 1).toString());
   const [ticketTypeFilter, setTicketTypeFilter] = useState<string>('all');
   const [nameSearch, setNameSearch] = useState<string>('');
   const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
@@ -36,7 +36,14 @@ export const useReportFilters = (initialTab: string) => {
   const [page, setPage] = useState(1);
   const pageSize = 20;
 
-  useEffect(() => { setPage(1); }, [activeSubTab, searchTrigger]);
+  useEffect(() => {
+    setPage(1);
+  }, [activeSubTab]);
+
+  const handleSearch = () => {
+    setPage(1);
+    setSearchTrigger((prev) => prev + 1);
+  };
 
   return {
     activeSubTab, setActiveSubTab,
@@ -53,6 +60,7 @@ export const useReportFilters = (initialTab: string) => {
     selectedLog, setSelectedLog,
     exportNotice, setExportNotice,
     searchTrigger, setSearchTrigger,
+    handleSearch,
     page, setPage, pageSize
   };
 };

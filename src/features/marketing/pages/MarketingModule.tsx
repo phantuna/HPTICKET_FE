@@ -66,6 +66,7 @@ export const MarketingModule: React.FC<MarketingModuleProps> = ({ subTab = 'khai
           promotions={promotions}
           setPromotions={setPromotions}
           ticketTemplates={ticketTemplates}
+          holidays={holidays}
           refreshData={refreshData}
         />
       )}

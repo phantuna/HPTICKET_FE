@@ -9,13 +9,15 @@
  *   if (hasPermission('VIEW_ROLE')) { ...gọi API... }
  */
 
+import { authState } from '../../api/authState';
+
 /**
  * Decode payload từ JWT token (không verify signature — chỉ đọc claims).
  * Trả về null nếu token không tồn tại hoặc parse lỗi.
  */
 function decodeJwtPayload(): Record<string, any> | null {
   try {
-    const token = localStorage.getItem('hpticket_token');
+    const token = authState.getToken();
     if (!token) return null;
     const payloadBase64 = token.split('.')[1];
     if (!payloadBase64) return null;
@@ -53,7 +55,32 @@ export function hasPermission(perm: string): boolean {
   const permissions = getUserPermissions();
   // SUPER_ADMIN qua hết
   if (permissions.includes('SUPER_ADMIN')) return true;
-  return permissions.includes(perm);
+
+  // 1. Kiểm tra chính xác
+  if (permissions.includes(perm)) return true;
+
+  // 2. Kiểm tra kế thừa từ các quyền MANAGE_*
+  if (permissions.includes('MANAGE_IAM') && (perm.endsWith('_USER') || perm.endsWith('_ROLE') || perm.endsWith('_PERMISSION') || perm.endsWith('_SYSTEM_LOG'))) {
+    return true;
+  }
+  
+  if (permissions.includes('MANAGE_SALES') && (perm.endsWith('_ORDER') || perm.endsWith('_PRODUCT') || perm.endsWith('_ISSUED_TICKET') || perm.endsWith('_REPORT') || perm.endsWith('_SALES_LOCATION') || perm.endsWith('_SALES_COUNTER'))) {
+    return true;
+  }
+  
+  if (permissions.includes('MANAGE_TICKETING') && (perm.endsWith('_TICKET_TEMPLATE') || perm.endsWith('_AUDIENCE_TYPE') || perm.endsWith('_CONTROL_ZONE') || perm.endsWith('_CONTROL_GATE') || perm.endsWith('_TICKET_ZONE') || perm === 'SCAN_TICKET')) {
+    return true;
+  }
+  
+  if (permissions.includes('MANAGE_MARKETING') && (perm.endsWith('_COMPANY') || perm.endsWith('_CUSTOMER_GROUP') || perm.endsWith('_CUSTOMER_SOURCE') || perm.endsWith('_PROMOTION') || perm.endsWith('_HOLIDAY'))) {
+    return true;
+  }
+  
+  if (permissions.includes('MANAGE_VINVOICE') && perm.endsWith('_INVOICE')) {
+    return true;
+  }
+
+  return false;
 }
 
 /**

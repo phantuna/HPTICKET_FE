@@ -15,12 +15,14 @@ export const POSModule: React.FC = () => {
     customerName, setCustomerName,
     phoneNumber, setPhoneNumber,
     usageDate, setUsageDate,
+    companyName, setCompanyName,
+    companyTaxCode, setCompanyTaxCode,
+    companyEmail, setCompanyEmail,
     companyAddress, setCompanyAddress,
     email, setEmail,
     selectedGroupCode, setSelectedGroupCode,
     selectedSourceId, setSelectedSourceId,
     invoiceStatus, setInvoiceStatus,
-    companyTaxCode, setCompanyTaxCode,
     lineItems, setLineItems,
     depositAmount, setDepositAmount,
     extraDiscount, setExtraDiscount,
@@ -31,19 +33,10 @@ export const POSModule: React.FC = () => {
     generatedTickets,
     activeListTab, setActiveListTab,
     ticketTemplates, ticketZones, products, customerGroups, customerSources, promotions, selectedPromotionId, setSelectedPromotionId, counters,
+    dayContext,
     toastMessage, showToast, closeToast,
     handleToggleItem, updateLineItem, handleCheckBookingCode, handleResetForm, handleCheckout
   } = usePOS();
-
-  React.useEffect(() => {
-    const handleToast = (e: any) => {
-      if (e.detail) {
-        showToast(e.detail.type, e.detail.title, e.detail.message);
-      }
-    };
-    window.addEventListener('toast_notification', handleToast);
-    return () => window.removeEventListener('toast_notification', handleToast);
-  }, [showToast]);
 
   const totalSubtotalBeforeDiscount = lineItems.reduce(
     (acc, item) => acc + item.unit_price * (Number(item.quantity) || 0), 0
@@ -94,12 +87,12 @@ export const POSModule: React.FC = () => {
   const selectedCounter = counters.find(c => c.id === selectedCounterId);
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-5 text-slate-800 print:p-0 print:m-0 print:max-w-none">
+    <div className="flex flex-col p-4 max-w-[1600px] mx-auto text-slate-800 print:h-auto print:p-0 print:m-0 print:max-w-none min-h-[calc(100vh-64px)] lg:h-[calc(100vh-64px)]">
       {!selectedCounterId && counters.length > 0 && (
         <CounterSelectionModal counters={counters} setSelectedCounterId={setSelectedCounterId} />
       )}
 
-      <div className="no-print space-y-5">
+      <div className="no-print flex-1 flex flex-col min-h-0 gap-4">
         <POSInvoiceForm
           searchBookingCode={searchBookingCode} setSearchBookingCode={setSearchBookingCode} handleCheckBookingCode={handleCheckBookingCode}
           selectedCounterId={selectedCounterId} setSelectedCounterId={setSelectedCounterId} counters={counters}
@@ -108,13 +101,18 @@ export const POSModule: React.FC = () => {
           selectedPromotionId={selectedPromotionId} setSelectedPromotionId={setSelectedPromotionId} promotions={promotions}
           setExtraDiscount={setExtraDiscount} bookingCode={bookingCode} setBookingCode={setBookingCode}
           selectedSourceId={selectedSourceId} setSelectedSourceId={setSelectedSourceId} customerSources={customerSources}
-          setLineItems={setLineItems} invoiceStatus={invoiceStatus} setInvoiceStatus={setInvoiceStatus}
-          customerName={customerName} setCustomerName={setCustomerName} companyTaxCode={companyTaxCode} setCompanyTaxCode={setCompanyTaxCode}
-          companyAddress={companyAddress} setCompanyAddress={setCompanyAddress} email={email} setEmail={setEmail}
+          customerName={customerName} setCustomerName={setCustomerName}
+          companyName={companyName} setCompanyName={setCompanyName}
+          companyTaxCode={companyTaxCode} setCompanyTaxCode={setCompanyTaxCode}
+          companyAddress={companyAddress} setCompanyAddress={setCompanyAddress}
+          companyEmail={companyEmail} setCompanyEmail={setCompanyEmail}
+          email={email} setEmail={setEmail}
           phoneNumber={phoneNumber} setPhoneNumber={setPhoneNumber} usageDate={usageDate} setUsageDate={setUsageDate}
+          dayContext={dayContext}
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-0">
+          <div className="flex-1 min-w-0 flex flex-col">
           <POSCartTable
             lineItems={lineItems} setLineItems={setLineItems} updateLineItem={updateLineItem}
             selectedGroupCode={selectedGroupCode} customerGroups={customerGroups} effectiveExtraDiscount={effectiveExtraDiscount}
@@ -125,13 +123,16 @@ export const POSModule: React.FC = () => {
             remainingPayable={remainingPayable} paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod}
             totalSubtotalBeforeDiscount={totalSubtotalBeforeDiscount} grandTotal={grandTotal}
           />
+          </div>
 
+          <div className="w-full lg:w-[340px] flex-shrink-0 flex flex-col">
           <POSCatalog
             activeListTab={activeListTab} setActiveListTab={setActiveListTab}
             ticketTemplates={ticketTemplates} ticketZones={ticketZones} products={products}
             lineItems={lineItems} handleToggleItem={handleToggleItem}
             selectedCounter={selectedCounter}
           />
+          </div>
         </div>
 
         <POSActionBar
@@ -164,28 +165,6 @@ export const POSModule: React.FC = () => {
         })()
       )}
 
-      {toastMessage && (
-        <div className={`fixed top-8 right-8 z-[9999] p-4 rounded-xl shadow-lg flex items-start gap-3 min-w-[320px] max-w-md transform transition-all duration-300 ease-out border-l-4 ${
-          toastMessage.type === 'error' 
-            ? 'bg-white border-rose-500 text-slate-800' 
-            : 'bg-white border-emerald-500 text-slate-800'
-        }`}>
-            <div className={`mt-0.5 flex-shrink-0 ${toastMessage.type === 'error' ? 'text-rose-500' : 'text-emerald-500'}`}>
-              {toastMessage.type === 'error' ? (
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-              ) : (
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-              )}
-            </div>
-            <div className="flex-1">
-               <h4 className="text-base font-semibold">{toastMessage.title}</h4>
-               <p className="text-sm mt-1 text-slate-600">{toastMessage.message}</p>
-            </div>
-            <button onClick={closeToast} className="text-slate-400 hover:text-slate-600 transition-colors p-1" title="Đóng">
-               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
-        </div>
-      )}
     </div>
   );
 };

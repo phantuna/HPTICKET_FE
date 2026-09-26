@@ -24,6 +24,24 @@ export function ConfirmModal({
   confirmText = 'Xác nhận',
   cancelText = 'Hủy',
 }: ConfirmModalProps) {
+  // Bắt sự kiện bàn phím: Enter để xác nhận, Escape để đóng modal
+  React.useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        onConfirm();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onConfirm, onClose]);
+
   if (!isOpen) return null;
 
   // Cấu hình UI theo từng loại type

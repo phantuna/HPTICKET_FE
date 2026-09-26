@@ -99,10 +99,22 @@ export interface CustomerSource extends BaseEntity {
   is_active: boolean;
 }
 
+export type HolidayPolicy = 'ALL_DAYS' | 'NORMAL_ONLY' | 'HOLIDAY_ONLY';
+
+export interface BusinessDayContext {
+  businessDate: string;
+  isHoliday: boolean;
+  holidayId?: string;
+  holidayName?: string;
+  holidayCode?: string;
+}
+
 export interface Holiday extends BaseEntity {
+  code?: string;
   name: string;
   start_date: string;
   end_date: string;
+  description?: string;
   is_active: boolean;
 }
 
@@ -110,8 +122,15 @@ export interface Promotion extends BaseEntity {
   code: string;
   name: string;
   discount_value: number; // Fixed amount in VND or percentage
+  discount_percent?: number;
   start_date: string;
   end_date: string;
+  quantity?: number;
+  used_count?: number;
+  applicable_tickets?: string[];
+  holiday_policy?: HolidayPolicy;
+  holiday_id?: string;
+  holiday_name?: string;
   is_active: boolean;
 }
 
@@ -265,17 +284,29 @@ export interface Product extends BaseEntity {
   is_active: boolean;
 }
 
+export type StockMovementType = 'IMPORT' | 'EXPORT' | 'POS_SALE' | 'ADJUST' | 'RETURN' | 'DAMAGED' | 'OPENING_BALANCE';
+
 export interface StockMovementLog extends BaseEntity {
   product_id: string;
   product_code: string;
   product_name: string;
-  type: 'IMPORT' | 'EXPORT' | 'ADJUST' | 'POS_SALE';
+  unit?: string;
+  type: StockMovementType;
   quantity: number;
-  unit_price: number;
-  total_value: number;
+  before_quantity: number;
+  after_quantity: number;
+  unit_price?: number;
+  total_value?: number;
+  sales_counter_id?: string;
+  sales_counter_name?: string;
+  reference_type?: string;
+  reference_code?: string;
+  idempotency_key?: string;
+  reason?: string;
   performed_by: string;
-  note: string;
+  note?: string;
 }
+
 
 export interface OrderDetail extends BaseEntity {
   order_id: string;
@@ -300,6 +331,10 @@ export interface Order extends BaseEntity {
   invoice_status: InvoiceStatus;
   invoice_number?: string | null;
   invoice_lookup_code?: string | null;
+  use_date?: string;
+  is_holiday?: boolean;
+  holiday_id?: string;
+  holiday_name?: string;
   details?: OrderDetail[];
 }
 
@@ -327,13 +362,18 @@ export interface IssuedTicket extends BaseEntity {
 // ----------------------------------------------------
 
 export interface SystemLog extends BaseEntity {
-  user_id: string;
+  user_id?: string;
   username?: string;
-  action: 'CREATE' | 'UPDATE' | 'DELETE' | 'CHECKOUT_POS' | 'SCAN_PASS' | 'ISSUE_INVOICE';
+  action: string;
   entity_type: string;
   entity_id: string;
-  old_data?: Record<string, any> | null; // JSON snapshot
-  new_data?: Record<string, any> | null; // JSON snapshot
-  ip_address: string;
-  user_agent: string;
+  result?: 'SUCCESS' | 'FAILED' | 'UNKNOWN';
+  changes?: Record<string, any> | null;
+  ip_address?: string;
+  user_agent?: string;
+  request_id?: string;
+  error_code?: string;
+  error_message?: string;
+  old_data?: Record<string, any> | string | null;
+  new_data?: Record<string, any> | string | null;
 }

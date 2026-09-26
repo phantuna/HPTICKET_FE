@@ -1,14 +1,14 @@
 import React from 'react';
-import { Shield, UserCheck, QrCode } from 'lucide-react';
-import { QRCodeDisplay } from '../../../shared/components/QRCodeDisplay';
+import { QrCode } from 'lucide-react';
 import { AdminConfigCard } from '../components/AdminConfigCard';
 import { CameraQRScannerModal } from '../../ticketing/components/CameraQRScannerModal';
 import { useIAM } from '../hooks/useIAM';
 import { UserModal } from '../components/UserModal';
 import { RoleModal } from '../components/RoleModal';
 import { BadgeModal } from '../components/BadgeModal';
-import { StaffQRScanner } from '../components/StaffQRScanner';
+import { DetailsModal } from '../../../shared/components/DetailsModal';
 import { toast } from '../../../shared/utils/toast';
+import { usePermission } from '../../../shared/hooks/usePermission';
 
 interface IAMModuleProps {
   subTab?: string;
@@ -16,6 +16,8 @@ interface IAMModuleProps {
 }
 
 export const IAMModule: React.FC<IAMModuleProps> = ({ subTab = 'KhaiBaoPhanQuyen', onSelectSubTab }) => {
+  const { can } = usePermission();
+  const [selectedUserForDetails, setSelectedUserForDetails] = React.useState<any>(null);
   const {
     activeSubTab, setActiveSubTab,
     users, roles, permissions,
@@ -106,10 +108,12 @@ export const IAMModule: React.FC<IAMModuleProps> = ({ subTab = 'KhaiBaoPhanQuyen
               className: 'text-center w-24',
             },
           ]}
-          onAddNew={openNewRoleModal}
-          onEdit={openEditRoleModal}
-          onDelete={handleDeleteRoles}
-          onToggleActive={handleToggleRoleActive}
+          onAddNew={can('CREATE_ROLE') ? openNewRoleModal : undefined}
+          onEdit={can('UPDATE_ROLE') ? openEditRoleModal : undefined}
+          onDelete={can('DELETE_ROLE') ? handleDeleteRoles : undefined}
+          onToggleActive={can('UPDATE_ROLE') ? handleToggleRoleActive : undefined}
+          hideAddButton={!can('CREATE_ROLE')}
+          hideDeleteButton={!can('DELETE_ROLE')}
         />
       )}
 
@@ -148,123 +152,61 @@ export const IAMModule: React.FC<IAMModuleProps> = ({ subTab = 'KhaiBaoPhanQuyen
               className: 'text-center w-24',
             },
           ]}
-          onAddNew={openNewUserModal}
-          onEdit={openEditUserModal}
-          onDelete={handleDeleteUsers}
-          onToggleActive={handleToggleUserActive}
+          onAddNew={can('CREATE_USER') ? openNewUserModal : undefined}
+          onEdit={can('UPDATE_USER') ? openEditUserModal : undefined}
+          onDelete={can('DELETE_USER') ? handleDeleteUsers : undefined}
+          onToggleActive={can('UPDATE_USER') ? handleToggleUserActive : undefined}
+          hideAddButton={!can('CREATE_USER')}
+          hideDeleteButton={!can('DELETE_USER')}
         />
       )}
 
       {/* 3. KHAI BÁO MÃ QR THẺ NHÂN VIÊN (/KhaiBaoThe_NV) */}
       {currentTab === 'KhaiBaoThe_NV' && (
-        <div className="space-y-4">
-          <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4 shadow-xs">
-            <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
-                <QrCode className="w-6 h-6" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-base sm:text-lg font-black text-emerald-800 tracking-tight uppercase">
-                    KHAI BÁO MÃ QR NHÂN VIÊN
-                  </h2>
-                  <span className="text-[11px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-md">
-                    /KhaiBaoThe_NV
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">
-                  Liệt kê thông tin số điện thoại & mã QR nhân viên
-                </p>
-              </div>
-            </div>
-
-            <div className="text-xs font-semibold text-slate-500 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl font-mono">
-              Tài Khoản & Phân Quyền
-            </div>
-          </div>
-
-          <StaffQRScanner
-            scanInput={scanInput} setScanInput={setScanInput}
-            handleScanStaffQR={handleScanStaffQR} setIsCameraModalOpen={setIsCameraModalOpen}
-            hasScanned={hasScanned} scannedStaff={scannedStaff} roles={roles}
-          />
-
-          <AdminConfigCard
-            title="DANH SÁCH MÃ QR & SỐ ĐIỆN THOẠI NHÂN VIÊN"
-            data={users}
-            columns={[
-              {
-                header: 'STT',
-                accessor: (row: any, idx: number) => idx + 1,
-                className: 'w-16 font-mono text-center'
-              },
-              {
-                header: 'Mã QR Nhân Viên',
-                accessor: 'qr_code',
-                className: 'font-mono font-bold text-emerald-700',
-              },
-              {
-                header: 'Tên nhân viên',
-                accessor: 'fullname',
-                className: 'font-semibold text-slate-900',
-              },
-              {
-                header: 'Số điện thoại',
-                accessor: (row: any) => row.phone || '0901234567',
-                className: 'font-mono text-slate-700 font-medium',
-              },
-              {
-                header: 'Nhóm quyền',
-                accessor: (row: any) => {
-                  const r = roles.find((role) => role.id === row.role_id);
-                  return (
-                    <span className="text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-0.5 rounded-md">
-                      {r?.name || 'Nhân viên'}
-                    </span>
-                  );
-                },
-                className: 'py-2',
-              },
-              {
-                header: 'Quầy được gán',
-                accessor: (row: any) => {
-                  const counters: any[] = row.assigned_counters || [];
-                  if (counters.length === 0) {
-                    return <span className="text-xs text-slate-400 italic">Chưa phân quầy</span>;
-                  }
-                  return (
-                    <div className="flex flex-wrap gap-1">
-                      {counters.map((c: any) => (
-                        <span
-                          key={c.id}
-                          className="text-[10px] font-semibold bg-violet-50 text-violet-700 border border-violet-200 px-2 py-0.5 rounded-full whitespace-nowrap"
-                        >
-                          {c.name || c.code}
-                        </span>
-                      ))}
-                    </div>
-                  );
-                },
-                className: 'py-2 min-w-[140px]',
-              },
-              {
-                header: 'Thao Tác',
-                accessor: (row: any) => (
-                  <button
-                    onClick={() => setSelectedBadgeUser(row)}
-                    className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-bold transition flex items-center gap-1"
-                  >
-                    <QrCode className="w-3.5 h-3.5" /> Xem Thẻ NV
-                  </button>
-                ),
-                className: 'p-2 text-center',
-              },
-            ]}
-            onAddNew={openNewUserModal}
-            onEdit={openEditUserModal}
-            onDelete={handleDeleteUsers}
-          />
-        </div>
+        <AdminConfigCard
+          title="Khai báo thẻ nhân viên / QR"
+          data={users}
+          columns={[
+            {
+              header: 'STT',
+              accessor: (row: any, idx: number) => idx + 1,
+              className: 'w-16 font-mono text-center'
+            },
+            {
+              header: 'Mã QR Nhân Viên',
+              accessor: 'qr_code',
+              className: 'font-mono font-bold text-emerald-700',
+            },
+            {
+              header: 'Tên nhân viên',
+              accessor: 'fullname',
+              className: 'font-semibold text-slate-900',
+            },
+            {
+              header: 'Số điện thoại',
+              accessor: (row: any) => row.phone || '0901234567',
+              className: 'font-mono text-slate-700 font-medium',
+            },
+            {
+              header: 'Thao Tác Nhanh',
+              accessor: (row: any) => (
+                <button
+                  onClick={() => setSelectedBadgeUser(row)}
+                  className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-bold transition flex items-center gap-1"
+                >
+                  <QrCode className="w-3.5 h-3.5" /> Xem Thẻ NV
+                </button>
+              ),
+              className: 'p-2 text-center w-32',
+            },
+          ]}
+          onAddNew={can('CREATE_USER') ? openNewUserModal : undefined}
+          onEdit={can('UPDATE_USER') ? openEditUserModal : undefined}
+          onDelete={can('DELETE_USER') ? handleDeleteUsers : undefined}
+          onViewDetails={(item: any) => setSelectedUserForDetails(item)}
+          hideAddButton={!can('CREATE_USER')}
+          hideDeleteButton={!can('DELETE_USER')}
+        />
       )}
 
       {selectedBadgeUser && (
@@ -272,6 +214,30 @@ export const IAMModule: React.FC<IAMModuleProps> = ({ subTab = 'KhaiBaoPhanQuyen
           selectedBadgeUser={selectedBadgeUser} roles={roles}
           badgeQrMode={badgeQrMode} setBadgeQrMode={setBadgeQrMode}
           onClose={() => setSelectedBadgeUser(null)}
+        />
+      )}
+
+      {selectedUserForDetails && (
+        <DetailsModal
+          title="Chi tiết Tài khoản / Nhân viên"
+          fields={[
+            { label: 'Tên đăng nhập', value: selectedUserForDetails.username },
+            { label: 'Tên nhân viên', value: selectedUserForDetails.fullname },
+            { label: 'Số điện thoại', value: selectedUserForDetails.phone || 'N/A' },
+            { 
+              label: 'Nhóm quyền', 
+              value: roles.find((r) => r.id === selectedUserForDetails.role_id)?.name || 'Quản trị viên' 
+            },
+            { label: 'Mã QR Nhân Viên', value: selectedUserForDetails.qr_code },
+            { 
+              label: 'Quầy được gán', 
+              value: selectedUserForDetails.assigned_counters && selectedUserForDetails.assigned_counters.length > 0
+                ? selectedUserForDetails.assigned_counters.map((c: any) => c.name || c.code).join(', ')
+                : 'Chưa phân quầy',
+              isFullWidth: true
+            },
+          ]}
+          onClose={() => setSelectedUserForDetails(null)}
         />
       )}
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense, lazy } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
 import { Header } from './shared/components/Header';
 import { Sidebar } from './shared/components/Sidebar';
 
@@ -67,16 +67,43 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Check authentication status
-  useEffect(() => {
-    const token = localStorage.getItem('hpticket_token');
-    const hash = window.location.hash.replace('#/', '');
-    if (!token && !hash.startsWith('login')) {
-      window.location.hash = '/login';
-    }
-  }, [activeTab]); // Run when activeTab changes
+  const [isInitializing, setIsInitializing] = useState(true);
 
-  // Disable eager backend sync on mount to avoid loading all APIs
+  // Check authentication status and perform silent refresh if needed
+  useEffect(() => {
+    const initializeAuth = async () => {
+      const hash = window.location.hash.replace('#/', '');
+      
+      if (hash.startsWith('login')) {
+        setIsInitializing(false);
+        return;
+      }
+
+      try {
+        const { tokenRefreshService } = await import('./api/tokenRefreshService');
+        const { authState } = await import('./api/authState');
+        const token = authState.getToken();
+        
+        if (token) {
+          setIsInitializing(false);
+          return; // Đã đăng nhập trong phiên memory này
+        }
+
+        // Thử khôi phục session bằng Silent Refresh
+        const recovered = await tokenRefreshService.resume();
+        if (!recovered) {
+          window.location.hash = '/login';
+        }
+      } catch (err) {
+        console.error("Init auth failed:", err);
+        window.location.hash = '/login';
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+
+    initializeAuth();
+  }, [activeTab]);
   useEffect(() => {
     const handleDataSynced = () => setUserContextKey((prev) => prev + 1);
     window.addEventListener('hpticket_data_synced', handleDataSynced);
@@ -105,30 +132,53 @@ export default function App() {
     const handleSessionExpired = (e: any) => {
       setToastInfo({ message: e.detail?.message || 'Phiên đăng nhập đã hết hạn!', title: 'Hết hạn đăng nhập', type: 'error' });
       setTimeout(() => setToastInfo(null), 3500);
+      window.location.hash = '/login'; // Chuyển hướng ngay lập tức về trang đăng nhập
     };
     window.addEventListener('session_expired', handleSessionExpired);
-    return () => window.removeEventListener('session_expired', handleSessionExpired);
+    
+    const handleModalExpired = () => {
+      window.location.hash = '/login';
+    };
+    window.addEventListener('session_expired_modal', handleModalExpired);
+    
+    return () => {
+      window.removeEventListener('session_expired', handleSessionExpired);
+      window.removeEventListener('session_expired_modal', handleModalExpired);
+    };
+  }, []);
+
+  const lastToastRef = useRef<{ message: string; time: number }>({ message: '', time: 0 });
+  const toastTimerRef = useRef<any>(null);
+
+  const triggerToast = useCallback((info: { message: string; title: string; type: 'success' | 'error' }) => {
+    const now = Date.now();
+    // Bỏ qua toast trùng lặp nội dung trong vòng 1.5s
+    if (lastToastRef.current.message === info.message && now - lastToastRef.current.time < 1500) {
+      return;
+    }
+    lastToastRef.current = { message: info.message, time: now };
+    setToastInfo(info);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setToastInfo(null), 4000);
   }, []);
 
   // Lắng nghe các lỗi nghiệp vụ từ API (Business Exceptions)
   useEffect(() => {
     const handleApiError = (e: any) => {
-      setToastInfo({ message: e.detail?.message || 'Đã xảy ra lỗi hệ thống khi gọi API!', title: 'Lỗi hệ thống', type: 'error' });
-      setTimeout(() => setToastInfo(null), 3500);
+      triggerToast({ message: e.detail?.message || 'Đã xảy ra lỗi hệ thống khi gọi API!', title: 'Lỗi hệ thống', type: 'error' });
     };
     window.addEventListener('api_error', handleApiError);
     return () => window.removeEventListener('api_error', handleApiError);
-  }, []);
+  }, [triggerToast]);
 
   // Lắng nghe Toast chung (Thành công/Thất bại từ code người dùng gọi)
   useEffect(() => {
     const handleToast = (e: any) => {
-      setToastInfo({ message: e.detail?.message, title: e.detail?.title || 'Thông báo', type: e.detail?.type || 'success' });
-      setTimeout(() => setToastInfo(null), 3500);
+      triggerToast({ message: e.detail?.message, title: e.detail?.title || 'Thông báo', type: e.detail?.type || 'success' });
     };
     window.addEventListener('toast_notification', handleToast);
     return () => window.removeEventListener('toast_notification', handleToast);
-  }, []);
+  }, [triggerToast]);
 
   const handleUserSwitch = () => {
     setUserContextKey((prev) => prev + 1);
@@ -150,19 +200,40 @@ export default function App() {
     window.location.hash = `/${module}${finalSubTab ? `/${finalSubTab}` : ''}`;
   };
 
+  if (isInitializing) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-slate-100">
+        <div className="flex flex-col items-center justify-center gap-4">
+          <div className="w-10 h-10 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin shadow-md"></div>
+          <p className="text-slate-500 font-medium text-sm animate-pulse">Khởi tạo hệ thống...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Render trang Login độc lập nếu đang ở route login
   if (activeTab === 'login') {
     return (
       <>
         {/* Vẫn giữ Toast chung cho toàn App kể cả khi ở Login */}
         {toastInfo && (
-          <div className={`fixed top-8 right-8 z-[9999] p-6 rounded-2xl shadow-2xl flex flex-col gap-2 min-w-[380px] max-w-lg transition-colors duration-300 animate-[slideIn_0.3s_ease-out] ${toastInfo.type === 'error' ? 'bg-rose-600 text-white border-2 border-rose-400' : 'bg-emerald-600 text-white border-2 border-emerald-400'}`}>
-            <h4 className="text-lg font-bold flex items-center gap-2">
-              {toastInfo.title}
-            </h4>
-            <p className={`text-sm mt-1 leading-relaxed ${toastInfo.type === 'error' ? 'text-rose-50' : 'text-emerald-50'}`}>
-              {toastInfo.message}
-            </p>
+          <div className={`fixed top-8 right-8 z-[9999] p-4 rounded-xl shadow-xl flex items-start gap-3 min-w-[340px] max-w-md transform transition-all duration-300 ease-out border-l-4 bg-white ${
+            toastInfo.type === 'error' ? 'border-rose-500 text-slate-800' : 'border-emerald-500 text-slate-800'
+          }`}>
+            <div className={`mt-0.5 shrink-0 ${toastInfo.type === 'error' ? 'text-rose-500' : 'text-emerald-500'}`}>
+              {toastInfo.type === 'error' ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-sm font-bold text-slate-900">{toastInfo.title}</h4>
+              <p className="text-xs mt-1 text-slate-600 leading-relaxed break-words">{toastInfo.message}</p>
+            </div>
+            <button onClick={() => setToastInfo(null)} className="text-slate-400 hover:text-slate-600 transition-colors p-1 -mr-1" title="Đóng">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
           </div>
         )}
         <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-slate-100"><div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div></div>}>
@@ -175,14 +246,24 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800 font-sans antialiased selection:bg-emerald-600 selection:text-white flex flex-col">
       {toastInfo && (
-          <div className={`fixed top-8 right-8 z-[9999] p-6 rounded-2xl shadow-2xl flex flex-col gap-2 min-w-[380px] max-w-lg transition-colors duration-300 animate-[slideIn_0.3s_ease-out] ${toastInfo.type === 'error' ? 'bg-rose-600 text-white border-2 border-rose-400' : 'bg-emerald-600 text-white border-2 border-emerald-400'}`}>
-            <h4 className="text-lg font-bold flex items-center gap-2">
-              {toastInfo.title}
-            </h4>
-            <p className={`text-sm mt-1 leading-relaxed ${toastInfo.type === 'error' ? 'text-rose-50' : 'text-emerald-50'}`}>
-              {toastInfo.message}
-            </p>
+        <div className={`fixed top-8 right-8 z-[9999] p-4 rounded-xl shadow-xl flex items-start gap-3 min-w-[340px] max-w-md transform transition-all duration-300 ease-out border-l-4 bg-white ${
+          toastInfo.type === 'error' ? 'border-rose-500 text-slate-800' : 'border-emerald-500 text-slate-800'
+        }`}>
+          <div className={`mt-0.5 shrink-0 ${toastInfo.type === 'error' ? 'text-rose-500' : 'text-emerald-500'}`}>
+            {toastInfo.type === 'error' ? (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            )}
           </div>
+          <div className="flex-1 min-w-0">
+            <h4 className="text-sm font-bold text-slate-900">{toastInfo.title}</h4>
+            <p className="text-xs mt-1 text-slate-600 leading-relaxed break-words">{toastInfo.message}</p>
+          </div>
+          <button onClick={() => setToastInfo(null)} className="text-slate-400 hover:text-slate-600 transition-colors p-1 -mr-1" title="Đóng">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
+        </div>
       )}
 
       {/* Full screen System Lock Overlay when locked */}
@@ -217,7 +298,7 @@ export default function App() {
         />
 
         {/* Main Content Pane */}
-        <main className="flex-1 min-w-0 pb-12">
+        <main className={`flex-1 min-w-0 ${activeTab === 'pos' ? 'h-[calc(100vh-64px)]' : 'pb-12'}`}>
           <Suspense fallback={
             <div className="flex-1 flex flex-col items-center justify-center h-full pt-32 text-slate-400">
               <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>

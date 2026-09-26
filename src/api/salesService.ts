@@ -19,11 +19,13 @@ import {
   SalesLocation,
   SalesCounter,
   Product,
+  StockMovementLog,
 } from '../shared/types/hpticket';
 
 export type { IssuedTicket };
 
-import { apiClient, API_ENDPOINTS } from './apiConfig';
+import { apiClient, API_ENDPOINTS, API_BASE_URL } from './apiConfig';
+import { inventoryService } from './inventoryService';
 
 /**
  * Helper to normalize paginated or list responses from Spring Boot Backend.
@@ -42,8 +44,9 @@ export interface CartItem {
   code: string;
   unit_price: number;
   quantity: number;
-  allowed_passes_per_unit?: number; // 1 for normal, N for group ticket
+  allowed_passes_per_unit?: number; // 1 for normal, N for group ticket, -1 for unlimited
   is_group_ticket?: boolean;
+  ticket_type?: string; // 'SINGLE' | 'MULTI' | 'UNLIMITED'
 }
 
 export interface CheckoutPayload {
@@ -56,12 +59,18 @@ export interface CheckoutPayload {
   discount_percent: number;
   discount_amount_vnd?: number;
   valid_date?: string;
+  booker_name?: string;
+  customer_phone?: string;
+  customer_email?: string;
+  booking_code?: string;
+  note?: string;
   invoice_status?: 'IMMEDIATE' | 'PENDING' | 'UNISSUED';
   company_tax_code?: string;
   company_name?: string;
   company_address?: string;
   company_phone?: string;
   company_email?: string;
+  invoice_recipient_email?: string;
 }
 
 // Abstract Interface for Electronic Invoice Providers (FPT, Viettel, MISA)
@@ -147,7 +156,7 @@ export const salesService = {
     return { data: { content: dbStore.orders, totalElements: dbStore.orders.length, totalPages: 1 } };
   },
 
-  async fetchIssuedTicketsPaginated(page = 0, size = 200): Promise<any> {
+  async fetchIssuedTicketsPaginated(page = 0, size = 20): Promise<any> {
     try {
       return await apiClient.get<any>(API_ENDPOINTS.SALES.ISSUED_TICKETS, { page, size, sort: 'created_at,desc' });
     } catch (err) {
@@ -556,12 +565,11 @@ export const salesService = {
   async fetchOrders(params?: { fromDate?: string; toDate?: string; size?: number }): Promise<ApiResponse<Order[]>> {
     
       try {
-        const queryParams = { size: 2000, ...params };
+        const queryParams = { size: 20, ...params };
         const res = await apiClient.get<ApiResponse<any>>(API_ENDPOINTS.SALES.ORDERS, queryParams);
         const list = normalizeList<Order>(res.data);
         if (list && list.length > 0) {
           dbStore.orders = list;
-          dbStore.saveToStorage();
         }
         return {
           code: res.code || 200,
@@ -584,7 +592,6 @@ export const salesService = {
             const old = { ...dbStore.orders[idx] };
             dbStore.orders[idx] = res.data;
             dbStore.logAudit('UPDATE', 'orders', id, old, res.data);
-            dbStore.saveToStorage();
           }
         }
         return res;
@@ -599,33 +606,98 @@ export const salesService = {
     const now = new Date().toISOString();
     const updated: Order = { ...old, status: OrderStatus.CANCELLED, updated_at: now };
     dbStore.orders[idx] = updated;
-    dbStore.saveToStorage();
     return { code: 200, message: 'Hủy đơn hàng thành công', data: updated };
   },
 
   // 5. ISSUED TICKETS (/sales/issued-tickets)
-  async fetchIssuedTickets(): Promise<ApiResponse<IssuedTicket[]>> {
-    
-      try {
-        const res = await apiClient.get<ApiResponse<any>>(`${API_ENDPOINTS.SALES.ISSUED_TICKETS}?size=1000`);
-        const list = normalizeList<IssuedTicket>(res.data);
-        if (list && list.length > 0) {
-          dbStore.issuedTickets = list;
-          dbStore.saveToStorage();
-        }
-        return {
-          code: res.code || 200,
-          message: res.message || 'Lấy danh sách vé đã phát hành thành công',
-          data: list,
-        };
-      } catch (err) {
-        console.warn('[Sales Service] Backend fetchIssuedTickets failed, fallback to Mock DB:', err);
+  async fetchIssuedTickets(params?: any): Promise<ApiResponse<any>> {
+    try {
+      const mergedParams: Record<string, string> = { size: '20' };
+      if (params) {
+        if (params.page != null) mergedParams.page = String(params.page);
+        if (params.size != null) mergedParams.size = String(params.size);
+        if (params.fromDate) mergedParams.fromDate = String(params.fromDate);
+        if (params.toDate) mergedParams.toDate = String(params.toDate);
+        if (params.counter && params.counter !== 'all') mergedParams.counter = String(params.counter);
+        if (params.seller && params.seller !== 'all') mergedParams.seller = String(params.seller);
+        if (params.customerGroup && params.customerGroup !== 'all') mergedParams.customerGroup = String(params.customerGroup);
+        if (params.customerSource && params.customerSource !== 'all') mergedParams.customerSource = String(params.customerSource);
+      }
+      const queryParams = new URLSearchParams(mergedParams).toString();
+      const url = `${API_ENDPOINTS.SALES.ISSUED_TICKETS}?${queryParams}`;
+      const res = await apiClient.get<ApiResponse<any>>(url);
+      const list = normalizeList<IssuedTicket>(res.data);
+      if (list && list.length > 0) {
+        dbStore.issuedTickets = list;
+      }
+      return {
+        code: res.code || 200,
+        message: res.message || 'Lấy danh sách vé đã phát hành thành công',
+        data: res.data ?? list,
+      };
+    } catch (err) {
+      console.warn('[Sales Service] Backend fetchIssuedTickets failed, fallback to Mock DB:', err);
     }
     return this.getIssuedTickets();
   },
 
-  async fetchExpiringTickets(daysAhead: number, keyword?: string, page: number = 0, size: number = 50, employee?: string): Promise<ApiResponse<any>> {
-    return apiClient.get<ApiResponse<any>>(API_ENDPOINTS.SALES.EXPIRING_TICKETS, { daysAhead, keyword, page, size, employee });
+  async fetchExpiringTickets(
+    daysAhead?: number | null, 
+    keyword?: string, 
+    page: number = 0, 
+    size: number = 50, 
+    employee?: string,
+    status?: string
+  ): Promise<ApiResponse<any>> {
+    const params: any = { page, size };
+    if (daysAhead !== undefined && daysAhead !== null) params.daysAhead = daysAhead;
+    if (keyword && keyword.trim()) params.keyword = keyword.trim();
+    if (employee && employee !== 'all') params.employee = employee;
+    if (status && status !== 'all') params.status = status;
+    return apiClient.get<ApiResponse<any>>(API_ENDPOINTS.SALES.EXPIRING_TICKETS, params);
+  },
+
+  async exportMonthlyTicketsReport(
+    daysAhead?: number | null, 
+    keyword?: string, 
+    employee?: string, 
+    status?: string
+  ): Promise<void> {
+    const { authState } = await import('./authState');
+    const token = authState.getToken();
+    
+    const params = new URLSearchParams();
+    if (daysAhead !== undefined && daysAhead !== null) params.append('daysAhead', String(daysAhead));
+    if (keyword && keyword.trim()) params.append('keyword', keyword.trim());
+    if (employee && employee !== 'all') params.append('employee', employee);
+    if (status && status !== 'all') params.append('status', status);
+
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    const url = `${API_BASE_URL}${API_ENDPOINTS.SALES.EXPIRING_TICKETS_EXPORT}${queryString}`;
+
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      }
+    });
+
+    if (!res.ok) {
+      throw new Error(`Xuất báo cáo thất bại: ${res.statusText}`);
+    }
+
+    const blob = await res.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    const now = new Date();
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}`;
+    link.setAttribute('download', `BAO_CAO_VE_THANG_${timestamp}.xlsx`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(downloadUrl);
   },
 
   async updateCustomerInfo(id: string, customer_name: string, customer_phone: string, customer_email: string): Promise<ApiResponse<IssuedTicket>> {
@@ -687,11 +759,19 @@ export const salesService = {
             item_type: item.item_type || ItemType.TICKET,
             item_id: item.id,
             quantity: item.quantity,
-            is_group_ticket: item.is_group_ticket === true ? true : (item.allowed_passes_per_unit && item.allowed_passes_per_unit > 1 ? true : false),
-            allowed_passes_per_unit: item.allowed_passes_per_unit || 1,
+            // MULTI: 1 QR chung nhiều lượt → is_group_ticket = true
+            // UNLIMITED: 1 QR vé tháng → cũng dùng is_group_ticket = true để BE tạo 1 QR duy nhất
+            // Logic cũ chỉ check allowed_passes > 1 sẽ sai với UNLIMITED (allowed_passes = -1)
+            is_group_ticket: item.ticket_type === 'MULTI' || item.ticket_type === 'UNLIMITED'
+              || item.is_group_ticket === true
+              || (item.allowed_passes_per_unit != null && item.allowed_passes_per_unit > 1),
+            allowed_passes_per_unit: item.ticket_type === 'UNLIMITED' ? -1 : (item.allowed_passes_per_unit || 1),
           })),
-          booker_name: 'Khách mua tại quầy POS',
-          customer_phone: '0988123456',
+          booker_name: payload.booker_name || 'Khách lẻ',
+          customer_phone: payload.customer_phone || null,
+          customer_email: payload.customer_email || null,
+          booking_code: payload.booking_code || null,
+          note: payload.note || null,
           use_date: payload.valid_date || new Date().toISOString().split('T')[0],
           invoice_status: payload.invoice_status || 'UNISSUED',
           company_tax_code: payload.company_tax_code || null,
@@ -699,6 +779,7 @@ export const salesService = {
           company_address: payload.company_address || null,
           company_phone: payload.company_phone || null,
           company_email: payload.company_email || null,
+          invoice_recipient_email: payload.invoice_recipient_email || null,
         };
         const res = await apiClient.post<ApiResponse<Order>>(API_ENDPOINTS.SALES.ORDERS, orderRequest);
         if (res && res.data) {
@@ -760,15 +841,26 @@ export const salesService = {
       };
     });
 
-    // 3. Update Product Stock (For physical goods)
-    for (const item of cart_items) {
-      if (item.item_type === ItemType.PRODUCT) {
-        const prd = dbStore.products.find((p) => p.id === item.id);
-        if (prd) {
-          prd.stock_quantity = Math.max(0, prd.stock_quantity - item.quantity);
-          prd.updated_at = now;
-        }
-      }
+    // 3. Update Product Stock (Delegated to Centralized Inventory Service with Anti-duplicate Protection)
+    const productItems = cart_items
+      .filter((item) => item.item_type === ItemType.PRODUCT)
+      .map((item) => ({
+        id: item.id,
+        name: item.name,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+      }));
+
+    if (productItems.length > 0) {
+      const currentCounter = dbStore.counters.find((c) => c.id === counter_id);
+      await inventoryService.recordPosSale({
+        orderId,
+        orderCode,
+        counterId: counter_id,
+        counterName: currentCounter?.name,
+        items: productItems,
+        performedBy: activeUser.username,
+      });
     }
 
     // 4. Create Order Object

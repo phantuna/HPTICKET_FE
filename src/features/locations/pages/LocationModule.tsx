@@ -8,6 +8,7 @@ import { ZoneModal } from '../components/ZoneModal';
 import { GateModal } from '../components/GateModal';
 import { CompanyModal } from '../components/CompanyModal';
 import { API_BASE_URL } from '../../../api/apiConfig';
+import { usePermission } from '../../../shared/hooks/usePermission';
 
 interface LocationModuleProps {
   subTab?: string;
@@ -16,6 +17,7 @@ interface LocationModuleProps {
 
 export const LocationModule: React.FC<LocationModuleProps> = ({ subTab = 'khaibaocongty', onSelectSubTab }) => {
   const locState = useLocations(subTab);
+  const { can } = usePermission();
 
   const {
     activeSubTab, setActiveSubTab, company, locations, counters, controlZones, controlGates, isItemActive,
@@ -53,12 +55,14 @@ export const LocationModule: React.FC<LocationModuleProps> = ({ subTab = 'khaiba
             <h2 className="text-base sm:text-lg font-bold tracking-wide uppercase text-slate-800">
               KHAI BÁO THÔNG TIN CÔNG TY
             </h2>
-            <button
-              onClick={handleOpenCompanyModal}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm px-3.5 py-2 rounded-md flex items-center gap-1.5 transition shadow-sm"
-            >
-              <Edit2 className="w-4 h-4" /> Chỉnh sửa thông tin
-            </button>
+            {can('UPDATE_COMPANY') && (
+              <button
+                onClick={handleOpenCompanyModal}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm px-3.5 py-2 rounded-md flex items-center gap-1.5 transition shadow-sm"
+              >
+                <Edit2 className="w-4 h-4" /> Chỉnh sửa thông tin
+              </button>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs sm:text-sm pt-2">
@@ -139,11 +143,13 @@ export const LocationModule: React.FC<LocationModuleProps> = ({ subTab = 'khaiba
           onAddNew={() => {
             setEditingLocId(null); setNewLocCode(''); setNewLocName(''); setNewLocAddress(''); setShowLocationModal(true);
           }}
-          onEdit={(item: any) => {
+          onEdit={can('UPDATE_SALES_LOCATION') ? ((item: any) => {
             setEditingLocId(item.id); setNewLocCode(item.code); setNewLocName(item.name); setNewLocAddress(item.address || ''); setShowLocationModal(true);
-          }}
-          onDelete={handleDeleteLocations}
-          onToggleActive={(id, currentActive) => handleToggleLocationActive(String(id), currentActive)}
+          }) : undefined}
+          onDelete={can('DELETE_SALES_LOCATION') ? handleDeleteLocations : undefined}
+          onToggleActive={can('UPDATE_SALES_LOCATION') ? ((id, currentActive) => handleToggleLocationActive(String(id), currentActive)) : undefined}
+          hideAddButton={!can('CREATE_SALES_LOCATION')}
+          hideDeleteButton={!can('DELETE_SALES_LOCATION')}
         />
       )}
 
@@ -161,11 +167,13 @@ export const LocationModule: React.FC<LocationModuleProps> = ({ subTab = 'khaiba
           onAddNew={() => {
             setEditingCounterId(null); setNewCounterCode(''); setNewCounterName(''); setNewCounterTypes([]); setShowCounterModal(true);
           }}
-          onEdit={(item: any) => {
+          onEdit={can('UPDATE_SALES_COUNTER') ? ((item: any) => {
             setEditingCounterId(item.id); setNewCounterCode(item.code); setNewCounterName(item.name); if (item.sales_location_id) setSelectedLocId(item.sales_location_id); setNewCounterTypes(item.supportedTypes || []); setShowCounterModal(true);
-          }}
-          onDelete={handleDeleteCounters}
-          onToggleActive={(id, currentActive) => handleToggleCounterActive(String(id), currentActive)}
+          }) : undefined}
+          onDelete={can('DELETE_SALES_COUNTER') ? handleDeleteCounters : undefined}
+          onToggleActive={can('UPDATE_SALES_COUNTER') ? ((id, currentActive) => handleToggleCounterActive(String(id), currentActive)) : undefined}
+          hideAddButton={!can('CREATE_SALES_COUNTER')}
+          hideDeleteButton={!can('DELETE_SALES_COUNTER')}
         />
       )}
 
@@ -182,11 +190,13 @@ export const LocationModule: React.FC<LocationModuleProps> = ({ subTab = 'khaiba
           onAddNew={() => {
             setEditingZoneId(null); setNewZoneCode(''); setNewZoneName(''); setShowZoneModal(true);
           }}
-          onEdit={(item: any) => {
+          onEdit={can('UPDATE_CONTROL_ZONE') ? ((item: any) => {
             setEditingZoneId(item.id); setNewZoneCode(item.code); setNewZoneName(item.name); setShowZoneModal(true);
-          }}
-          onDelete={handleDeleteZones}
-          onToggleActive={(id, currentActive) => handleToggleZoneActive(String(id), currentActive)}
+          }) : undefined}
+          onDelete={can('DELETE_CONTROL_ZONE') ? handleDeleteZones : undefined}
+          onToggleActive={can('UPDATE_CONTROL_ZONE') ? ((id, currentActive) => handleToggleZoneActive(String(id), currentActive)) : undefined}
+          hideAddButton={!can('CREATE_CONTROL_ZONE')}
+          hideDeleteButton={!can('DELETE_CONTROL_ZONE')}
         />
       )}
 
@@ -196,20 +206,22 @@ export const LocationModule: React.FC<LocationModuleProps> = ({ subTab = 'khaiba
           data={controlGates}
           columns={[
             { header: 'STT', accessor: (row, idx) => idx + 1, className: 'w-16 font-mono text-center' },
-            { header: 'Tên thiết bị', accessor: 'device_name', className: 'font-semibold text-slate-900' },
-            { header: 'Địa chỉ ip', accessor: 'ip_address', className: 'font-mono font-medium text-slate-800' },
-            { header: 'Cổng thiết bị', accessor: 'device_port', className: 'font-mono text-center w-28' },
+            { header: 'Tên thiết bị', accessor: (row: any) => row.device_name || row.deviceName || '--', className: 'font-semibold text-slate-900' },
+            { header: 'Địa chỉ IP', accessor: (row: any) => row.ip_address || row.ipAddress || row.ip || '--', className: 'font-mono font-medium text-slate-800' },
+            { header: 'Cổng thiết bị', accessor: (row: any) => row.device_port || row.devicePort || '--', className: 'font-mono text-center w-28' },
             { header: 'Khu kiểm soát', accessor: (row: any) => controlZones.find((z) => z.id === row.control_zone_id)?.name || 'Cửa thăm quan', className: 'text-slate-800 font-medium' },
             { header: 'Sử dụng', accessor: 'is_active', className: 'text-center w-24' },
           ]}
           onAddNew={() => {
             setEditingGateId(null); setNewGateName(''); setNewGateIp('192.168.1.100'); setNewGatePort(8080); setShowGateModal(true);
           }}
-          onEdit={(item: any) => {
+          onEdit={can('UPDATE_CONTROL_GATE') ? ((item: any) => {
             setEditingGateId(item.id); setNewGateName(item.device_name || item.deviceName || ''); setNewGateIp(item.ip_address || item.ipAddress || '192.168.1.100'); setNewGatePort(item.device_port || item.devicePort || 8080); if (item.control_zone_id || item.controlZoneId) setSelectedZoneId(item.control_zone_id || item.controlZoneId); setShowGateModal(true);
-          }}
-          onDelete={handleDeleteGates}
-          onToggleActive={(id, currentActive) => handleToggleGateActive(String(id), currentActive)}
+          }) : undefined}
+          onDelete={can('DELETE_CONTROL_GATE') ? handleDeleteGates : undefined}
+          onToggleActive={can('UPDATE_CONTROL_GATE') ? ((id, currentActive) => handleToggleGateActive(String(id), currentActive)) : undefined}
+          hideAddButton={!can('CREATE_CONTROL_GATE')}
+          hideDeleteButton={!can('DELETE_CONTROL_GATE')}
         />
       )}
 

@@ -49,25 +49,156 @@ export const ReceiptPrintModal: React.FC<ReceiptPrintModalProps> = ({
     tickets.length ||
     1;
 
+  const PRINT_AGENT_URL = 'http://127.0.0.1:7788';
+
+  const requestIdRef = React.useRef<string>(
+    typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : 'REQ_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8)
+  );
+
+  const [isPrinting, setIsPrinting] = React.useState<boolean>(false);
+  const [printError, setPrintError] = React.useState<{ message: string; errorCode?: string } | null>(null);
+
+  // In qua C# Print Agent (không dialog, chống in trùng).
+  const printViaAgent = async (jobType: 'NORMAL' | 'REPRINT' = 'NORMAL', overrideRequestId?: string) => {
+    setIsPrinting(true);
+    setPrintError(null);
+
+    const activeRequestId = overrideRequestId || (jobType === 'REPRINT'
+      ? (typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : 'REQ_REP_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8))
+      : requestIdRef.current);
+
+    const printPayload = {
+      request_id:        activeRequestId,
+      order_code:        order.order_code,
+      job_type:          jobType,
+      parent_request_id: jobType === 'REPRINT' ? requestIdRef.current : undefined,
+      print_data: {
+        order_code:               order.order_code,
+        created_at:               order.created_at ? new Date(order.created_at).toLocaleString('vi-VN') : '',
+        customer_name:            customerName,
+        customer_phone:           phoneNumber,
+        cashier:                  localStorage.getItem('hpticket_fullname') || '',
+        total_amount:             order.total_amount,
+        applied_discount_amount:  order.discount_amount ?? (order.total_amount - order.final_amount),
+        final_amount:             order.final_amount,
+        payment_method:           order.payment_method ?? '',
+        invoice_lookup_code:      order.invoice_lookup_code ?? '',
+        issued_qr_codes:          tickets.map(t => t.qr_code_string).filter(Boolean),
+        items: (order.details || (order as any).items || []).map((d: any) => ({
+          item_name:   d.item_name,
+          quantity:    d.quantity,
+          unit_price:  d.unit_price,
+          total_price: d.total_price,
+        })),
+      }
+    };
+
+    try {
+      const res = await fetch(`${PRINT_AGENT_URL}/print`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(printPayload),
+        signal:  AbortSignal.timeout(12000),
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (res.ok) {
+        setIsPrinting(false);
+        // In thành công (hoặc trùng lặp đã in trước đó) -> hoàn tất và mở đơn mới
+        onNewOrder();
+        return;
+      }
+
+      // Xử lý lỗi từ PrintAgent (HTTP 503, 409...)
+      const errMsg = data?.error || data?.message || `Máy in phản hồi lỗi (Mã HTTP: ${res.status})`;
+      setPrintError({
+        message: errMsg,
+        errorCode: data?.errorCode || `HTTP_${res.status}`,
+      });
+    } catch (err: any) {
+      setPrintError({
+        message: 'Không kết nối được tới Print Agent (127.0.0.1:7788). Vui lòng kiểm tra HPTicket Windows Service đã chạy trên máy chưa.',
+        errorCode: 'AGENT_OFFLINE',
+      });
+    } finally {
+      setIsPrinting(false);
+    }
+  };
+
   React.useEffect(() => {
-    const handleAfterPrint = () => {
-      onNewOrder();
-    };
-
     const timer = setTimeout(() => {
-      window.print();
-    }, 100);
-
-    window.addEventListener('afterprint', handleAfterPrint);
-
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('afterprint', handleAfterPrint);
-    };
+      printViaAgent('NORMAL');
+    }, 150);
+    return () => clearTimeout(timer);
   }, []);
 
   return (
-    <div className="hidden print:block w-full">
+    <>
+      {/* Cảnh báo lỗi máy in & Tùy chọn hành động thủ công cho Thu ngân */}
+      {printError && (
+        <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-red-200 shadow-2xl max-w-md w-full p-6 text-slate-800 space-y-4">
+            <div className="flex items-center gap-3 text-rose-600">
+              <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center font-bold text-lg">⚠️</div>
+              <div>
+                <h3 className="font-bold text-base text-slate-900">Không thể in vé tự động</h3>
+                <p className="text-xs text-rose-600 font-semibold">{printError.errorCode || 'LỖI PHẦN CỨNG'}</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 bg-rose-50 border border-rose-100 rounded-xl p-3 leading-relaxed">
+              {printError.message}
+            </p>
+
+            <div className="flex flex-col gap-2 pt-2">
+              <button
+                type="button"
+                disabled={isPrinting}
+                onClick={() => printViaAgent('NORMAL', requestIdRef.current)}
+                className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition shadow-xs flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isPrinting ? 'Đang gửi lại lệnh...' : '🔄 Thử lại lệnh in (cùng Request ID)'}
+              </button>
+
+              <button
+                type="button"
+                disabled={isPrinting}
+                onClick={() => printViaAgent('REPRINT')}
+                className="w-full py-2.5 px-4 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl transition shadow-xs flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                🎫 In lại vé mới (Kẹt giấy / Xin in lại)
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  window.print();
+                  onNewOrder();
+                }}
+                className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition"
+              >
+                🖨️ In dự phòng bằng trình duyệt (Dialog)
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onNewOrder()}
+                className="w-full py-2 text-slate-400 hover:text-slate-600 text-xs font-medium text-center"
+              >
+                Bỏ qua và tiếp tục đơn mới
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Vùng HTML in sẵn sàng cho @media print (chỉ dùng khi thu ngân chủ động in dự phòng) */}
+      <div className="hidden print:block w-full">
       {/* Print-specific style override */}
       <style>{`
         @page {
@@ -144,7 +275,7 @@ export const ReceiptPrintModal: React.FC<ReceiptPrintModalProps> = ({
               <div className="text-center space-y-0 mb-1.5 pt-1 print:pt-1">
                 <img src={(() => {
                   const url = dbStore.companies?.[0]?.invoice_logo_url;
-                  if (!url || url === '/logo.png') return "/logo.png";
+                  if (!url || url === '/logo.png') return "/hoang-phat-logo.jpg";
                   if (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:')) return url;
                   return API_BASE_URL + url;
                 })()} alt="Logo" className="w-[200px] h-auto mx-auto object-contain mb-2 grayscale contrast-150 brightness-90" style={{ mixBlendMode: 'multiply' }} />
@@ -204,7 +335,7 @@ export const ReceiptPrintModal: React.FC<ReceiptPrintModalProps> = ({
           <div className="text-center space-y-0 mb-1.5 pt-1 print:pt-1">
              <img src={(() => {
                   const url = dbStore.companies?.[0]?.invoice_logo_url;
-                  if (!url || url === '/logo.png') return "/logo.png";
+                  if (!url || url === '/logo.png') return "/hoang-phat-logo.jpg";
                   if (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:')) return url;
                   return API_BASE_URL + url;
                 })()} alt="Logo" className="w-[200px] h-auto mx-auto object-contain mb-2 grayscale contrast-150 brightness-90" style={{ mixBlendMode: 'multiply' }} />
@@ -284,5 +415,6 @@ export const ReceiptPrintModal: React.FC<ReceiptPrintModalProps> = ({
 
       </div>
     </div>
+    </>
   );
 };

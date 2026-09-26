@@ -3,6 +3,8 @@ import { Ticket } from 'lucide-react';
 import { AdminConfigCard } from '../../iam/components/AdminConfigCard';
 import { TicketTemplate, AudienceType, ControlZone } from '../../../shared/types/hpticket';
 import { ticketingService } from '../../../api/ticketingService';
+import { usePermission } from '../../../shared/hooks/usePermission';
+import { DetailsModal } from '../../../shared/components/DetailsModal';
 import { toast } from '../../../shared/utils/toast';
 
 interface TemplateTabProps {
@@ -18,7 +20,9 @@ export const TemplateTab: React.FC<TemplateTabProps> = ({
   audienceTypes,
   refreshData
 }) => {
+  const { can } = usePermission();
   const [showModal, setShowModal] = useState(false);
+  const [selectedTplForDetails, setSelectedTplForDetails] = useState<any>(null);
   const [editingTpl, setEditingTpl] = useState<TicketTemplate | null>(null);
 
   const [newTplCode, setNewTplCode] = useState('');
@@ -41,48 +45,60 @@ export const TemplateTab: React.FC<TemplateTabProps> = ({
   const handleSave = async () => {
     if (!newTplCode || !newTplName) { toast.error('Vui lòng nhập đầy đủ Mã Mẫu Vé và Tên Mẫu Vé!'); return; }
 
-    if (editingTpl) {
-      const updatedItem = {
-        ...editingTpl,
-        code: newTplCode.toUpperCase(),
-        name: newTplName,
-        price: newTplPrice,
-        tax_percent: newTplTaxPercent,
-        audience_type_id: selectedAudId,
-        ticket_type: newTicketType,
-        validity_days: newValidityDays,
-        valid_days: newValidDays.join(','),
-        is_holiday_applicable: newIsHoliday,
-        is_promotion_applicable: newIsPromo,
-        allowed_passes: newAllowedPasses
-      };
-      await ticketingService.updateTicketTemplate(editingTpl.id, updatedItem);
-    } else {
-      const item: TicketTemplate = {
-        id: `tpl-${Date.now()}`,
-        code: newTplCode.toUpperCase(),
-        name: newTplName,
-        control_zone_ids: [],
-        price: newTplPrice,
-        tax_percent: newTplTaxPercent,
-        audience_type_id: selectedAudId,
-        ticket_type: newTicketType,
-        validity_days: newValidityDays,
-        valid_days: newValidDays.join(','),
-        is_holiday_applicable: newIsHoliday,
-        is_promotion_applicable: newIsPromo,
-        allowed_passes: newAllowedPasses,
-        is_active: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        created_by: 'admin',
-        updated_by: 'admin',
-      };
-      await ticketingService.createTicketTemplate(item);
-    }
+    try {
+      if (editingTpl) {
+        const zoneIds = editingTpl.control_zone_ids ||
+          (editingTpl as any).controlZones?.map((z: any) => z.id) ||
+          (editingTpl as any).control_zones?.map((z: any) => z.id) || [];
 
-    refreshData();
-    setShowModal(false);
+        const updatedItem = {
+          ...editingTpl,
+          code: newTplCode.toUpperCase(),
+          name: newTplName,
+          price: newTplPrice,
+          tax_percent: newTplTaxPercent,
+          audience_type_id: selectedAudId,
+          ticket_type: newTicketType,
+          validity_days: newValidityDays,
+          valid_days: newValidDays.join(','),
+          is_holiday_applicable: newIsHoliday,
+          is_promotion_applicable: newIsPromo,
+          allowed_passes: newAllowedPasses,
+          control_zone_ids: zoneIds,
+        };
+        await ticketingService.updateTicketTemplate(editingTpl.id, updatedItem);
+        toast.success('Cập nhật mẫu vé thành công!');
+      } else {
+        const item: TicketTemplate = {
+          id: `tpl-${Date.now()}`,
+          code: newTplCode.toUpperCase(),
+          name: newTplName,
+          control_zone_ids: [],
+          price: newTplPrice,
+          tax_percent: newTplTaxPercent,
+          audience_type_id: selectedAudId,
+          ticket_type: newTicketType,
+          validity_days: newValidityDays,
+          valid_days: newValidDays.join(','),
+          is_holiday_applicable: newIsHoliday,
+          is_promotion_applicable: newIsPromo,
+          allowed_passes: newAllowedPasses,
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          created_by: 'admin',
+          updated_by: 'admin',
+        };
+        await ticketingService.createTicketTemplate(item);
+        toast.success('Tạo mẫu vé mới thành công!');
+      }
+
+      refreshData();
+      setShowModal(false);
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi lưu mẫu vé!';
+      toast.error(msg);
+    }
   };
 
   const handleToggleActive = async (id: string, currentActive: boolean) => {
@@ -106,28 +122,19 @@ export const TemplateTab: React.FC<TemplateTabProps> = ({
         title="KHAI BÁO CÁC LOẠI VÉ"
         data={ticketTemplates}
         columns={[
-          { header: 'ID', accessor: (row, idx) => idx + 1, className: 'w-16 font-mono text-center' },
-          { header: 'Mã vé', accessor: 'code', className: 'font-mono font-bold text-slate-800' },
-          { header: 'Tên vé', accessor: 'name', className: 'font-semibold text-slate-900' },
+          { header: 'ID', accessor: (row, idx) => idx + 1, className: 'w-12 font-mono text-center' },
+          { 
+            header: 'Tên vé', 
+            accessor: (row) => (
+              <div>
+                <div className="font-bold text-slate-900">{row.name}</div>
+                <div className="text-[11px] text-slate-500 font-mono mt-0.5">{row.code}</div>
+              </div>
+            ), 
+            className: 'py-2 min-w-[200px] whitespace-normal' 
+          },
 
-          {
-            header: 'Đối tượng',
-            accessor: (row: any) => {
-              const aud = audienceTypes.find((a) => a.id === row.audience_type_id);
-              return aud?.name || row.name;
-            },
-            className: 'text-slate-800 font-medium',
-          },
-          { header: 'Gia vé', accessor: (row: any) => `${row.price.toLocaleString('vi-VN')}`, className: 'font-mono font-semibold text-slate-900 text-right pr-4' },
-          {
-            header: 'VAT',
-            accessor: (row: any) => (
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
-                {row.tax_percent !== undefined ? row.tax_percent : 8}%
-              </span>
-            ),
-            className: 'text-center',
-          },
+          { header: 'Giá vé', accessor: (row: any) => `${row.price.toLocaleString('vi-VN')} đ`, className: 'font-mono font-bold text-indigo-700 text-right pr-4 w-32' },
           {
             header: 'Loại hình / Hiệu lực',
             accessor: (row: any) => {
@@ -148,37 +155,7 @@ export const TemplateTab: React.FC<TemplateTabProps> = ({
             },
             className: 'text-center',
           },
-          {
-            header: 'Ngày sử dụng',
-            accessor: (row: any) => {
-              if (!row.valid_days) return 'Thứ 2 - Chủ nhật';
-              const days = row.valid_days.split(',');
-              return days.map((d: string) => d === '8' ? 'CN' : `T${d}`).join(', ');
-            },
-            className: 'font-mono text-center text-[11px] text-slate-700',
-          },
-          { header: 'Sử dụng', accessor: 'is_active', className: 'text-center w-20' },
-          {
-            header: 'Khuyến mãi',
-            accessor: (row: any) => (
-              <div className="flex justify-center">
-                <input
-                  type="checkbox"
-                  checked={row.is_promotion_applicable || false}
-                  onChange={async (e) => {
-                    const val = e.target.checked;
-                    setTicketTemplates(prev => prev.map(t => t.id === row.id ? { ...t, is_promotion_applicable: val } : t));
-                    try {
-                      const updated = { ...row, is_promotion_applicable: val };
-                      await ticketingService.updateTicketTemplate(row.id, updated);
-                    } catch (err) { }
-                  }}
-                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                />
-              </div>
-            ),
-            className: 'text-center w-24',
-          },
+          { header: 'Sử dụng', accessor: 'is_active', className: 'text-center w-24' },
         ]}
         onAddNew={() => {
           setEditingTpl(null);
@@ -195,7 +172,7 @@ export const TemplateTab: React.FC<TemplateTabProps> = ({
           setNewAllowedPasses(1);
           setShowModal(true);
         }}
-        onEdit={(item: any) => {
+        onEdit={can('UPDATE_TICKET_TEMPLATE') ? ((item: any) => {
           setEditingTpl(item);
           setNewTplCode(item.code);
           setNewTplName(item.name);
@@ -209,13 +186,47 @@ export const TemplateTab: React.FC<TemplateTabProps> = ({
           setNewValidityDays(item.validity_days || (item.code?.includes('FAMILY') ? 30 : 1));
           setNewAllowedPasses(item.allowed_passes || (item.code?.includes('FAMILY') ? -1 : 1));
           setShowModal(true);
-        }}
-        onDelete={handleDelete}
-        onToggleActive={handleToggleActive}
+        }) : undefined}
+        onDelete={can('DELETE_TICKET_TEMPLATE') ? handleDelete : undefined}
+        onToggleActive={can('UPDATE_TICKET_TEMPLATE') ? handleToggleActive : undefined}
+        onViewDetails={(item: any) => setSelectedTplForDetails(item)}
+        hideAddButton={!can('CREATE_TICKET_TEMPLATE')}
+        hideDeleteButton={!can('DELETE_TICKET_TEMPLATE')}
       />
 
+      {selectedTplForDetails && (
+        <DetailsModal
+          title="Chi tiết Mẫu Vé"
+          fields={[
+            { label: 'Mã Mẫu Vé', value: selectedTplForDetails.code },
+            { label: 'Tên Mẫu Vé', value: selectedTplForDetails.name },
+            { 
+              label: 'Đối tượng', 
+              value: audienceTypes.find((a) => a.id === selectedTplForDetails.audience_type_id)?.name || selectedTplForDetails.name 
+            },
+            { label: 'Loại hình', value: selectedTplForDetails.ticket_type === 'UNLIMITED' ? 'Vé Tháng' : 'Vé Lượt' },
+            { label: 'Giá Niêm Yết', value: `${(selectedTplForDetails.price || 0).toLocaleString('vi-VN')} đ` },
+            { label: 'Thuế VAT', value: `${selectedTplForDetails.tax_percent !== undefined ? selectedTplForDetails.tax_percent : 8}%` },
+            { 
+              label: 'Ngày sử dụng', 
+              value: selectedTplForDetails.valid_days 
+                ? selectedTplForDetails.valid_days.split(',').map((d: string) => d === '8' ? 'CN' : `T${d}`).join(', ') 
+                : 'Thứ 2 - Chủ nhật' 
+            },
+            { label: 'Áp dụng Khuyến mãi', value: selectedTplForDetails.is_promotion_applicable ? 'Có' : 'Không' },
+            { label: 'Áp dụng Ngày lễ', value: selectedTplForDetails.is_holiday_applicable ? 'Có' : 'Không' },
+          ]}
+          onClose={() => setSelectedTplForDetails(null)}
+        />
+      )}
+
       {showModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setShowModal(false);
+          }}
+        >
           <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl text-slate-900 my-8">
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
               <Ticket className="w-5 h-5 text-indigo-600" /> {editingTpl ? 'Sửa Mẫu Vé' : 'Tạo Loại Mẫu Vé Mới'}

@@ -31,26 +31,23 @@ export const POSCartTable: React.FC<POSCartTableProps> = ({
                    (selectedGroup && (selectedGroup.name.toLowerCase().includes('lẻ') || selectedGroup.name.toLowerCase().includes('retail')));
 
   return (
-  <div className="order-2 lg:order-1 lg:col-span-8 bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs space-y-6">
-    <div className="overflow-x-auto">
+  <div className="bg-white border border-slate-200 rounded-xl shadow-xs flex flex-col h-full overflow-hidden">
+    <div className="flex-1 overflow-auto bg-white min-h-0">
       <table className="w-full text-left text-xs border-collapse">
-        <thead>
-          <tr className="border-b border-slate-200 text-slate-600 font-bold bg-slate-50">
-            <th className="py-2.5 px-3">Loại vé / SP</th>
-            <th className="py-2.5 px-3 text-center">Số lượt</th>
-            <th className="py-2.5 px-3 text-center">Số lượng</th>
-            <th className="py-2.5 px-3 text-right">Đơn giá</th>
-            <th className="py-2.5 px-3 text-center">GG Nhóm KH</th>
-            <th className="py-2.5 px-3 text-right">Trước thuế</th>
-            <th className="py-2.5 px-3 text-right">Thuế VAT</th>
-            <th className="py-2.5 px-3 text-right">Thành tiền</th>
-            <th className="py-2.5 px-3 text-center">Thao tác</th>
+        <thead className="sticky top-0 bg-slate-50 z-10 shadow-sm border-b border-slate-200">
+          <tr className="text-slate-600 font-bold">
+            <th className="py-2.5 px-3 whitespace-nowrap">Loại vé / SP</th>
+            <th className="py-2.5 px-3 text-center whitespace-nowrap">Số lượt</th>
+            <th className="py-2.5 px-3 text-center whitespace-nowrap">Số lượng</th>
+            <th className="py-2.5 px-3 whitespace-nowrap">Đơn giá</th>
+            <th className="py-2.5 px-3 text-right whitespace-nowrap">Thành tiền</th>
+            <th className="py-2.5 px-3 text-center whitespace-nowrap">Thao tác</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
           {lineItems.length === 0 ? (
             <tr>
-              <td colSpan={9} className="py-8 text-center text-slate-500 italic">Chưa chọn loại vé nào. Vui lòng tick chọn danh sách vé ở cột bên phải.</td>
+              <td colSpan={6} className="py-8 text-center text-slate-500 italic">Chưa chọn loại vé nào. Vui lòng tick chọn danh sách vé ở cột bên phải.</td>
             </tr>
           ) : (
             lineItems.map((item, index) => {
@@ -64,9 +61,9 @@ export const POSCartTable: React.FC<POSCartTableProps> = ({
               return (
                 <tr key={item.item_id} className="hover:bg-slate-50 transition border-b border-slate-50 last:border-0">
                   <td className="py-2.5 px-3">
-                    <div className="font-semibold text-slate-900 max-w-[150px] truncate" title={item.name}>
+                    <div className="font-semibold text-slate-900 whitespace-normal leading-snug">
                       {item.name}
-                      {item.item_type === ItemType.PRODUCT && <span className="ml-2 text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold">SP</span>}
+                      {item.item_type === ItemType.PRODUCT && <span className="ml-2 text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold inline-block align-middle">SP</span>}
                     </div>
                   </td>
                   <td className="py-2.5 px-3 text-center align-middle">
@@ -124,15 +121,14 @@ export const POSCartTable: React.FC<POSCartTableProps> = ({
                       <button type="button" onClick={() => updateLineItem(index, 'quantity', (Number(item.quantity) || 0) + 1)} className="w-7 h-7 flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition">+</button>
                     </div>
                   </td>
-                  <td className="py-2.5 px-3 text-right font-mono text-slate-700">{item.unit_price.toLocaleString('vi-VN')}</td>
-                  <td className="py-2.5 px-3 text-center font-mono">
-                    {item.discount_percent > 0 
-                      ? <span className="inline-flex items-center gap-0.5 bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-full text-[11px] border border-emerald-200">{item.discount_percent}%</span>
-                      : <span className="text-slate-300">—</span>
-                    }
+                  <td className="py-2.5 px-3 font-mono text-slate-700">
+                    <div className="flex flex-col">
+                      <span>{item.unit_price.toLocaleString('vi-VN')}</span>
+                      {item.discount_percent > 0 && (
+                        <span className="text-[10px] text-emerald-600 font-bold">-{(item.discount_percent)}%</span>
+                      )}
+                    </div>
                   </td>
-                  <td className="py-2.5 px-3 text-right font-mono text-slate-500">{lineBeforeVat.toLocaleString('vi-VN')}</td>
-                  <td className="py-2.5 px-3 text-right font-mono text-slate-500">{lineVat.toLocaleString('vi-VN')}</td>
                   <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">{lineTotal.toLocaleString('vi-VN')}</td>
                   <td className="py-2.5 px-3 text-center">
                     <button onClick={() => setLineItems((prev) => prev.filter((_, idx) => idx !== index))} className="text-rose-600 hover:text-rose-800 transition p-1" title="Xóa vé">
@@ -147,62 +143,71 @@ export const POSCartTable: React.FC<POSCartTableProps> = ({
       </table>
     </div>
 
-    <div className="border-t border-slate-100 pt-5 max-w-md mx-auto space-y-3 text-xs">
-      <div className="flex items-center justify-between">
-        <span className="text-slate-700 font-semibold">Thành tiền :</span>
-        <span className="font-mono font-bold text-base text-rose-600">{subtotalAfterLineDiscounts.toLocaleString('vi-VN')} đ</span>
-      </div>
-      <div className="flex items-center justify-between">
-        <span className="text-slate-700 font-semibold">Đặt cọc :</span>
-        <input type="number" value={depositAmount || ''} onChange={(e) => setDepositAmount(parseFloat(e.target.value) || 0)} placeholder="0" className="w-36 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-right font-mono text-slate-900 focus:outline-none focus:border-emerald-500 shadow-xs" />
-      </div>
-      <div className="flex items-center justify-between">
-        <span className="text-slate-700 font-semibold">Giảm giá thêm (KM) :</span>
-        <input type="number" value={effectiveExtraDiscount || ''} onChange={(e) => { setExtraDiscount(parseFloat(e.target.value) || 0); if (selectedPromotionId) setSelectedPromotionId(''); }} placeholder="0" className="w-36 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-right font-mono text-amber-600 font-semibold focus:outline-none focus:border-emerald-500 shadow-xs" />
-      </div>
-      <div className="flex items-center justify-between pt-1 border-t border-slate-200">
-        <span className="text-slate-900 font-bold">Còn phải thanh toán :</span>
-        <span className="font-mono font-extrabold text-base text-blue-600">{remainingPayable.toLocaleString('vi-VN')} đ</span>
-      </div>
-
-      {(() => {
-        let orderTotalPreTax = 0, orderTotalTax = 0;
-        const totalDiscountToDistribute = Math.max(0, totalSubtotalBeforeDiscount - grandTotal);
-        const ticketTotalGross = lineItems.filter(i => i.item_type === ItemType.TICKET).reduce((acc, i) => acc + (i.unit_price * (Number(i.quantity) || 0)), 0);
-
-        lineItems.forEach(item => {
-           const itemGross = item.unit_price * (Number(item.quantity) || 0);
-           let itemNet = itemGross;
-           const taxPercent = item.tax_percent !== undefined ? item.tax_percent : (item.item_type === ItemType.PRODUCT ? 10 : 8);
-
-           if (item.item_type === ItemType.TICKET && ticketTotalGross > 0) {
-               const itemDiscountShare = (itemGross * totalDiscountToDistribute) / ticketTotalGross;
-               itemNet = itemGross - itemDiscountShare;
-           }
-
-           const taxMultiplier = 1 + (taxPercent / 100);
-           const preTaxTotal = itemNet / taxMultiplier;
-           const taxTotal = itemNet - preTaxTotal;
-
-           orderTotalPreTax += preTaxTotal;
-           orderTotalTax += taxTotal;
-        });
-
-        return (
-          <div className="pt-1 pb-1 space-y-1 border-t border-slate-100 mt-2">
-            <div className="flex items-center justify-between text-slate-500 text-[11px]"><span className="italic">- Giá trị trước thuế (VAT):</span><span className="font-mono">{Math.round(orderTotalPreTax).toLocaleString('vi-VN')} đ</span></div>
-            <div className="flex items-center justify-between text-slate-500 text-[11px]"><span className="italic">- Thuế VAT:</span><span className="font-mono">{Math.round(orderTotalTax).toLocaleString('vi-VN')} đ</span></div>
+    <div className="border-t border-slate-200 p-3 bg-slate-50 shrink-0">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-3 text-xs">
+        {/* Cột trái: Tiền hàng, Đặt cọc, Giảm giá */}
+        <div className="space-y-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-slate-700 font-semibold">Thành tiền :</span>
+            <span className="font-mono font-bold text-base text-rose-600">{subtotalAfterLineDiscounts.toLocaleString('vi-VN')} đ</span>
           </div>
-        );
-      })()}
+          <div className="flex items-center justify-between">
+            <span className="text-slate-700 font-semibold">Đặt cọc :</span>
+            <input type="number" value={depositAmount || ''} onChange={(e) => setDepositAmount(parseFloat(e.target.value) || 0)} placeholder="0" className="w-32 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-right font-mono text-slate-900 focus:outline-none focus:border-emerald-500 shadow-xs" />
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-slate-700 font-semibold">Giảm giá thêm (KM) :</span>
+            <input type="number" value={effectiveExtraDiscount || ''} onChange={(e) => { setExtraDiscount(parseFloat(e.target.value) || 0); if (selectedPromotionId) setSelectedPromotionId(''); }} placeholder="0" className="w-32 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-right font-mono text-amber-600 font-semibold focus:outline-none focus:border-emerald-500 shadow-xs" />
+          </div>
+        </div>
 
-      <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-        <span className="text-slate-700 font-semibold">Hình thức :</span>
-        <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)} className="w-36 bg-slate-50 border border-slate-200 text-rose-600 font-bold rounded-lg px-2.5 py-1 text-xs focus:outline-none focus:border-rose-500 shadow-xs">
-          <option value={PaymentMethod.CASH}>Tiền mặt (CASH)</option>
-          <option value={PaymentMethod.BANK_TRANSFER}>Chuyển khoản / QR Code</option>
-          <option value={PaymentMethod.CREDIT_CARD}>Thẻ tín dụng</option>
-        </select>
+        {/* Cột phải: Thanh toán, VAT, Hình thức */}
+        <div className="space-y-2.5 lg:border-l lg:border-slate-200 lg:pl-6 border-t border-slate-200 lg:border-t-0 pt-3 lg:pt-0">
+          <div className="flex items-center justify-between">
+            <span className="text-slate-900 font-bold">Còn phải thanh toán :</span>
+            <span className="font-mono font-extrabold text-base text-blue-600">{remainingPayable.toLocaleString('vi-VN')} đ</span>
+          </div>
+          
+          {(() => {
+            let orderTotalPreTax = 0, orderTotalTax = 0;
+            const totalDiscountToDistribute = Math.max(0, totalSubtotalBeforeDiscount - grandTotal);
+            const ticketTotalGross = lineItems.filter(i => i.item_type === ItemType.TICKET).reduce((acc, i) => acc + (i.unit_price * (Number(i.quantity) || 0)), 0);
+
+            lineItems.forEach(item => {
+               const itemGross = item.unit_price * (Number(item.quantity) || 0);
+               let itemNet = itemGross;
+               const taxPercent = item.tax_percent !== undefined ? item.tax_percent : (item.item_type === ItemType.PRODUCT ? 10 : 8);
+
+               if (item.item_type === ItemType.TICKET && ticketTotalGross > 0) {
+                   const itemDiscountShare = (itemGross * totalDiscountToDistribute) / ticketTotalGross;
+                   itemNet = itemGross - itemDiscountShare;
+               }
+
+               const taxMultiplier = 1 + (taxPercent / 100);
+               const preTaxTotal = itemNet / taxMultiplier;
+               const taxTotal = itemNet - preTaxTotal;
+
+               orderTotalPreTax += preTaxTotal;
+               orderTotalTax += taxTotal;
+            });
+
+            return (
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-slate-500 text-[11px]"><span className="italic">- Giá trị trước thuế:</span><span className="font-mono">{Math.round(orderTotalPreTax).toLocaleString('vi-VN')} đ</span></div>
+                <div className="flex items-center justify-between text-slate-500 text-[11px]"><span className="italic">- Thuế VAT:</span><span className="font-mono">{Math.round(orderTotalTax).toLocaleString('vi-VN')} đ</span></div>
+              </div>
+            );
+          })()}
+
+          <div className="flex items-center justify-between pt-1 border-t border-slate-100 mt-1">
+            <span className="text-slate-700 font-semibold">Hình thức :</span>
+            <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)} className="w-32 bg-slate-50 border border-slate-200 text-rose-600 font-bold rounded-lg px-2.5 py-1 text-xs focus:outline-none focus:border-rose-500 shadow-xs">
+              <option value={PaymentMethod.CASH}>Tiền mặt</option>
+              <option value={PaymentMethod.BANK_TRANSFER}>Chuyển khoản / QR</option>
+              <option value={PaymentMethod.CREDIT_CARD}>Thẻ tín dụng</option>
+            </select>
+          </div>
+        </div>
       </div>
     </div>
   </div>

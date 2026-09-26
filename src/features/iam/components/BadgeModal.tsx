@@ -14,7 +14,12 @@ interface BadgeModalProps {
 export const BadgeModal: React.FC<BadgeModalProps> = ({
   selectedBadgeUser, roles, badgeQrMode, setBadgeQrMode, onClose
 }) => (
-  <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+  <div
+    className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4"
+    onKeyDown={(e) => {
+      if (e.key === 'Escape' || e.key === 'Enter') onClose();
+    }}
+  >
     <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-2xl text-slate-900 flex flex-col items-center space-y-4">
       <div className="w-full bg-emerald-600 text-white rounded-2xl p-4 text-center shadow-sm">
         <h3 className="text-base font-black tracking-tight">HPTICKET STAFF BADGE</h3>

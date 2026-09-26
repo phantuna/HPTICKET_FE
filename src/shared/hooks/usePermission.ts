@@ -29,17 +29,15 @@ export interface PermissionHook {
 }
 
 export function usePermission(): PermissionHook {
-  return useMemo(() => {
-    const permissions = getUserPermissions();
-    const role = getUserRole();
-    const isSuperAdmin = permissions.includes('SUPER_ADMIN');
+  const permissions = getUserPermissions();
+  const role = getUserRole();
+  const isSuperAdmin = permissions.includes('SUPER_ADMIN');
 
-    return {
-      can: (perm: string) => hasPermission(perm),
-      canAny: (...perms: string[]) => hasAnyPermission(...perms),
-      permissions,
-      role,
-      isAdmin: isSuperAdmin || role.toLowerCase().includes('admin'),
-    };
-  }, []);
+  return {
+    can: (perm: string) => hasPermission(perm),
+    canAny: (...perms: string[]) => hasAnyPermission(...perms),
+    permissions,
+    role,
+    isAdmin: isSuperAdmin || role.toLowerCase().includes('admin'),
+  };
 }

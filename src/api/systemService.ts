@@ -1,4 +1,6 @@
-import { apiClient, API_BASE_URL, API_ENDPOINTS } from './apiConfig';
+import { apiClient, API_ENDPOINTS } from './apiConfig';
+import { API_BASE_URL } from './apiConfig';
+import { authState } from './authState';
 
 export interface BackupFile {
   fileName: string;
@@ -51,7 +53,7 @@ export const systemService = {
   },
   
   uploadAndRestore: (formData: FormData) => {
-    const token = localStorage.getItem('hpticket_token');
+    const token = authState.getToken();
     return fetch(`${API_BASE_URL}/system/backup/upload-and-restore`, {
       method: 'POST',
       body: formData,
@@ -71,7 +73,7 @@ export const systemService = {
    * Server trả về uploadId để dùng cho các chunk tiếp theo.
    */
   initChunkUpload: (fileName: string, fileSize: number, totalChunks: number): Promise<ChunkUploadSession> => {
-    const token = localStorage.getItem('hpticket_token');
+    const token = authState.getToken();
     const params = new URLSearchParams({ fileName, fileSize: String(fileSize), totalChunks: String(totalChunks) });
     return fetch(`${API_BASE_URL}/system/backup/upload/init?${params}`, {
       method: 'POST',
@@ -87,7 +89,7 @@ export const systemService = {
    * chunkIndex bắt đầu từ 0.
    */
   uploadChunk: (uploadId: string, chunkIndex: number, chunk: Blob): Promise<void> => {
-    const token = localStorage.getItem('hpticket_token');
+    const token = authState.getToken();
     const formData = new FormData();
     formData.append('chunk', chunk, `chunk_${chunkIndex}`);
     const params = new URLSearchParams({ uploadId, chunkIndex: String(chunkIndex) });
@@ -104,7 +106,7 @@ export const systemService = {
    * Bước 3: Báo server ghép file và tùy chọn restore DB ngay.
    */
   finalizeChunkUpload: (uploadId: string, restoreAfterUpload: boolean, expectedSha256?: string): Promise<string> => {
-    const token = localStorage.getItem('hpticket_token');
+    const token = authState.getToken();
     const params = new URLSearchParams({ uploadId, restoreAfterUpload: String(restoreAfterUpload) });
     if (expectedSha256) params.append('expectedSha256', expectedSha256);
     return fetch(`${API_BASE_URL}/system/backup/upload/finalize?${params}`, {
@@ -142,7 +144,7 @@ export const systemService = {
       formData.append('oldFilename', oldFilename);
     }
     // Using fetch directly because apiClient might not set Content-Type correctly for FormData (boundary)
-    const token = localStorage.getItem('hpticket_token');
+    const token = authState.getToken();
     return fetch(`${API_BASE_URL}${API_ENDPOINTS.SYSTEM.UPLOAD_LOGO}`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}` },

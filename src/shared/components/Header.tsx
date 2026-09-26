@@ -45,19 +45,54 @@ export const Header: React.FC<HeaderProps> = ({
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [jwtUser, setJwtUser] = useState<string | null>(localStorage.getItem('hpticket_username'));
 
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
   useEffect(() => {
+    const fetchUser = () => {
+      iamService.getCurrentUser().then(res => {
+        if (res?.data) setCurrentUser(res.data);
+      }).catch(console.error);
+    };
+
+    if (jwtUser) {
+      fetchUser();
+    }
+
     const handleModeChange = () => setIsMockMode(false);
-    const handleAuthChange = () => setJwtUser(localStorage.getItem('hpticket_username'));
+    const handleAuthChange = () => {
+      setJwtUser(localStorage.getItem('hpticket_username'));
+      fetchUser();
+    };
+    
     window.addEventListener('hpticket_mode_changed', handleModeChange);
     window.addEventListener('hpticket_auth_changed', handleAuthChange);
     return () => {
       window.removeEventListener('hpticket_mode_changed', handleModeChange);
       window.removeEventListener('hpticket_auth_changed', handleAuthChange);
     };
-  }, []);
+  }, [jwtUser]);
 
-  const activeUser = dbStore.getActiveUser() || { fullname: 'Loading...', username: 'loading', id: '', role_id: '' };
-  const userRole = dbStore.roles.find((r) => r.id === activeUser.role_id);
+  const activeUser = {
+    fullname: currentUser?.fullname || localStorage.getItem('hpticket_fullname') || dbStore.getActiveUser()?.fullname || 'Loading...',
+    username: currentUser?.username || localStorage.getItem('hpticket_username') || dbStore.getActiveUser()?.username || 'loading',
+    id: currentUser?.id || dbStore.getActiveUser()?.id || '',
+    role_id: currentUser?.role_id || localStorage.getItem('hpticket_role') || dbStore.getActiveUser()?.role_id || ''
+  };
+
+  const roleNameMap: Record<string, string> = {
+    'ADMIN': 'Quản Trị Viên',
+    'SUPER_ADMIN': 'Super Admin',
+    'CASHIER': 'Nhân Viên Thu Ngân',
+    'ACCOUNTANT': 'Nhân Viên Kế Toán',
+    'MANAGER': 'Quản Lý',
+    'rol-admin': 'Quản Trị Hệ Thống',
+    'rol-cashier': 'Thu Ngân'
+  };
+
+  const rawRoleName = currentUser?.role_name || localStorage.getItem('hpticket_role') || dbStore.roles.find((r) => r.id === activeUser.role_id)?.name || activeUser.role_id;
+  const userRole = { 
+    name: roleNameMap[rawRoleName] || roleNameMap[activeUser.role_id] || rawRoleName 
+  };
   const license = dbStore.licenseConfig;
 
   // Group hubs
@@ -98,20 +133,6 @@ export const Header: React.FC<HeaderProps> = ({
                     Đăng nhập hệ thống
                   </button>
                 )}
-                <button
-                  onClick={async () => {
-                    const synced = await dbStore.syncFromBackend(true);
-                    if (synced) {
-                      toast.success("✅ Đã tải dữ liệu mới nhất từ cơ sở dữ liệu Spring Boot (PostgreSQL)!");
-                    } else {
-                      toast.error("⚠️ Không thể tải dữ liệu. Kiểm tra máy chủ Java 8080 đang chạy hoặc đăng nhập lại.");
-                    }
-                  }}
-                  title="Đồng bộ dữ liệu mới nhất"
-                  className="p-1 rounded-lg bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 transition border border-slate-200 cursor-pointer"
-                >
-                  <Server className="w-3.5 h-3.5" />
-                </button>
               </div>
             </div>
           </div>
@@ -130,9 +151,6 @@ export const Header: React.FC<HeaderProps> = ({
                 />
                 <div className="hidden sm:block">
                   <p className="text-xs font-semibold text-slate-800 leading-tight">{activeUser.fullname}</p>
-                  <p className="text-[10px] text-emerald-700 font-medium leading-none mt-0.5">
-                    {userRole?.name || activeUser.username}
-                  </p>
                 </div>
                 <ChevronDown className="w-4 h-4 text-slate-400 ml-0.5" />
               </button>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { invoiceService, IssueOrderPayload } from '../services/invoiceService';
+import { toast } from '../../../shared/utils/toast';
 
 export type InvoiceStatus = 'PENDING' | 'ISSUED' | 'ISSUED_BULK' | 'FAILED' | null;
 
@@ -91,6 +92,12 @@ export const useInvoice = (): UseInvoiceReturn => {
       closeIssueModal();
       onSuccess();
     } catch (err: any) {
+      // Nếu là lỗi 409 Conflict do Race Condition (Optimistic Locking)
+      if (err?.response?.status === 409) {
+        const errorMsg = err?.response?.data?.message || 'Hóa đơn của đơn hàng đang được xử lý. Vui lòng chờ trong giây lát.';
+        toast.info(errorMsg);
+        throw new Error(errorMsg);
+      }
       // Bóc tách message lỗi từ backend (thường nằm ở err.response.data.message)
       const errorMsg = err?.response?.data?.message || err?.message || 'Lỗi không xác định';
       showToast(`❌ Lỗi tạo HĐDT: ${errorMsg}`);

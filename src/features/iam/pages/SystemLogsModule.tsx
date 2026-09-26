@@ -157,12 +157,13 @@ export const SystemLogsModule: React.FC = () => {
             <table className="w-full text-left text-xs text-slate-800">
               <thead className="bg-slate-50 text-slate-600 uppercase font-mono text-[10px] border-b border-slate-200">
                 <tr>
-                  <th className="p-3.5 w-40">Thời Gian</th>
-                  <th className="p-3.5 w-32">Người Thực Hiện</th>
-                  <th className="p-3.5 w-40">Hành Động</th>
-                  <th className="p-3.5 w-36">Bảng Tác Động</th>
+                  <th className="p-3.5 w-36">Thời Gian</th>
+                  <th className="p-3.5 w-28">Người Thực Hiện</th>
+                  <th className="p-3.5 w-32 font-mono">Địa Chỉ IP</th>
+                  <th className="p-3.5 w-36">Hành Động</th>
+                  <th className="p-3.5 w-32">Bảng Tác Động</th>
                   <th className="p-3.5">Entity ID</th>
-                  <th className="p-3.5 text-center w-32">JSON Snapshot</th>
+                  <th className="p-3.5 text-center w-28">JSON Snapshot</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -173,6 +174,11 @@ export const SystemLogsModule: React.FC = () => {
                     </td>
                     <td className="p-3.5">
                       <span className="font-bold text-slate-900">@{log.username}</span>
+                    </td>
+                    <td className="p-3.5 font-mono text-[11px] text-slate-700 whitespace-nowrap">
+                      {log.ip_address || (log as any).ipAddress || (
+                        <span className="text-slate-400 font-sans italic">--</span>
+                      )}
                     </td>
                     <td className="p-3.5">
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${getActionStyle(log.action)}`}>
@@ -239,16 +245,25 @@ export const SystemLogsModule: React.FC = () => {
 
       {/* JSON Viewer Modal */}
       {selectedLog && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setSelectedLog(null)}>
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setSelectedLog(null)}
+          onKeyDown={(e) => { if (e.key === 'Escape') setSelectedLog(null); }}
+        >
           <div className="bg-white border border-slate-200 rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <div>
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                   <Code className="w-5 h-5 text-indigo-600" /> JSON Snapshot
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
                   <span className={`font-bold px-1.5 py-0.5 rounded text-[10px] border ${getActionStyle(selectedLog.action)}`}>{selectedLog.action}</span>
                   &nbsp;·&nbsp; <strong>@{selectedLog.username}</strong>
+                  {(selectedLog.ip_address || (selectedLog as any).ipAddress) && (
+                    <>
+                      &nbsp;·&nbsp; <span className="font-mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px] border border-slate-200 font-semibold">IP: {selectedLog.ip_address || (selectedLog as any).ipAddress}</span>
+                    </>
+                  )}
                   &nbsp;·&nbsp; {new Date(selectedLog.created_at).toLocaleString('vi-VN')}
                 </p>
               </div>

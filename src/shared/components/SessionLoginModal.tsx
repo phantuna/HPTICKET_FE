@@ -1,17 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { Lock, LogIn } from 'lucide-react';
 import { API_BASE_URL } from '../../api/apiConfig';
+import { authState } from '../../api/authState';
+
+const getUsernameFromToken = () => {
+  try {
+    const token = authState.getToken();
+    if (!token) return '';
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    const decoded = JSON.parse(jsonPayload);
+    return decoded.username || '';
+  } catch (e) {
+    return '';
+  }
+};
 
 export const SessionLoginModal: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [username, setUsername] = useState(localStorage.getItem('hpticket_username') || '');
+  const [username, setUsername] = useState(() => localStorage.getItem('hpticket_username') || getUsernameFromToken() || '');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const handleSessionExpired = () => {
-      setUsername(localStorage.getItem('hpticket_username') || '');
+      setUsername(localStorage.getItem('hpticket_username') || getUsernameFromToken() || '');
       setIsOpen(true);
     };
 
@@ -40,15 +57,15 @@ export const SessionLoginModal: React.FC = () => {
         throw new Error(data.message || 'Đăng nhập thất bại');
       }
 
-      // Đăng nhập thành công, lưu lại token
-      localStorage.setItem('hpticket_token', data.data.token);
-      localStorage.setItem('hpticket_username', data.data.username);
+      if (data && data.data && data.data.token) {
+        const { tokenRefreshService } = await import('../../api/tokenRefreshService');
+        tokenRefreshService.start(data.data.expires_in || 3600, data.data.token);
+        
+        localStorage.setItem('hpticket_username', data.data.username);
+        
+        setIsOpen(false);
+      }
       
-      // Báo cho các Tab khác biết phiên đã được khôi phục
-      const authChannel = new BroadcastChannel('hpticket_auth_channel');
-      authChannel.postMessage({ type: 'SESSION_REFRESHED', token: data.data.token });
-
-      setIsOpen(false);
       setPassword('');
       window.dispatchEvent(new CustomEvent('toast_notification', {
         detail: { message: 'Đã khôi phục phiên đăng nhập thành công', type: 'success' }
@@ -83,8 +100,7 @@ export const SessionLoginModal: React.FC = () => {
               required
               value={username}
               onChange={e => setUsername(e.target.value)}
-              className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-slate-50 text-slate-500"
-              readOnly
+              className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             />
           </div>
 

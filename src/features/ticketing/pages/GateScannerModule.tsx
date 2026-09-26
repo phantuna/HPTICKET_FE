@@ -25,6 +25,7 @@ import { dbStore } from '../../../shared/data/mockDatabase';
 import { ticketingService, GateScanResponse } from '../../../api/ticketingService';
 import { ScanStatusResult, GateAccessLog } from '../../../shared/types/hpticket';
 import {setUseMockApi, API_BASE_URL } from '../../../api/apiConfig';
+import { RefreshButton } from '../../../shared/components/RefreshButton';
 
 export const GateScannerModule: React.FC = () => {
   const [gates, setGates] = useState<any[]>([]);
@@ -33,8 +34,45 @@ export const GateScannerModule: React.FC = () => {
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [lastResponse, setLastResponse] = useState<GateScanResponse | null>(null);
   const [logs, setLogs] = useState<GateAccessLog[]>([]);
+  const [isLoadingLogs, setIsLoadingLogs] = useState<boolean>(false);
+
+  // Desktop App Status States
+  const [serverStatus, setServerStatus] = useState<boolean>(true);
+  const [hardwareStatus, setHardwareStatus] = useState<boolean>(false);
+  const [pendingSync, setPendingSync] = useState<number>(0);
+
+  const fetchLogs = async () => {
+    setIsLoadingLogs(true);
+    try {
+      const logsRes = await ticketingService.fetchAccessLogs();
+      setLogs(logsRes.data || [...dbStore.gateAccessLogs]);
+    } catch (err) {
+      console.error('Error fetching access logs:', err);
+    } finally {
+      setIsLoadingLogs(false);
+    }
+  };
 
   useEffect(() => {
+    // Lắng nghe trạng thái từ Desktop App (C# WebView2)
+    const handleWebMessage = (e: any) => {
+      try {
+        const msg = JSON.parse(e.data);
+        if (msg.type === 'status') {
+          setServerStatus(msg.connected);
+        } else if (msg.type === 'hardware_status') {
+          setHardwareStatus(msg.connected);
+        } else if (msg.type === 'pending_count') {
+          setPendingSync(msg.count);
+        }
+      } catch (err) {}
+    };
+
+    const globalWindow = window as any;
+    if (globalWindow.chrome && globalWindow.chrome.webview) {
+      globalWindow.chrome.webview.addEventListener('message', handleWebMessage);
+    }
+
     ticketingService.fetchControlGates().then(res => {
       if (res.data && res.data.length > 0) {
         const activeGates = res.data.filter((g: any) => g.is_active || g.isActive);
@@ -42,6 +80,14 @@ export const GateScannerModule: React.FC = () => {
         if (activeGates.length > 0) setSelectedGateId(activeGates[0].id);
       }
     });
+
+    fetchLogs();
+
+    return () => {
+      if (globalWindow.chrome && globalWindow.chrome.webview) {
+        globalWindow.chrome.webview.removeEventListener('message', handleWebMessage);
+      }
+    };
   }, []);
 
   const selectedGate = gates.find((g) => g.id === selectedGateId);
@@ -95,7 +141,7 @@ export const GateScannerModule: React.FC = () => {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 p-4 sm:p-6 max-w-7xl mx-auto">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 p-4 sm:p-6 max-w-7xl mx-auto pb-24">
       {/* Left Column: Gate Terminal Scanner Controls */}
       <div className="lg:col-span-7 space-y-6">
         {/* Terminal Header & Device Selector */}
@@ -176,9 +222,17 @@ export const GateScannerModule: React.FC = () => {
               <History className="w-5 h-5 text-purple-600" />
               <h2 className="text-base font-bold text-slate-900">Lịch Sử Qua Cổng Theo Thời Gian Thực</h2>
             </div>
-            <span className="text-xs text-slate-600 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-full font-mono font-semibold">
-              {logs.filter(log => log.status_result === ScanStatusResult.SUCCESS || (log as any).status_result === 'OPEN_GATE').length} Lượt
-            </span>
+            <div className="flex items-center gap-2">
+              <RefreshButton
+                onRefresh={fetchLogs}
+                isLoading={isLoadingLogs}
+                size="sm"
+                title="Làm mới lịch sử quét"
+              />
+              <span className="text-xs text-slate-600 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-full font-mono font-semibold">
+                {logs.filter(log => log.status_result === ScanStatusResult.SUCCESS || (log as any).status_result === 'OPEN_GATE').length} Lượt
+              </span>
+            </div>
           </div>
 
           <div className="overflow-x-auto max-h-[300px] overflow-y-auto pr-1">
@@ -376,6 +430,55 @@ export const GateScannerModule: React.FC = () => {
             <li>Logic khóa giao dịch chống Race Condition (Pessimistic Locking).</li>
             <li>Lưu giữ vết nhật ký qua cổng (gate_access_logs).</li>
           </ul>
+        </div>
+      </div>
+
+      {/* Desktop App Fixed Status Bar */}
+      <div className="fixed bottom-0 left-0 right-0 bg-slate-900 text-white text-xs py-2 px-4 flex items-center justify-between z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-slate-400 text-[10px] uppercase">API Server:</span>
+            {serverStatus ? (
+              <span className="flex items-center gap-1.5 text-emerald-400 font-semibold bg-emerald-400/10 px-2 py-0.5 rounded"><CheckCircle2 className="w-3.5 h-3.5" /> ONLINE</span>
+            ) : (
+              <span className="flex items-center gap-1.5 text-rose-400 font-semibold bg-rose-400/10 px-2 py-0.5 rounded"><XCircle className="w-3.5 h-3.5" /> OFFLINE</span>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-slate-400 text-[10px] uppercase">Realtime Sync (WS):</span>
+            {serverStatus ? (
+              <span className="flex items-center gap-1.5 text-blue-400 font-semibold bg-blue-400/10 px-2 py-0.5 rounded"><Zap className="w-3.5 h-3.5" /> CONNECTED</span>
+            ) : (
+              <span className="flex items-center gap-1.5 text-amber-400 font-semibold bg-amber-400/10 px-2 py-0.5 rounded animate-pulse"><RefreshCw className="w-3.5 h-3.5 animate-spin" /> RECONNECTING</span>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-2 border-l border-slate-700 pl-6">
+            <span className="font-bold text-slate-400 text-[10px] uppercase">Phần cứng ZKTeco C3:</span>
+            {hardwareStatus ? (
+              <span className="flex items-center gap-1.5 text-emerald-400 font-semibold bg-emerald-400/10 px-2 py-0.5 rounded"><Server className="w-3.5 h-3.5" /> CONNECTED</span>
+            ) : (
+              <span className="flex items-center gap-1.5 text-rose-400 font-semibold bg-rose-400/10 px-2 py-0.5 rounded">
+                <XCircle className="w-3.5 h-3.5" /> DISCONNECTED
+                <button 
+                  onClick={() => {
+                    const globalWindow = window as any;
+                    if (globalWindow.chrome && globalWindow.chrome.webview) {
+                      globalWindow.chrome.webview.postMessage('reconnect_hardware');
+                    }
+                  }}
+                  className="ml-2 bg-rose-600 hover:bg-rose-500 text-white px-2 py-0.5 rounded text-[10px] font-bold transition-colors shadow-sm"
+                >
+                  KẾT NỐI LẠI
+                </button>
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Database className="w-3.5 h-3.5 text-slate-400" />
+          <span className="text-slate-300 font-medium">Hàng đợi đồng bộ Offline: <strong className={pendingSync > 0 ? 'text-amber-400' : 'text-emerald-400'}>{pendingSync} pending</strong></span>
         </div>
       </div>
     </div>

@@ -7,7 +7,47 @@
     <link rel="icon" type="image/png" href="/favicon.png?v=3" />
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <style>
+        .preloader-container {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          height: 100vh;
+          width: 100vw;
+          background-color: #f1f5f9;
+          font-family: system-ui, -apple-system, sans-serif;
+        }
+        .preloader-spinner {
+          width: 48px;
+          height: 48px;
+          border: 4px solid #cbd5e1;
+          border-top-color: #059669; /* Emerald 600 */
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+          margin-bottom: 24px;
+        }
+        .preloader-text {
+          color: #334155;
+          font-size: 16px;
+          font-weight: 500;
+          letter-spacing: 0.5px;
+          animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+      </style>
+      <div class="preloader-container">
+        <div class="preloader-spinner"></div>
+        <div class="preloader-text">Đang khởi động hệ thống...</div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

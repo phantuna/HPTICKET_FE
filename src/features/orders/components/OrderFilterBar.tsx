@@ -22,6 +22,7 @@ interface OrderFilterBarProps {
   customerSources: any[];
   isLoading: boolean;
   onSearch: () => void;
+  onRefresh?: () => void;
   onFilterFocus?: () => void;
   onExportOrders?: () => Promise<void> | void;
 }
@@ -34,7 +35,7 @@ export const OrderFilterBar: React.FC<OrderFilterBarProps> = ({
   filterBookingCode, setFilterBookingCode,
   filterSourceId, setFilterSourceId,
   ticketCounters, customerSources,
-  isLoading, onSearch, onFilterFocus, onExportOrders
+  isLoading, onSearch, onRefresh, onFilterFocus, onExportOrders
 }) => {
   if (activeSubTab === 'tickets') {
     return (
@@ -50,10 +51,13 @@ export const OrderFilterBar: React.FC<OrderFilterBarProps> = ({
           />
         </div>
         <button
-          onClick={onSearch}
-          className={`bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 px-4 py-2.5 rounded-xl font-semibold text-xs flex items-center gap-2 transition shadow-xs ${isLoading ? 'opacity-60 pointer-events-none' : ''}`}
+          type="button"
+          onClick={onRefresh || onSearch}
+          disabled={isLoading}
+          className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-4 py-2.5 rounded-xl font-semibold text-xs flex items-center gap-1.5 transition shadow-xs disabled:opacity-60"
+          title="Làm mới dữ liệu"
         >
-          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} /> Làm Mới
+          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-emerald-600' : ''}`} /> Làm mới
         </button>
       </div>
     );
@@ -110,8 +114,9 @@ export const OrderFilterBar: React.FC<OrderFilterBarProps> = ({
             ))}
           </select>
         </div>
-        <div className="flex justify-start gap-2">
+        <div className="flex flex-wrap justify-start gap-2">
           <button 
+            type="button"
             onClick={onSearch}
             className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition flex items-center justify-center gap-2 shadow-xs w-full sm:w-auto"
           >

@@ -10,7 +10,14 @@ export const useReports = (initialTab: string) => {
     activeSubTab: filters.activeSubTab,
     searchTrigger: filters.searchTrigger,
     fromDate: filters.fromDate,
-    toDate: filters.toDate
+    toDate: filters.toDate,
+    selectedMonth: filters.selectedMonth,
+    page: filters.page,
+    pageSize: filters.pageSize,
+    posFilter: filters.posFilter,
+    sellerFilter: filters.sellerFilter,
+    customerGroupFilter: filters.customerGroupFilter,
+    customerSourceFilter: filters.customerSourceFilter,
   });
 
   const calculations = useReportCalculations({
@@ -37,7 +44,8 @@ export const useReports = (initialTab: string) => {
     liveProducts: data.liveProducts,
     summaryStats: data.summaryStats,
     ticketRevenueStats: data.ticketRevenueStats,
-    productRevenueStats: data.productRevenueStats
+    productRevenueStats: data.productRevenueStats,
+    sellerRevenueStats: data.sellerRevenueStats
   });
 
   const { handleExportExcel } = useReportExport(filters.setExportNotice);
@@ -45,6 +53,7 @@ export const useReports = (initialTab: string) => {
   return {
     // Filters and UI State
     ...filters,
+    isLoading: data.isLoading,
     handleExportExcel,
 
     // Data Loaders and Master Data
@@ -53,15 +62,14 @@ export const useReports = (initialTab: string) => {
     customerGroups: data.customerGroups,
     customerSources: data.customerSources,
     ticketTemplates: data.ticketTemplates,
+    sellerRevenueStats: data.sellerRevenueStats,
     loadDropdowns: data.loadDropdowns,
 
     // Computed Lists
     orders: calculations.orders,
     rawOrders: calculations.rawOrders,
     issuedTickets: calculations.issuedTickets,
-    gateLogs: calculations.gateLogs,
-    rawGateLogs: calculations.rawGateLogs,
-    systemLogs: calculations.systemLogs,
+    ticketPageResponse: data.ticketPageResponse,
 
     // Computed Stats
     totalRevenue: calculations.totalRevenue,

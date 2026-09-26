@@ -99,7 +99,12 @@ export const UserModal: React.FC<UserModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div
+      className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4"
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') onClose();
+      }}
+    >
       <form
         onSubmit={onSubmit}
         className="bg-white border border-slate-200 rounded-2xl max-w-lg w-full p-8 shadow-2xl text-slate-900"

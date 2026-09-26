@@ -27,7 +27,12 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
   editCompInvoiceLogo, setEditCompInvoiceLogo,
   onSubmit, onClose
 }) => (
-  <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+  <div
+    className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4"
+    onKeyDown={(e) => {
+      if (e.key === 'Escape') onClose();
+    }}
+  >
     <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }} className="bg-white border border-slate-200 rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl text-slate-900">
       <h3 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
         <Building2 className="w-5 h-5 text-emerald-600" /> Sửa Thông Tin Công Ty
@@ -68,6 +73,8 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               <input
                 type="file"
                 accept="image/*"
+                disabled
+                title="Chức năng này đã bị khóa. Vui lòng liên hệ Dev để cấu hình Logo gốc."
                 onChange={async (e) => {
                   const file = e.target.files?.[0];
                   if (file) {
@@ -89,7 +96,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                     }
                   }
                 }}
-                className="text-sm border border-slate-200 rounded p-1 w-full"
+                className="text-sm border border-slate-200 rounded p-1 w-full bg-slate-100 text-slate-400 cursor-not-allowed opacity-70"
               />
               {editCompLogo && (
                 <div className="h-12 flex items-center gap-2">
@@ -105,6 +112,8 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               <input
                 type="file"
                 accept="image/*"
+                disabled
+                title="Chức năng này đã bị khóa. Vui lòng liên hệ Dev để cấu hình Logo gốc."
                 onChange={async (e) => {
                   const file = e.target.files?.[0];
                   if (file) {
@@ -125,7 +134,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                     }
                   }
                 }}
-                className="text-sm border border-slate-200 rounded p-1 w-full"
+                className="text-sm border border-slate-200 rounded p-1 w-full bg-slate-100 text-slate-400 cursor-not-allowed opacity-70"
               />
               {editCompInvoiceLogo && (
                 <div className="h-12 flex items-center gap-2">

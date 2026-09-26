@@ -121,6 +121,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape' && !isEditing) onClose();
+      }}
     >
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl border border-slate-200 overflow-hidden flex flex-col md:flex-row animate-[slideIn_0.2s_ease-out]">
         
@@ -239,7 +242,18 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
                   <InfoRow icon={Phone}     label="Số điện thoại" value={profile?.phone} />
                 </>
               ) : (
-                <div className="col-span-1 sm:col-span-2 space-y-3">
+                <div
+                  className="col-span-1 sm:col-span-2 space-y-3"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleSave();
+                    } else if (e.key === 'Escape') {
+                      e.stopPropagation();
+                      setIsEditing(false);
+                    }
+                  }}
+                >
                   <div>
                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Họ và Tên</label>
                     <input

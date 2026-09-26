@@ -14,12 +14,42 @@ export const API_BASE_URL = (typeof import.meta !== 'undefined' && (import.meta 
 
 export interface RequestConfig extends RequestInit {
   params?: Record<string, string | number | boolean>;
+  bypassCache?: boolean;
 }
 
+// In-memory cache cho GET dropdown / master data
+interface CacheEntry {
+  timestamp: number;
+  data: any;
+}
+const getCache = new Map<string, CacheEntry>();
+const pendingRequests = new Map<string, Promise<any>>();
+const CACHE_TTL_MS = 30000; // Cache 30s cho dropdowns
+
+const CACHEABLE_PATTERNS = [
+  '/master-data',
+  '/active',
+  '/templates',
+  '/zones',
+  '/products',
+  '/iam/users/me',
+  '/roles',
+  '/sales/reports',
+  '/sales/orders'
+];
+
+const isCacheableUrl = (url: string): boolean => {
+  return CACHEABLE_PATTERNS.some(pattern => url.includes(pattern));
+};
+
+export const clearApiCache = (): void => {
+  getCache.clear();
+};
+
 export const getUseMockApi = (): boolean => {
-  // FIX CỨNG: Bắt buộc 100% dùng Mock API (và Supabase) trên bản Vercel này
-  // Bỏ qua localStorage để tránh lỗi nếu người dùng lỡ bấm nhầm nút tắt Mock.
-  return true; 
+  // Đã chuyển sang dùng Backend API thật. Các service dùng if(true) để bypass hàm này.
+  // Giữ false để phản ánh đúng trạng thái hệ thống — không dùng Mock nữa.
+  return false;
 };
 
 export const setUseMockApi = (value: boolean): void => {
@@ -84,6 +114,8 @@ export const API_ENDPOINTS = {
     EMAIL_TEMPLATES: '/marketing/email/templates',
     EMAIL_TEMPLATE_DETAIL: (id: string) => `/marketing/email/templates/${id}`,
     SEND_TICKET_EMAIL: '/marketing/emails/send-ticket',
+    CALENDAR_TODAY: '/business-calendar/today',
+    CALENDAR_RESOLVE: '/business-calendar/resolve',
   },
 
   // 3. MODULE SALES (Điểm bán, Quầy bán, Hàng hóa & Đơn hàng POS) - Base: /api/v1/sales
@@ -107,10 +139,17 @@ export const API_ENDPOINTS = {
     REPORTS_SUMMARY: '/sales/reports/summary',
     REPORTS_TICKET: '/sales/reports/ticket-revenue',
     REPORTS_PRODUCT: '/sales/reports/product-revenue',
+    REPORTS_GENERAL: '/sales/reports/general',
+    REPORTS_COMPARE: '/sales/reports/compare',
+    REPORTS_SELLER: '/sales/reports/seller-revenue',
     EXPIRING_TICKETS: '/sales/issued-tickets/expiring-soon',
+    EXPIRING_TICKETS_EXPORT: '/sales/issued-tickets/expiring-soon/export',
     UPDATE_CUSTOMER_INFO: (id: string) => `/sales/issued-tickets/${id}/customer-info`,
     RENEW_TICKET: (id: string) => `/sales/issued-tickets/${id}/renew`,
+    STOCK_MOVEMENTS: '/sales/stock-movements',
+    STOCK_MOVEMENTS_EXPORT_CHUNK: '/sales/stock-movements/export/chunk',
   },
+
 
   // 4. MODULE TICKETING (Cấu hình vé, Khu vực, Cổng & Soát vé) - Base: /api/v1/ticketing
   TICKETING: {
@@ -138,6 +177,7 @@ export const API_ENDPOINTS = {
   VINVOICE: {
     ISSUE_ORDER: (orderId: string) => `/invoices/issue/${orderId}`,
     ISSUE_BULK_RETAIL: `/invoices/issue-bulk-retail`,
+    ISSUE_RECOVERY: `/invoices/issue-recovery`,
   },
 };
 
@@ -156,27 +196,7 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
-// 2. Kênh giao tiếp giữa các Tab (Giữ nguyên)
-const authChannel = new BroadcastChannel('hpticket_auth_channel');
-authChannel.onmessage = (event) => {
-  if (event.data.type === 'SESSION_REFRESHED' && event.data.token) {
-    localStorage.setItem('hpticket_token', event.data.token);
-    if (isRefreshing) {
-      isRefreshing = false;
-      processQueue(null, event.data.token);
-    }
-  } else if (event.data.type === 'SESSION_EXPIRED') {
-    localStorage.removeItem('hpticket_token');
-    window.dispatchEvent(new CustomEvent('session_expired_modal'));
-  }
-};
-
-// Khi app khởi động lại (F5/mở tab mới), tiếp tục cơ chế Proactive Refresh nếu đã đăng nhập
-import('./tokenRefreshService').then(({ tokenRefreshService }) => {
-  tokenRefreshService.resume();
-});
-
-const pendingRequests = new Map<string, Promise<any>>();
+import { authState } from './authState';
 
 export const apiClient = {
   buildUrl(endpoint: string, params?: Record<string, string | number | boolean>): string {
@@ -192,7 +212,7 @@ export const apiClient = {
   },
 
   async request<T>(endpoint: string, config: RequestConfig = {}): Promise<T> {
-    const { params, headers, ...customConfig } = config;
+    const { params, headers, bypassCache, ...customConfig } = config;
     const fullUrl = this.buildUrl(endpoint, params);
 
     const defaultHeaders: Record<string, string> = {
@@ -201,7 +221,7 @@ export const apiClient = {
       'X-Client-Version': '2.4.0',
     };
 
-    const token = localStorage.getItem('hpticket_token');
+    const token = authState.getToken();
     if (token) {
       defaultHeaders['Authorization'] = `Bearer ${token}`;
     }
@@ -214,9 +234,20 @@ export const apiClient = {
     };
 
     const isModifyingRequest = mergedConfig.method !== 'GET';
-    const requestKey = isModifyingRequest ? `${mergedConfig.method}_${fullUrl}_${mergedConfig.body || ''}` : null;
+    const requestKey = isModifyingRequest
+      ? `${mergedConfig.method}_${fullUrl}_${mergedConfig.body || ''}`
+      : `GET_${fullUrl}`;
 
-    if (requestKey && pendingRequests.has(requestKey)) {
+    // 1. Kiểm tra in-memory cache cho GET request nếu hợp lệ
+    if (!isModifyingRequest && !bypassCache && isCacheableUrl(fullUrl)) {
+      const cached = getCache.get(fullUrl);
+      if (cached && (Date.now() - cached.timestamp < CACHE_TTL_MS)) {
+        return Promise.resolve(cached.data as T);
+      }
+    }
+
+    // 2. In-flight Request Deduplication: Tránh gửi nhiều request trùng lặp cùng lúc
+    if (pendingRequests.has(requestKey)) {
       return pendingRequests.get(requestKey) as Promise<T>;
     }
 
@@ -257,35 +288,25 @@ export const apiClient = {
 
           let newAccessToken = null;
           try {
-            const storedRefreshToken = localStorage.getItem('hpticket_refresh_token');
-
-            const refreshRes = await fetch(`${API_BASE_URL}${API_ENDPOINTS.IAM.AUTH_REFRESH}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              credentials: 'include',
-              body: JSON.stringify(storedRefreshToken ? { refresh_token: storedRefreshToken } : {})
-            });
-
-            if (refreshRes.ok) {
-              const refreshData = await refreshRes.json();
-              newAccessToken = refreshData?.data?.token;
+            const { tokenRefreshService } = await import('./tokenRefreshService');
+            const { authState } = await import('./authState');
+            const result = await tokenRefreshService.doRefresh();
+            
+            if (result === 'SUCCESS') {
+              newAccessToken = authState.getToken();
             }
             
             if (!newAccessToken) {
               throw new Error('Refresh Token không hợp lệ hoặc đã hết hạn');
             }
 
-            // 1. Lưu token mới
-            localStorage.setItem('hpticket_token', newAccessToken);
-            authChannel.postMessage({ type: 'SESSION_REFRESHED', token: newAccessToken });
-
-            // 2. Mở khóa và nhả toàn bộ request đang xếp hàng chạy tiếp
+            // 1. Mở khóa và nhả toàn bộ request đang xếp hàng chạy tiếp
             processQueue(null, newAccessToken);
           } catch (refreshErr) {
             // Lấy token mới THẤT BẠI (Hết hạn 7 ngày / bị block)
             processQueue(refreshErr, null); // Báo lỗi cho toàn bộ hàng đợi
-            localStorage.clear();
-            authChannel.postMessage({ type: 'SESSION_EXPIRED' });
+            const { authState } = await import('./authState');
+            authState.clearToken();
             window.dispatchEvent(new CustomEvent('session_expired_modal')); // Bắn Event ra UI hiển thị Popup đăng nhập
             throw new Error('Phiên đăng nhập hết hạn. Đang hiển thị Modal đăng nhập.');
           } finally {
@@ -309,13 +330,44 @@ export const apiClient = {
         // --- KẾT THÚC XỬ LÝ 401 ---
 
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
+          const errorText = await response.text().catch(() => "");
+          let errorData: any = {};
+          try {
+            errorData = errorText ? JSON.parse(errorText) : {};
+          } catch(e) {}
+          
           const errorMessage = errorData.message || `API Error: ${response.status} ${response.statusText}`;
           window.dispatchEvent(new CustomEvent('api_error', { detail: { message: errorMessage } }));
           throw new Error(errorMessage);
         }
 
-        return await response.json();
+        if (response.status === 204 || response.status === 205) {
+          if (isModifyingRequest) getCache.clear();
+          return {} as T;
+        }
+
+        const text = await response.text();
+        if (!text) {
+          if (isModifyingRequest) getCache.clear();
+          return {} as T;
+        }
+        
+        let result: any;
+        try {
+          result = JSON.parse(text);
+        } catch (e) {
+          result = text as unknown as T;
+        }
+
+        // Lưu cache nếu là GET request cho master data / dropdown
+        if (!isModifyingRequest && isCacheableUrl(fullUrl)) {
+          getCache.set(fullUrl, { timestamp: Date.now(), data: result });
+        } else if (isModifyingRequest) {
+          // Xóa cache khi có thao tác POST, PUT, DELETE làm thay đổi dữ liệu
+          getCache.clear();
+        }
+
+        return result as T;
       } catch (error) {
         throw error;
       } finally {

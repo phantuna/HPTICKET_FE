@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronUp, User } from 'lucide-react';
 import { ItemType } from '../../../shared/types/hpticket';
 
 interface POSInvoiceFormProps {
@@ -19,11 +19,14 @@ interface POSInvoiceFormProps {
   setLineItems: React.Dispatch<React.SetStateAction<any[]>>;
   invoiceStatus: string; setInvoiceStatus: (v: string) => void;
   customerName: string; setCustomerName: (v: string) => void;
+  companyName: string; setCompanyName: (v: string) => void;
   companyTaxCode: string; setCompanyTaxCode: (v: string) => void;
   companyAddress: string; setCompanyAddress: (v: string) => void;
+  companyEmail: string; setCompanyEmail: (v: string) => void;
   email: string; setEmail: (v: string) => void;
   phoneNumber: string; setPhoneNumber: (v: string) => void;
   usageDate: string; setUsageDate: (v: string) => void;
+  dayContext?: any;
 }
 
 export const POSInvoiceForm: React.FC<POSInvoiceFormProps> = ({
@@ -32,12 +35,26 @@ export const POSInvoiceForm: React.FC<POSInvoiceFormProps> = ({
   invoiceCode, setInvoiceCode, selectedGroupCode, setSelectedGroupCode, customerGroups,
   selectedPromotionId, setSelectedPromotionId, promotions, setExtraDiscount,
   bookingCode, setBookingCode, selectedSourceId, setSelectedSourceId, customerSources, setLineItems,
-  invoiceStatus, setInvoiceStatus, customerName, setCustomerName, companyTaxCode, setCompanyTaxCode,
-  companyAddress, setCompanyAddress, email, setEmail, phoneNumber, setPhoneNumber, usageDate, setUsageDate
-}) => (
-  <div className="space-y-5">
-    {/* Top Search Bar */}
-    <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 flex flex-wrap items-center justify-between gap-3 shadow-xs">
+  invoiceStatus, setInvoiceStatus, customerName, setCustomerName,
+  companyName, setCompanyName, companyTaxCode, setCompanyTaxCode,
+  companyAddress, setCompanyAddress, companyEmail, setCompanyEmail,
+  email, setEmail, phoneNumber, setPhoneNumber, usageDate, setUsageDate,
+  dayContext
+}) => {
+  const [isExpanded, setIsExpanded] = React.useState(false);
+  
+  const selectedGroup = customerGroups.find(g => g.code === selectedGroupCode);
+  const selectedSource = customerSources.find(s => s.id === selectedSourceId);
+  const summaryText = [
+    customerName !== 'Khách lẻ không lấy hóa đơn' && customerName ? customerName : 'Khách lẻ',
+    selectedSource ? `Nguồn: ${selectedSource.company_name}` : null,
+    selectedGroup ? `Nhóm: ${selectedGroup.name}` : null
+  ].filter(Boolean).join(' | ');
+
+  return (
+  <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden shrink-0">
+    {/* Summary / Search Bar (Always visible) */}
+    <div className="p-3 sm:p-4 flex flex-wrap items-center justify-between gap-3 bg-slate-50 border-b border-slate-200">
       <div className="flex items-center gap-2 flex-1 min-w-[280px]">
         <span className="text-xs sm:text-sm font-bold text-slate-900 whitespace-nowrap">Mã đặt :</span>
         <input
@@ -45,32 +62,52 @@ export const POSInvoiceForm: React.FC<POSInvoiceFormProps> = ({
           value={searchBookingCode}
           onChange={(e) => setSearchBookingCode(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleCheckBookingCode()}
-          placeholder="Nhập mã đặt giữ chỗ..."
-          className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-500 font-mono shadow-xs"
+          placeholder="Nhập mã đặt..."
+          className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-500 font-mono shadow-xs max-w-[200px]"
         />
         <button
           onClick={handleCheckBookingCode}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-lg flex items-center gap-1.5 transition shadow-xs"
+          className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition shadow-xs"
         >
           <CheckCircle2 className="w-4 h-4" /> Kiểm tra
         </button>
+        
+        <div className="hidden sm:flex items-center gap-2 ml-4 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-600">
+          <User className="w-4 h-4 text-slate-400" />
+          <span className="truncate max-w-[300px]">{summaryText}</span>
+        </div>
       </div>
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-slate-600 font-medium">Quầy bán hàng:</span>
-        <select
-          value={selectedCounterId}
-          onChange={(e) => setSelectedCounterId(e.target.value)}
-          className="bg-slate-50 border border-slate-200 text-xs text-slate-900 font-semibold rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-emerald-500 shadow-xs"
+      
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-slate-600 font-medium hidden sm:inline">Quầy:</span>
+          <select
+            value={selectedCounterId}
+            onChange={(e) => setSelectedCounterId(e.target.value)}
+            className="bg-white border border-slate-200 text-xs text-slate-900 font-semibold rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-emerald-500 shadow-xs"
+          >
+            {counters.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </div>
+        
+        <button 
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition border border-emerald-200"
         >
-          {counters.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
+          {isExpanded ? (
+            <><ChevronUp className="w-4 h-4" /> Thu gọn</>
+          ) : (
+            <><ChevronDown className="w-4 h-4" /> Chi tiết khách</>
+          )}
+        </button>
       </div>
     </div>
 
-    {/* Main Form */}
-    <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs">
+    {/* Main Form (Expandable) */}
+    {isExpanded && (
+      <div className="p-4 sm:p-5 bg-white">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3.5 text-xs">
         {/* Left */}
         <div className="space-y-3">
@@ -119,14 +156,26 @@ export const POSInvoiceForm: React.FC<POSInvoiceFormProps> = ({
               ))}
             </select>
           </div>
-          <div className="flex items-center">
-            <label className="w-[140px] shrink-0 whitespace-nowrap text-slate-700 font-semibold flex items-center gap-1">Ngày sử dụng</label>
-            <input
-              type="date"
-              value={usageDate}
-              onChange={(e) => setUsageDate(e.target.value)}
-              className="flex-1 min-w-0 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-emerald-500 shadow-xs"
-            />
+          <div className="flex flex-col">
+            <div className="flex items-center">
+              <label className="w-[140px] shrink-0 whitespace-nowrap text-slate-700 font-semibold flex items-center gap-1">Ngày sử dụng</label>
+              <input
+                type="date"
+                value={usageDate}
+                onChange={(e) => setUsageDate(e.target.value)}
+                className="flex-1 min-w-0 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-emerald-500 shadow-xs"
+              />
+            </div>
+            {dayContext?.isHoliday ? (
+              <div className="ml-[140px] mt-1 flex items-center gap-1 text-[11px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md">
+                <span className="animate-pulse">🎉</span>
+                <span>LỄ: {dayContext.holidayName || 'Ngày lễ'} (Chỉ vé & KM lễ hiển thị)</span>
+              </div>
+            ) : (
+              <div className="ml-[140px] mt-0.5 flex items-center gap-1 text-[10px] font-medium text-slate-500">
+                <span>📅 Ngày thường</span>
+              </div>
+            )}
           </div>
           <div className="flex items-center">
             <label className="w-[140px] shrink-0 whitespace-nowrap text-slate-700 font-semibold flex items-center gap-1">Khuyến mại</label>
@@ -142,9 +191,10 @@ export const POSInvoiceForm: React.FC<POSInvoiceFormProps> = ({
               {promotions.map((p) => {
                 const isPercent = p.discount_type === 'PERCENTAGE' || p.discount_percent > 0;
                 const val = p.discount_percent || p.discount_value || 0;
+                const policyBadge = p.holiday_policy === 'HOLIDAY_ONLY' ? ' [LỄ]' : '';
                 return (
                   <option key={p.id} value={p.id}>
-                    {p.name} - Giảm {isPercent ? `${val}%` : `${val.toLocaleString('vi-VN')} đ`}
+                    {p.name}{policyBadge} - Giảm {isPercent ? `${val}%` : `${val.toLocaleString('vi-VN')} đ`}
                   </option>
                 );
               })}
@@ -179,7 +229,7 @@ export const POSInvoiceForm: React.FC<POSInvoiceFormProps> = ({
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email nhận vé/hóa đơn..."
+              placeholder="Email nhận vé điện tử..."
               className="flex-1 min-w-0 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-emerald-500 shadow-xs"
             />
           </div>
@@ -237,13 +287,13 @@ export const POSInvoiceForm: React.FC<POSInvoiceFormProps> = ({
               onChange={(e) => {
                  const isImmediate = e.target.checked;
                  setInvoiceStatus(isImmediate ? 'IMMEDIATE' : 'PENDING');
-                 if (!isImmediate) {
-                    setCustomerName('Khách lẻ không lấy hóa đơn');
-                    setCompanyTaxCode('');
-                    setCompanyAddress('');
-                    setEmail('');
-                 } else {
-                    setCustomerName('');
+                 if (isImmediate) {
+                    if (!companyEmail && email) {
+                       setCompanyEmail(email);
+                    }
+                    if (!companyName && customerName && customerName !== 'Khách lẻ không lấy hóa đơn') {
+                       setCompanyName(customerName);
+                    }
                  }
               }} 
               className="w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500"
@@ -258,20 +308,22 @@ export const POSInvoiceForm: React.FC<POSInvoiceFormProps> = ({
                  <input type="text" value={companyTaxCode} onChange={e => setCompanyTaxCode(e.target.value)} className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-emerald-500 shadow-xs" placeholder="010888999" />
                </div>
                <div>
-                 <label className="block text-[11px] font-semibold text-slate-600 mb-1">Tên khách hàng / Công ty (*)</label>
-                 <input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-emerald-500 shadow-xs" placeholder="CÔNG TY TNHH ABC" />
+                 <label className="block text-[11px] font-semibold text-slate-600 mb-1">Tên công ty (*)</label>
+                 <input type="text" value={companyName} onChange={e => setCompanyName(e.target.value)} className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-emerald-500 shadow-xs" placeholder="CÔNG TY TNHH ABC" />
                </div>
                <div>
                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">Địa chỉ công ty</label>
                  <input type="text" value={companyAddress} onChange={e => setCompanyAddress(e.target.value)} className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-emerald-500 shadow-xs" placeholder="Số nhà, đường, phường..." />
                </div>
                <div>
-                 <label className="block text-[11px] font-semibold text-slate-600 mb-1">Email nhận HĐ</label>
-                 <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-emerald-500 shadow-xs" placeholder="abc@email.com" />
+                 <label className="block text-[11px] font-semibold text-slate-600 mb-1">Email nhận HĐĐT</label>
+                 <input type="email" value={companyEmail} onChange={e => setCompanyEmail(e.target.value)} className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-emerald-500 shadow-xs" placeholder="hoadon@congty.com" />
                </div>
             </div>
          )}
       </div>
     </div>
+    )}
   </div>
-);
+  );
+};

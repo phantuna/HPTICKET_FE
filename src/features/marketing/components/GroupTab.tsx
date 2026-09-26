@@ -4,6 +4,7 @@ import { AdminConfigCard } from '../../iam/components/AdminConfigCard';
 import { CustomerGroup } from '../../../shared/types/hpticket';
 import { marketingService } from '../../../api/marketingService';
 import { toast } from '../../../shared/utils/toast';
+import { usePermission } from '../../../shared/hooks/usePermission';
 
 interface GroupTabProps {
   groups: CustomerGroup[];
@@ -12,6 +13,7 @@ interface GroupTabProps {
 }
 
 export const GroupTab: React.FC<GroupTabProps> = ({ groups, setGroups, refreshData }) => {
+  const { can } = usePermission();
   const [showModal, setShowModal] = useState(false);
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [newGroupCode, setNewGroupCode] = useState('');
@@ -75,20 +77,33 @@ export const GroupTab: React.FC<GroupTabProps> = ({ groups, setGroups, refreshDa
           setNewGroupDiscount(10);
           setShowModal(true);
         }}
-        onEdit={(item: any) => {
+        onEdit={can('UPDATE_CUSTOMER_GROUP') ? ((item: any) => {
           setEditingGroupId(item.id);
           setNewGroupCode(item.code);
           setNewGroupName(item.name);
           setNewGroupDiscount(item.discount_percent || item.discountPercent || 0);
           setShowModal(true);
-        }}
-        onDelete={handleDelete}
-        onToggleActive={handleToggleActive}
+        }) : undefined}
+        onDelete={can('DELETE_CUSTOMER_GROUP') ? handleDelete : undefined}
+        onToggleActive={can('UPDATE_CUSTOMER_GROUP') ? handleToggleActive : undefined}
+        hideAddButton={!can('CREATE_CUSTOMER_GROUP')}
+        hideDeleteButton={!can('DELETE_CUSTOMER_GROUP')}
       />
 
       {showModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl text-slate-900">
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4"
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setShowModal(false);
+          }}
+        >
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSave();
+            }}
+            className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl text-slate-900"
+          >
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
               <Users className="w-5 h-5 text-amber-600" /> {editingGroupId ? 'Sửa Nhóm Khách Hàng' : 'Thêm Nhóm Khách Hàng'}
             </h3>
@@ -125,19 +140,20 @@ export const GroupTab: React.FC<GroupTabProps> = ({ groups, setGroups, refreshDa
             </div>
             <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
               <button
+                type="button"
                 onClick={() => setShowModal(false)}
                 className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition"
               >
                 Hủy
               </button>
               <button
-                onClick={handleSave}
+                type="submit"
                 className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition shadow-xs"
               >
                 Lưu Khai Báo
               </button>
             </div>
-          </div>
+          </form>
         </div>
       )}
     </>

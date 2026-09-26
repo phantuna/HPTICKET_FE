@@ -22,14 +22,15 @@ export const CameraQRScannerModal: React.FC<CameraQRScannerModalProps> = ({
   const [scannedCode, setScannedCode] = useState<string>('');
 
   useEffect(() => {
-    let stream: MediaStream | null = null;
-
     if (isOpen) {
       setIsScanning(true);
       setDetectedStaff(null);
       setScannedCode('');
       setCameraError(null);
 
+      // Camera stream tạm thời comment lại theo yêu cầu (không sử dụng phần cứng camera trực tiếp)
+      /*
+      let stream: MediaStream | null = null;
       navigator.mediaDevices
         ?.getUserMedia({ video: { facingMode: 'environment' } })
         .then((s) => {
@@ -45,13 +46,14 @@ export const CameraQRScannerModal: React.FC<CameraQRScannerModalProps> = ({
           setHasCameraPermission(false);
           setCameraError('Chưa cấp quyền camera hoặc thiết bị không hỗ trợ camera trực tiếp.');
         });
-    }
 
-    return () => {
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
-      }
-    };
+      return () => {
+        if (stream) {
+          (stream as MediaStream).getTracks().forEach((track) => track.stop());
+        }
+      };
+      */
+    }
   }, [isOpen]);
 
   if (!isOpen) return null;
