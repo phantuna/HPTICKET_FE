@@ -189,21 +189,21 @@ export const salesService = {
 
   // 1. PRODUCTS (/sales/products)
   async fetchProducts(): Promise<ApiResponse<Product[]>> {
-    
-      try {
-        const res = await apiClient.get<ApiResponse<any>>(API_ENDPOINTS.SALES.PRODUCTS);
-        const list = normalizeList<Product>(res.data);
-        if (list && list.length > 0) {
-          dbStore.products = list;
-          dbStore.saveToStorage();
-        }
-        return {
-          code: res.code || 200,
-          message: res.message || 'Lấy danh sách sản phẩm thành công',
-          data: list,
-        };
-      } catch (err) {
-        console.warn('[Sales Service] Backend fetchProducts failed, fallback to Mock DB:', err);
+
+    try {
+      const res = await apiClient.get<ApiResponse<any>>(API_ENDPOINTS.SALES.PRODUCTS);
+      const list = normalizeList<Product>(res.data);
+      if (list && list.length > 0) {
+        dbStore.products = list;
+        dbStore.saveToStorage();
+      }
+      return {
+        code: res.code || 200,
+        message: res.message || 'Lấy danh sách sản phẩm thành công',
+        data: list,
+      };
+    } catch (err) {
+      console.warn('[Sales Service] Backend fetchProducts failed, fallback to Mock DB:', err);
     }
     return this.getProducts();
   },
@@ -211,17 +211,17 @@ export const salesService = {
   async createProduct(
     dto: Omit<Product, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'updated_by'>
   ): Promise<ApiResponse<Product>> {
-    
-      try {
-        const res = await apiClient.post<ApiResponse<Product>>(API_ENDPOINTS.SALES.PRODUCTS, dto);
-        if (res?.data) {
-          dbStore.products.push(res.data);
-          dbStore.logAudit('CREATE', 'products', res.data.id, null, res.data);
-          dbStore.saveToStorage();
-        }
-        return res;
-      } catch (err) {
-        console.warn('[Sales Service] Backend createProduct failed, fallback to Mock DB:', err);
+
+    try {
+      const res = await apiClient.post<ApiResponse<Product>>(API_ENDPOINTS.SALES.PRODUCTS, dto);
+      if (res?.data) {
+        dbStore.products.push(res.data);
+        dbStore.logAudit('CREATE', 'products', res.data.id, null, res.data);
+        dbStore.saveToStorage();
+      }
+      return res;
+    } catch (err) {
+      console.warn('[Sales Service] Backend createProduct failed, fallback to Mock DB:', err);
     }
     const now = new Date().toISOString();
     const activeUser = dbStore.getActiveUser();
@@ -235,7 +235,7 @@ export const salesService = {
     };
     dbStore.products.push(newPrd);
     dbStore.logAudit('CREATE', 'products', newPrd.id, null, newPrd);
-          dbStore.saveToStorage();
+    dbStore.saveToStorage();
     return {
       code: 201,
       message: 'Tạo sản phẩm thành công',
@@ -244,21 +244,21 @@ export const salesService = {
   },
 
   async updateProduct(id: string, dto: Partial<Product>): Promise<ApiResponse<Product>> {
-    
-      try {
-        const res = await apiClient.put<ApiResponse<Product>>(API_ENDPOINTS.SALES.PRODUCT_DETAIL(id), dto);
-        if (res?.data) {
-          const idx = dbStore.products.findIndex((p) => p.id === id);
-          if (idx !== -1) {
-            const old = { ...dbStore.products[idx] };
-            dbStore.products[idx] = res.data;
-            dbStore.logAudit('UPDATE', 'products', res.data.id || id, old, res.data);
-            dbStore.saveToStorage();
-          }
+
+    try {
+      const res = await apiClient.put<ApiResponse<Product>>(API_ENDPOINTS.SALES.PRODUCT_DETAIL(id), dto);
+      if (res?.data) {
+        const idx = dbStore.products.findIndex((p) => p.id === id);
+        if (idx !== -1) {
+          const old = { ...dbStore.products[idx] };
+          dbStore.products[idx] = res.data;
+          dbStore.logAudit('UPDATE', 'products', res.data.id || id, old, res.data);
+          dbStore.saveToStorage();
         }
-        return res;
-      } catch (err) {
-        console.warn('[Sales Service] Backend updateProduct failed, fallback to Mock DB:', err);
+      }
+      return res;
+    } catch (err) {
+      console.warn('[Sales Service] Backend updateProduct failed, fallback to Mock DB:', err);
     }
     const idx = dbStore.products.findIndex((p) => p.id === id);
     if (idx === -1) {
@@ -274,11 +274,11 @@ export const salesService = {
   },
 
   async deleteProduct(id: string): Promise<ApiResponse<void>> {
-    
-      try {
-        await apiClient.delete<ApiResponse<void>>(API_ENDPOINTS.SALES.PRODUCT_DETAIL(id));
-      } catch (err) {
-        console.warn('[Sales Service] Backend deleteProduct failed, fallback to Mock DB:', err);
+
+    try {
+      await apiClient.delete<ApiResponse<void>>(API_ENDPOINTS.SALES.PRODUCT_DETAIL(id));
+    } catch (err) {
+      console.warn('[Sales Service] Backend deleteProduct failed, fallback to Mock DB:', err);
     }
     const old = dbStore.products.find(p => p.id === id);
     if (old) dbStore.logAudit('DELETE', 'products', id, old, null);
@@ -287,23 +287,23 @@ export const salesService = {
   },
 
   async updateProductStatus(id: string, isActive: boolean): Promise<ApiResponse<Product>> {
-    
-      try {
-        const res = await apiClient.patch<ApiResponse<Product>>(
-          `/sales/products/${id}/status`,
-          undefined,
-          { params: { isActive } }
-        );
-        if (res?.data) {
-          const idx = dbStore.products.findIndex((p) => p.id === id);
-          if (idx !== -1) {
-            dbStore.products[idx] = res.data;
-            dbStore.saveToStorage();
-          }
+
+    try {
+      const res = await apiClient.patch<ApiResponse<Product>>(
+        `/sales/products/${id}/status`,
+        undefined,
+        { params: { isActive } }
+      );
+      if (res?.data) {
+        const idx = dbStore.products.findIndex((p) => p.id === id);
+        if (idx !== -1) {
+          dbStore.products[idx] = res.data;
+          dbStore.saveToStorage();
         }
-        return res;
-      } catch (err) {
-        console.warn('[Sales Service] Backend updateProductStatus failed:', err);
+      }
+      return res;
+    } catch (err) {
+      console.warn('[Sales Service] Backend updateProductStatus failed:', err);
     }
     const idx = dbStore.products.findIndex((p) => p.id === id);
     if (idx === -1) return { code: 404, message: 'Not found', data: null as any };
@@ -315,21 +315,21 @@ export const salesService = {
 
   // 2. SALES LOCATIONS (/sales/locations)
   async fetchSalesLocations(): Promise<ApiResponse<SalesLocation[]>> {
-    
-      try {
-        const res = await apiClient.get<ApiResponse<any>>(API_ENDPOINTS.SALES.LOCATIONS);
-        const list = normalizeList<SalesLocation>(res.data);
-        if (list && list.length > 0) {
-          dbStore.salesLocations = list;
-          dbStore.saveToStorage();
-        }
-        return {
-          code: res.code || 200,
-          message: res.message || 'Lấy danh sách điểm bán vé thành công',
-          data: list,
-        };
-      } catch (err) {
-        console.warn('[Sales Service] Backend fetchSalesLocations failed, fallback to Mock DB:', err);
+
+    try {
+      const res = await apiClient.get<ApiResponse<any>>(API_ENDPOINTS.SALES.LOCATIONS);
+      const list = normalizeList<SalesLocation>(res.data);
+      if (list && list.length > 0) {
+        dbStore.salesLocations = list;
+        dbStore.saveToStorage();
+      }
+      return {
+        code: res.code || 200,
+        message: res.message || 'Lấy danh sách điểm bán vé thành công',
+        data: list,
+      };
+    } catch (err) {
+      console.warn('[Sales Service] Backend fetchSalesLocations failed, fallback to Mock DB:', err);
     }
     return {
       code: 200,
@@ -341,17 +341,17 @@ export const salesService = {
   async createSalesLocation(
     dto: Omit<SalesLocation, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'updated_by'>
   ): Promise<ApiResponse<SalesLocation>> {
-    
-      try {
-        const res = await apiClient.post<ApiResponse<SalesLocation>>(API_ENDPOINTS.SALES.LOCATIONS, dto);
-        if (res?.data) {
-          dbStore.salesLocations.push(res.data);
-          dbStore.logAudit('CREATE', 'sales_locations', res.data.id, null, res.data);
-          dbStore.saveToStorage();
-        }
-        return res;
-      } catch (err) {
-        console.warn('[Sales Service] Backend createSalesLocation failed, fallback to Mock DB:', err);
+
+    try {
+      const res = await apiClient.post<ApiResponse<SalesLocation>>(API_ENDPOINTS.SALES.LOCATIONS, dto);
+      if (res?.data) {
+        dbStore.salesLocations.push(res.data);
+        dbStore.logAudit('CREATE', 'sales_locations', res.data.id, null, res.data);
+        dbStore.saveToStorage();
+      }
+      return res;
+    } catch (err) {
+      console.warn('[Sales Service] Backend createSalesLocation failed, fallback to Mock DB:', err);
     }
     const now = new Date().toISOString();
     const activeUser = dbStore.getActiveUser();
@@ -365,26 +365,26 @@ export const salesService = {
     };
     dbStore.salesLocations.push(newLoc);
     dbStore.logAudit('CREATE', 'sales_locations', newLoc.id, null, newLoc);
-          dbStore.saveToStorage();
+    dbStore.saveToStorage();
     return { code: 201, message: 'Tạo điểm bán vé thành công', data: newLoc };
   },
 
   async updateSalesLocation(id: string, dto: Partial<SalesLocation>): Promise<ApiResponse<SalesLocation>> {
-    
-      try {
-        const res = await apiClient.put<ApiResponse<SalesLocation>>(API_ENDPOINTS.SALES.LOCATION_DETAIL(id), dto);
-        if (res?.data) {
-          const idx = dbStore.salesLocations.findIndex((l) => l.id === id);
-          if (idx !== -1) {
-            const old = { ...dbStore.salesLocations[idx] };
-            dbStore.salesLocations[idx] = res.data;
-            dbStore.logAudit('UPDATE', 'sales_locations', res.data.id || id, old, res.data);
-            dbStore.saveToStorage();
-          }
+
+    try {
+      const res = await apiClient.put<ApiResponse<SalesLocation>>(API_ENDPOINTS.SALES.LOCATION_DETAIL(id), dto);
+      if (res?.data) {
+        const idx = dbStore.salesLocations.findIndex((l) => l.id === id);
+        if (idx !== -1) {
+          const old = { ...dbStore.salesLocations[idx] };
+          dbStore.salesLocations[idx] = res.data;
+          dbStore.logAudit('UPDATE', 'sales_locations', res.data.id || id, old, res.data);
+          dbStore.saveToStorage();
         }
-        return res;
-      } catch (err) {
-        console.warn('[Sales Service] Backend updateSalesLocation failed, fallback to Mock DB:', err);
+      }
+      return res;
+    } catch (err) {
+      console.warn('[Sales Service] Backend updateSalesLocation failed, fallback to Mock DB:', err);
     }
     const idx = dbStore.salesLocations.findIndex((l) => l.id === id);
     if (idx === -1) {
@@ -400,11 +400,11 @@ export const salesService = {
   },
 
   async deleteSalesLocation(id: string): Promise<ApiResponse<void>> {
-    
-      try {
-        await apiClient.delete<ApiResponse<void>>(API_ENDPOINTS.SALES.LOCATION_DETAIL(id));
-      } catch (err) {
-        console.warn('[Sales Service] Backend deleteSalesLocation failed, fallback to Mock DB:', err);
+
+    try {
+      await apiClient.delete<ApiResponse<void>>(API_ENDPOINTS.SALES.LOCATION_DETAIL(id));
+    } catch (err) {
+      console.warn('[Sales Service] Backend deleteSalesLocation failed, fallback to Mock DB:', err);
     }
     const old = dbStore.salesLocations.find(l => l.id === id);
     if (old) dbStore.logAudit('DELETE', 'sales_locations', id, old, null);
@@ -413,23 +413,23 @@ export const salesService = {
   },
 
   async updateSalesLocationStatus(id: string, isActive: boolean): Promise<ApiResponse<SalesLocation>> {
-    
-      try {
-        const res = await apiClient.patch<ApiResponse<SalesLocation>>(
-          API_ENDPOINTS.SALES.LOCATION_STATUS(id),
-          undefined,
-          { params: { isActive } }
-        );
-        if (res?.data) {
-          const idx = dbStore.salesLocations.findIndex((l) => l.id === id);
-          if (idx !== -1) {
-            dbStore.salesLocations[idx] = res.data;
-            dbStore.saveToStorage();
-          }
+
+    try {
+      const res = await apiClient.patch<ApiResponse<SalesLocation>>(
+        API_ENDPOINTS.SALES.LOCATION_STATUS(id),
+        undefined,
+        { params: { isActive } }
+      );
+      if (res?.data) {
+        const idx = dbStore.salesLocations.findIndex((l) => l.id === id);
+        if (idx !== -1) {
+          dbStore.salesLocations[idx] = res.data;
+          dbStore.saveToStorage();
         }
-        return res;
-      } catch (err) {
-        console.warn('[Sales Service] Backend updateSalesLocationStatus failed:', err);
+      }
+      return res;
+    } catch (err) {
+      console.warn('[Sales Service] Backend updateSalesLocationStatus failed:', err);
     }
     const idx = dbStore.salesLocations.findIndex((l) => l.id === id);
     if (idx === -1) return { code: 404, message: 'Not found', data: null as any };
@@ -441,21 +441,21 @@ export const salesService = {
 
   // 3. SALES COUNTERS (/sales/counters)
   async fetchSalesCounters(): Promise<ApiResponse<SalesCounter[]>> {
-    
-      try {
-        const res = await apiClient.get<ApiResponse<any>>(API_ENDPOINTS.SALES.COUNTERS);
-        const list = normalizeList<SalesCounter>(res.data);
-        if (list && list.length > 0) {
-          dbStore.salesCounters = list;
-          dbStore.saveToStorage();
-        }
-        return {
-          code: res.code || 200,
-          message: res.message || 'Lấy danh sách quầy bán vé thành công',
-          data: list,
-        };
-      } catch (err) {
-        console.warn('[Sales Service] Backend fetchSalesCounters failed, fallback to Mock DB:', err);
+
+    try {
+      const res = await apiClient.get<ApiResponse<any>>(API_ENDPOINTS.SALES.COUNTERS);
+      const list = normalizeList<SalesCounter>(res.data);
+      if (list && list.length > 0) {
+        dbStore.salesCounters = list;
+        dbStore.saveToStorage();
+      }
+      return {
+        code: res.code || 200,
+        message: res.message || 'Lấy danh sách quầy bán vé thành công',
+        data: list,
+      };
+    } catch (err) {
+      console.warn('[Sales Service] Backend fetchSalesCounters failed, fallback to Mock DB:', err);
     }
     return this.getSalesCounters();
   },
@@ -463,17 +463,17 @@ export const salesService = {
   async createSalesCounter(
     dto: Omit<SalesCounter, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'updated_by'>
   ): Promise<ApiResponse<SalesCounter>> {
-    
-      try {
-        const res = await apiClient.post<ApiResponse<SalesCounter>>(API_ENDPOINTS.SALES.COUNTERS, dto);
-        if (res?.data) {
-          dbStore.salesCounters.push(res.data);
-          dbStore.logAudit('CREATE', 'sales_counters', res.data.id, null, res.data);
-          dbStore.saveToStorage();
-        }
-        return res;
-      } catch (err) {
-        console.warn('[Sales Service] Backend createSalesCounter failed, fallback to Mock DB:', err);
+
+    try {
+      const res = await apiClient.post<ApiResponse<SalesCounter>>(API_ENDPOINTS.SALES.COUNTERS, dto);
+      if (res?.data) {
+        dbStore.salesCounters.push(res.data);
+        dbStore.logAudit('CREATE', 'sales_counters', res.data.id, null, res.data);
+        dbStore.saveToStorage();
+      }
+      return res;
+    } catch (err) {
+      console.warn('[Sales Service] Backend createSalesCounter failed, fallback to Mock DB:', err);
     }
     const now = new Date().toISOString();
     const activeUser = dbStore.getActiveUser();
@@ -487,26 +487,26 @@ export const salesService = {
     };
     dbStore.salesCounters.push(newCnt);
     dbStore.logAudit('CREATE', 'sales_counters', newCnt.id, null, newCnt);
-          dbStore.saveToStorage();
+    dbStore.saveToStorage();
     return { code: 201, message: 'Tạo quầy bán vé thành công', data: newCnt };
   },
 
   async updateSalesCounter(id: string, dto: Partial<SalesCounter>): Promise<ApiResponse<SalesCounter>> {
-    
-      try {
-        const res = await apiClient.put<ApiResponse<SalesCounter>>(API_ENDPOINTS.SALES.COUNTER_DETAIL(id), dto);
-        if (res?.data) {
-          const idx = dbStore.salesCounters.findIndex((c) => c.id === id);
-          if (idx !== -1) {
-            const old = { ...dbStore.salesCounters[idx] };
-            dbStore.salesCounters[idx] = res.data;
-            dbStore.logAudit('UPDATE', 'sales_counters', res.data.id || id, old, res.data);
-            dbStore.saveToStorage();
-          }
+
+    try {
+      const res = await apiClient.put<ApiResponse<SalesCounter>>(API_ENDPOINTS.SALES.COUNTER_DETAIL(id), dto);
+      if (res?.data) {
+        const idx = dbStore.salesCounters.findIndex((c) => c.id === id);
+        if (idx !== -1) {
+          const old = { ...dbStore.salesCounters[idx] };
+          dbStore.salesCounters[idx] = res.data;
+          dbStore.logAudit('UPDATE', 'sales_counters', res.data.id || id, old, res.data);
+          dbStore.saveToStorage();
         }
-        return res;
-      } catch (err) {
-        console.warn('[Sales Service] Backend updateSalesCounter failed, fallback to Mock DB:', err);
+      }
+      return res;
+    } catch (err) {
+      console.warn('[Sales Service] Backend updateSalesCounter failed, fallback to Mock DB:', err);
     }
     const idx = dbStore.salesCounters.findIndex((c) => c.id === id);
     if (idx === -1) {
@@ -522,11 +522,11 @@ export const salesService = {
   },
 
   async deleteSalesCounter(id: string): Promise<ApiResponse<void>> {
-    
-      try {
-        await apiClient.delete<ApiResponse<void>>(API_ENDPOINTS.SALES.COUNTER_DETAIL(id));
-      } catch (err) {
-        console.warn('[Sales Service] Backend deleteSalesCounter failed, fallback to Mock DB:', err);
+
+    try {
+      await apiClient.delete<ApiResponse<void>>(API_ENDPOINTS.SALES.COUNTER_DETAIL(id));
+    } catch (err) {
+      console.warn('[Sales Service] Backend deleteSalesCounter failed, fallback to Mock DB:', err);
     }
     const old = dbStore.salesCounters.find(c => c.id === id);
     if (old) dbStore.logAudit('DELETE', 'sales_counters', id, old, null);
@@ -535,23 +535,23 @@ export const salesService = {
   },
 
   async updateSalesCounterStatus(id: string, isActive: boolean): Promise<ApiResponse<SalesCounter>> {
-    
-      try {
-        const res = await apiClient.patch<ApiResponse<SalesCounter>>(
-          API_ENDPOINTS.SALES.COUNTER_STATUS(id),
-          undefined,
-          { params: { isActive } }
-        );
-        if (res?.data) {
-          const idx = dbStore.salesCounters.findIndex((c) => c.id === id);
-          if (idx !== -1) {
-            dbStore.salesCounters[idx] = res.data;
-            dbStore.saveToStorage();
-          }
+
+    try {
+      const res = await apiClient.patch<ApiResponse<SalesCounter>>(
+        API_ENDPOINTS.SALES.COUNTER_STATUS(id),
+        undefined,
+        { params: { isActive } }
+      );
+      if (res?.data) {
+        const idx = dbStore.salesCounters.findIndex((c) => c.id === id);
+        if (idx !== -1) {
+          dbStore.salesCounters[idx] = res.data;
+          dbStore.saveToStorage();
         }
-        return res;
-      } catch (err) {
-        console.warn('[Sales Service] Backend updateSalesCounterStatus failed:', err);
+      }
+      return res;
+    } catch (err) {
+      console.warn('[Sales Service] Backend updateSalesCounterStatus failed:', err);
     }
     const idx = dbStore.salesCounters.findIndex((c) => c.id === id);
     if (idx === -1) return { code: 404, message: 'Not found', data: null as any };
@@ -563,40 +563,40 @@ export const salesService = {
 
   // 4. ORDERS (/sales/orders)
   async fetchOrders(params?: { fromDate?: string; toDate?: string; size?: number }): Promise<ApiResponse<Order[]>> {
-    
-      try {
-        const queryParams = { size: 20, ...params };
-        const res = await apiClient.get<ApiResponse<any>>(API_ENDPOINTS.SALES.ORDERS, queryParams);
-        const list = normalizeList<Order>(res.data);
-        if (list && list.length > 0) {
-          dbStore.orders = list;
-        }
-        return {
-          code: res.code || 200,
-          message: res.message || 'Lấy danh sách đơn hàng thành công',
-          data: list,
-        };
-      } catch (err) {
-        console.warn('[Sales Service] Backend fetchOrders failed, fallback to Mock DB:', err);
+
+    try {
+      const queryParams = { size: 20, ...params };
+      const res = await apiClient.get<ApiResponse<any>>(API_ENDPOINTS.SALES.ORDERS, queryParams);
+      const list = normalizeList<Order>(res.data);
+      if (list && list.length > 0) {
+        dbStore.orders = list;
+      }
+      return {
+        code: res.code || 200,
+        message: res.message || 'Lấy danh sách đơn hàng thành công',
+        data: list,
+      };
+    } catch (err) {
+      console.warn('[Sales Service] Backend fetchOrders failed, fallback to Mock DB:', err);
     }
     return this.getOrders();
   },
 
   async cancelOrder(id: string, reason: string): Promise<ApiResponse<Order>> {
-    
-      try {
-        const res = await apiClient.put<ApiResponse<Order>>(API_ENDPOINTS.SALES.CANCEL_ORDER(id), { reason });
-        if (res?.data) {
-          const idx = dbStore.orders.findIndex((o) => o.id === id);
-          if (idx !== -1) {
-            const old = { ...dbStore.orders[idx] };
-            dbStore.orders[idx] = res.data;
-            dbStore.logAudit('UPDATE', 'orders', id, old, res.data);
-          }
+
+    try {
+      const res = await apiClient.put<ApiResponse<Order>>(API_ENDPOINTS.SALES.CANCEL_ORDER(id), { reason });
+      if (res?.data) {
+        const idx = dbStore.orders.findIndex((o) => o.id === id);
+        if (idx !== -1) {
+          const old = { ...dbStore.orders[idx] };
+          dbStore.orders[idx] = res.data;
+          dbStore.logAudit('UPDATE', 'orders', id, old, res.data);
         }
-        return res;
-      } catch (err) {
-        console.warn('[Sales Service] Backend cancelOrder failed, fallback to Mock DB:', err);
+      }
+      return res;
+    } catch (err) {
+      console.warn('[Sales Service] Backend cancelOrder failed, fallback to Mock DB:', err);
     }
     const idx = dbStore.orders.findIndex((o) => o.id === id);
     if (idx === -1) {
@@ -642,10 +642,10 @@ export const salesService = {
   },
 
   async fetchExpiringTickets(
-    daysAhead?: number | null, 
-    keyword?: string, 
-    page: number = 0, 
-    size: number = 50, 
+    daysAhead?: number | null,
+    keyword?: string,
+    page: number = 0,
+    size: number = 50,
     employee?: string,
     status?: string
   ): Promise<ApiResponse<any>> {
@@ -658,14 +658,14 @@ export const salesService = {
   },
 
   async exportMonthlyTicketsReport(
-    daysAhead?: number | null, 
-    keyword?: string, 
-    employee?: string, 
+    daysAhead?: number | null,
+    keyword?: string,
+    employee?: string,
     status?: string
   ): Promise<void> {
     const { authState } = await import('./authState');
     const token = authState.getToken();
-    
+
     const params = new URLSearchParams();
     if (daysAhead !== undefined && daysAhead !== null) params.append('daysAhead', String(daysAhead));
     if (keyword && keyword.trim()) params.append('keyword', keyword.trim());
@@ -709,21 +709,21 @@ export const salesService = {
   },
 
   async lockIssuedTicket(id: string): Promise<ApiResponse<IssuedTicket>> {
-    
-      try {
-        const res = await apiClient.put<ApiResponse<IssuedTicket>>(API_ENDPOINTS.SALES.LOCK_ISSUED_TICKET(id), {});
-        if (res?.data) {
-          const idx = dbStore.issuedTickets.findIndex((t) => t.id === id);
-          if (idx !== -1) {
-            const old = { ...dbStore.issuedTickets[idx] };
-            dbStore.issuedTickets[idx] = res.data;
-            dbStore.logAudit('UPDATE', 'issued_tickets', id, old, res.data);
-            dbStore.saveToStorage();
-          }
+
+    try {
+      const res = await apiClient.put<ApiResponse<IssuedTicket>>(API_ENDPOINTS.SALES.LOCK_ISSUED_TICKET(id), {});
+      if (res?.data) {
+        const idx = dbStore.issuedTickets.findIndex((t) => t.id === id);
+        if (idx !== -1) {
+          const old = { ...dbStore.issuedTickets[idx] };
+          dbStore.issuedTickets[idx] = res.data;
+          dbStore.logAudit('UPDATE', 'issued_tickets', id, old, res.data);
+          dbStore.saveToStorage();
         }
-        return res;
-      } catch (err) {
-        console.warn('[Sales Service] Backend lockIssuedTicket failed, fallback to Mock DB:', err);
+      }
+      return res;
+    } catch (err) {
+      console.warn('[Sales Service] Backend lockIssuedTicket failed, fallback to Mock DB:', err);
     }
     const idx = dbStore.issuedTickets.findIndex((t) => t.id === id);
     if (idx === -1) {
@@ -747,64 +747,64 @@ export const salesService = {
     }
 
     try {
-        const orderRequest = {
-          customer_source_id: customer_source_id || null,
-          customer_group_id: payload.customer_group_id || null,
-          promotion_id: payload.promotion_id || null,
-          sales_counter_id: counter_id,
-          discount_percent: discount_percent || 0,
-          discount_amount: payload.discount_amount_vnd || 0,
-          payment_method: payment_method,
-          items: cart_items.map((item) => ({
-            item_type: item.item_type || ItemType.TICKET,
-            item_id: item.id,
-            quantity: item.quantity,
-            // MULTI: 1 QR chung nhiều lượt → is_group_ticket = true
-            // UNLIMITED: 1 QR vé tháng → cũng dùng is_group_ticket = true để BE tạo 1 QR duy nhất
-            // Logic cũ chỉ check allowed_passes > 1 sẽ sai với UNLIMITED (allowed_passes = -1)
-            is_group_ticket: item.ticket_type === 'MULTI' || item.ticket_type === 'UNLIMITED'
-              || item.is_group_ticket === true
-              || (item.allowed_passes_per_unit != null && item.allowed_passes_per_unit > 1),
-            allowed_passes_per_unit: item.ticket_type === 'UNLIMITED' ? -1 : (item.allowed_passes_per_unit || 1),
-          })),
-          booker_name: payload.booker_name || 'Khách lẻ',
-          customer_phone: payload.customer_phone || null,
-          customer_email: payload.customer_email || null,
-          booking_code: payload.booking_code || null,
-          note: payload.note || null,
-          use_date: payload.valid_date || new Date().toISOString().split('T')[0],
-          invoice_status: payload.invoice_status || 'UNISSUED',
-          company_tax_code: payload.company_tax_code || null,
-          company_name: payload.company_name || null,
-          company_address: payload.company_address || null,
-          company_phone: payload.company_phone || null,
-          company_email: payload.company_email || null,
-          invoice_recipient_email: payload.invoice_recipient_email || null,
+      const orderRequest = {
+        customer_source_id: customer_source_id || null,
+        customer_group_id: payload.customer_group_id || null,
+        promotion_id: payload.promotion_id || null,
+        sales_counter_id: counter_id,
+        discount_percent: discount_percent || 0,
+        discount_amount: payload.discount_amount_vnd || 0,
+        payment_method: payment_method,
+        items: cart_items.map((item) => ({
+          item_type: item.item_type || ItemType.TICKET,
+          item_id: item.id,
+          quantity: item.quantity,
+          // MULTI: 1 QR chung nhiều lượt → is_group_ticket = true
+          // UNLIMITED: 1 QR vé tháng → cũng dùng is_group_ticket = true để BE tạo 1 QR duy nhất
+          // Logic cũ chỉ check allowed_passes > 1 sẽ sai với UNLIMITED (allowed_passes = -1)
+          is_group_ticket: item.ticket_type === 'MULTI' || item.ticket_type === 'UNLIMITED'
+            || item.is_group_ticket === true
+            || (item.allowed_passes_per_unit != null && item.allowed_passes_per_unit > 1),
+          allowed_passes_per_unit: item.ticket_type === 'UNLIMITED' ? -1 : (item.allowed_passes_per_unit || 1),
+        })),
+        booker_name: payload.booker_name || 'Khách lẻ',
+        customer_phone: payload.customer_phone || null,
+        customer_email: payload.customer_email || null,
+        booking_code: payload.booking_code || null,
+        note: payload.note || null,
+        use_date: payload.valid_date || new Date().toISOString().split('T')[0],
+        invoice_status: payload.invoice_status || 'UNISSUED',
+        company_tax_code: payload.company_tax_code || null,
+        company_name: payload.company_name || null,
+        company_address: payload.company_address || null,
+        company_phone: payload.company_phone || null,
+        company_email: payload.company_email || null,
+        invoice_recipient_email: payload.invoice_recipient_email || null,
+      };
+      const res = await apiClient.post<ApiResponse<Order>>(API_ENDPOINTS.SALES.ORDERS, orderRequest);
+      if (res && res.data) {
+        const dataAny = res.data as any;
+        const orderId = dataAny.id || dataAny.order_id;
+        const orderCode = dataAny.order_code || dataAny.orderCode;
+        res.data = {
+          ...res.data,
+          id: orderId,
+          order_code: orderCode,
         };
-        const res = await apiClient.post<ApiResponse<Order>>(API_ENDPOINTS.SALES.ORDERS, orderRequest);
-        if (res && res.data) {
-          const dataAny = res.data as any;
-          const orderId = dataAny.id || dataAny.order_id;
-          const orderCode = dataAny.order_code || dataAny.orderCode;
-          res.data = {
-            ...res.data,
-            id: orderId,
-            order_code: orderCode,
-          };
-          dbStore.orders.unshift(res.data);
-          dbStore.logAudit('CREATE', 'orders', res.data.id, null, res.data);
-          dbStore.saveToStorage();
-          try {
-            await this.fetchIssuedTickets();
-          } catch (e) {
-            console.warn('[Sales Service] Could not refresh issued tickets after checkout:', e);
-          }
+        dbStore.orders.unshift(res.data);
+        dbStore.logAudit('CREATE', 'orders', res.data.id, null, res.data);
+        dbStore.saveToStorage();
+        try {
+          await this.fetchIssuedTickets();
+        } catch (e) {
+          console.warn('[Sales Service] Could not refresh issued tickets after checkout:', e);
         }
-        return res;
-      } catch (err: any) {
-        console.warn('[Sales Service] Backend checkout failed:', err);
-        throw err;
       }
+      return res;
+    } catch (err: any) {
+      console.warn('[Sales Service] Backend checkout failed:', err);
+      throw err;
+    }
 
     const now = new Date().toISOString();
     const todayDate = now.split('T')[0];
@@ -852,7 +852,7 @@ export const salesService = {
       }));
 
     if (productItems.length > 0) {
-      const currentCounter = dbStore.counters.find((c) => c.id === counter_id);
+      const currentCounter = dbStore.salesCounters.find((c) => c.id === counter_id);
       await inventoryService.recordPosSale({
         orderId,
         orderCode,

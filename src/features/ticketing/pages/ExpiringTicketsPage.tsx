@@ -323,6 +323,43 @@ export const ExpiringTicketsPage: React.FC = () => {
     }
   };
 
+  // Keyboard shortcut: Enter để xác nhận gia hạn, Escape để đóng modal
+  useEffect(() => {
+    if (!renewingTicket) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        const target = e.target as HTMLElement;
+        if (target?.tagName === 'BUTTON' && target.innerText.trim() === 'Hủy') return;
+        e.preventDefault();
+        if (!isSubmitting) {
+          submitRenew();
+        }
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        setRenewingTicket(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [renewingTicket, isSubmitting, renewMonths, renewAmount, paymentMethod, selectedPromotion]);
+
+  // Keyboard shortcut: Escape để đóng modal sửa thông tin khách hàng
+  useEffect(() => {
+    if (!editingTicket) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setEditingTicket(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [editingTicket]);
+
   const handleResetFilters = () => {
     setDaysAhead(null);
     setStatusFilter('all');

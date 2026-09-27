@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  Calendar, Clock, Mail, Phone, QrCode, RefreshCw, 
-  Edit2, MoreVertical, Copy, Printer, Eye, CheckCircle2, 
+import {
+  Calendar, Clock, Mail, Phone, QrCode, RefreshCw,
+  Edit2, MoreVertical, Copy, Printer, Eye, CheckCircle2,
   AlertTriangle, CalendarX, Check, RotateCw
 } from 'lucide-react';
 import { IssuedTicket } from '../../../api/salesService';
@@ -22,12 +22,12 @@ interface ExpiringTicketsTableProps {
   onSelectAll?: () => void;
 }
 
-export const ExpiringTicketsTable: React.FC<ExpiringTicketsTableProps> = ({ 
-  tickets, 
-  loading, 
-  daysAhead, 
-  onEditCustomer, 
-  onRenewTicket, 
+export const ExpiringTicketsTable: React.FC<ExpiringTicketsTableProps> = ({
+  tickets,
+  loading,
+  daysAhead,
+  onEditCustomer,
+  onRenewTicket,
   onViewCard,
   onSelectTicket,
   onResetFilters,
@@ -59,7 +59,7 @@ export const ExpiringTicketsTable: React.FC<ExpiringTicketsTableProps> = ({
     if (onToggleSelect) {
       onToggleSelect(id);
     } else {
-      setInternalSelectedIds(prev => 
+      setInternalSelectedIds(prev =>
         prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
       );
     }
@@ -90,11 +90,36 @@ export const ExpiringTicketsTable: React.FC<ExpiringTicketsTableProps> = ({
   const now = new Date();
 
   return (
-    <div className="w-full overflow-x-auto">
-      <table className="w-full text-left text-xs sm:text-sm border-collapse">
+    <div className="w-full overflow-hidden">
+      <table className="w-full table-fixed text-left text-xs sm:text-sm border-collapse">
+        <colgroup>
+          {/* Checkbox */}
+          <col className="w-[44px]" />
+
+          {/* STT */}
+          <col className="w-[52px]" />
+
+          {/* Khách hàng */}
+          <col className="w-[18%]" />
+
+          {/* Mã vé / QR */}
+          <col className="w-[17%]" />
+
+          {/* Hạn dùng & trạng thái */}
+          <col className="w-[19%]" />
+
+          {/* Lượt qua */}
+          <col className="w-[72px]" />
+
+          {/* Người bán */}
+          <col className="w-[12%]" />
+
+          {/* Thao tác */}
+          <col className="w-[190px]" />
+        </colgroup>
         <thead className="bg-slate-100 text-slate-900 font-bold border-b border-slate-200">
           <tr>
-            <th className="p-3 text-center w-12">
+            <th className="p-3 text-center ">
               <input
                 type="checkbox"
                 checked={isAllSelected}
@@ -102,13 +127,13 @@ export const ExpiringTicketsTable: React.FC<ExpiringTicketsTableProps> = ({
                 className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
               />
             </th>
-            <th className="p-3 text-center w-16 font-mono">STT</th>
-            <th className="p-3 min-w-[180px]">Khách Hàng</th>
-            <th className="p-3 min-w-[170px]">Mã Vé / QR</th>
-            <th className="p-3 min-w-[180px]">Hạn Dùng & Trạng Thái</th>
-            <th className="p-3 text-center w-24">Lượt Qua</th>
-            <th className="p-3 min-w-[130px]">Người Bán</th>
-            <th className="p-3 text-center w-48">Thao Tác</th>
+            <th className="p-3 text-center  font-mono">STT</th>
+            <th className="p-3 ">Khách Hàng</th>
+            <th className="p-3 ">Mã Vé / QR</th>
+            <th className="p-3 ">Hạn Dùng & Trạng Thái</th>
+            <th className="p-3 text-center ">Lượt Qua</th>
+            <th className="p-3 ">Người Bán</th>
+            <th className="p-3 text-center ">Thao Tác</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100 bg-white">
@@ -157,8 +182,8 @@ export const ExpiringTicketsTable: React.FC<ExpiringTicketsTableProps> = ({
                 </div>
                 <div className="font-semibold text-slate-700 text-sm">Không tìm thấy vé tháng phù hợp</div>
                 <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-                  {daysAhead === null 
-                    ? 'Chưa có dữ liệu vé tháng nào khớp với điều kiện lọc.' 
+                  {daysAhead === null
+                    ? 'Chưa có dữ liệu vé tháng nào khớp với điều kiện lọc.'
                     : `Không có vé tháng nào sắp hết hạn trong ${daysAhead} ngày tới.`}
                 </p>
                 {onResetFilters && (
@@ -182,8 +207,8 @@ export const ExpiringTicketsTable: React.FC<ExpiringTicketsTableProps> = ({
               const isSelected = selectedIds.includes(ticket.id);
 
               return (
-                <tr 
-                  key={ticket.id} 
+                <tr
+                  key={ticket.id}
                   onClick={() => onSelectTicket(ticket)}
                   className={`hover:bg-slate-50 transition-colors cursor-pointer ${isSelected ? 'bg-emerald-50/40' : ''}`}
                   title="Click để xem chi tiết vé & hội viên"
@@ -193,7 +218,7 @@ export const ExpiringTicketsTable: React.FC<ExpiringTicketsTableProps> = ({
                     <input
                       type="checkbox"
                       checked={isSelected}
-                      onChange={() => {}}
+                      onChange={() => { }}
                       className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                     />
                   </td>
@@ -267,7 +292,7 @@ export const ExpiringTicketsTable: React.FC<ExpiringTicketsTableProps> = ({
                           <span>Còn {daysLeft} ngày</span>
                         </span>
                       )}
-                      
+
                       <div className="text-[11px] text-slate-400 font-mono">
                         HSD: {expireDate ? expireDate.toLocaleDateString('vi-VN') : ticket.valid_date || '—'}
                       </div>
@@ -329,11 +354,10 @@ export const ExpiringTicketsTable: React.FC<ExpiringTicketsTableProps> = ({
                             e.stopPropagation();
                             setActiveMenuId(isMenuOpen ? null : ticket.id);
                           }}
-                          className={`p-1 rounded-lg transition ${
-                            isMenuOpen 
-                              ? 'bg-slate-200 text-slate-800' 
-                              : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'
-                          }`}
+                          className={`p-1 rounded-lg transition ${isMenuOpen
+                            ? 'bg-slate-200 text-slate-800'
+                            : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'
+                            }`}
                           title="Tùy chọn khác"
                         >
                           <MoreVertical className="w-4 h-4" />
@@ -341,7 +365,7 @@ export const ExpiringTicketsTable: React.FC<ExpiringTicketsTableProps> = ({
 
                         {/* Menu Popover */}
                         {isMenuOpen && (
-                          <div 
+                          <div
                             onClick={(e) => e.stopPropagation()}
                             className="absolute right-0 top-full mt-1 w-44 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-40 text-left animate-in fade-in zoom-in-95 duration-100"
                           >

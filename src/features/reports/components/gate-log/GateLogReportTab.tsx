@@ -25,20 +25,27 @@ export const GateLogReportTab: React.FC<GateLogReportTabProps> = ({
   const [totalElements, setTotalElements] = useState(0);
   const [loading, setLoading] = useState(false);
   const [availableGates, setAvailableGates] = useState<string[]>([]);
+  const [localTrigger, setLocalTrigger] = useState(0);
+
+  const handleSearch = () => {
+    setPage(1);
+    setLocalTrigger(prev => prev + 1);
+    if (setSearchTrigger) {
+      setSearchTrigger(prev => prev + 1);
+    }
+  };
 
   useEffect(() => {
     const fetchLogs = async () => {
       setLoading(true);
       try {
         const params: any = {
-          page: page - 1,
+          page: Math.max(0, page - 1),
           size: pageSize,
-          fromDate,
-          toDate
         };
-        if (nameSearch) {
-          params.keyword = nameSearch;
-        }
+        if (fromDate && fromDate.trim()) params.fromDate = fromDate.trim();
+        if (toDate && toDate.trim()) params.toDate = toDate.trim();
+        if (nameSearch && nameSearch.trim()) params.keyword = nameSearch.trim();
 
         const res = await apiClient.get<any>(API_ENDPOINTS.TICKETING.ACCESS_LOGS, params);
         
@@ -66,7 +73,7 @@ export const GateLogReportTab: React.FC<GateLogReportTabProps> = ({
     };
 
     fetchLogs();
-  }, [page, pageSize, searchTrigger]);
+  }, [page, pageSize, searchTrigger, localTrigger]);
 
   const handleExport = async () => {
     if (!fromDate || !toDate) {
@@ -85,50 +92,62 @@ export const GateLogReportTab: React.FC<GateLogReportTabProps> = ({
     <div className="space-y-6">
       <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4">
         <h2 className="text-base font-extrabold text-slate-900 uppercase tracking-wide">BÁO CÁO RA VÀO NHÂN VIÊN</h2>
-        <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs items-center">
-            <div className="flex items-center gap-2">
-              <span className="text-slate-700 font-semibold whitespace-nowrap">Từ ngày :</span>
-              <input
-                type="date"
-                value={fromDate}
-                onChange={(e) => setFromDate(e.target.value)}
-                className="bg-white border border-slate-200 px-2.5 py-1.5 text-slate-900 font-mono font-medium rounded-lg outline-none focus:border-emerald-500 w-full shadow-xs"
-              />
+        <div className="border border-slate-200/80 rounded-xl p-3.5 bg-slate-50/70">
+          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+            {/* Cụm bộ lọc điều kiện */}
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2.5 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="text-slate-600 font-semibold whitespace-nowrap">Từ ngày:</span>
+                <input
+                  type="date"
+                  value={fromDate}
+                  onChange={(e) => setFromDate(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
+                  className="bg-white border border-slate-200 px-3 py-1.5 text-slate-800 font-mono font-medium rounded-lg outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 shadow-2xs w-[145px]"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-slate-600 font-semibold whitespace-nowrap">Đến ngày:</span>
+                <input
+                  type="date"
+                  value={toDate}
+                  onChange={(e) => setToDate(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
+                  className="bg-white border border-slate-200 px-3 py-1.5 text-slate-800 font-mono font-medium rounded-lg outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 shadow-2xs w-[145px]"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-slate-600 font-semibold whitespace-nowrap">Cổng soát vé:</span>
+                <select
+                  value={nameSearch}
+                  onChange={(e) => {
+                    setNameSearch(e.target.value);
+                    setPage(1);
+                    setLocalTrigger(prev => prev + 1);
+                  }}
+                  className="bg-white border border-slate-200 px-3 py-1.5 text-slate-800 font-medium rounded-lg outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 shadow-2xs min-w-[160px]"
+                >
+                  <option value="">-- Tất cả các cổng --</option>
+                  {availableGates.map((gateName, idx) => (
+                    <option key={idx} value={gateName}>{gateName}</option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-slate-700 font-semibold whitespace-nowrap">Đến ngày :</span>
-              <input
-                type="date"
-                value={toDate}
-                onChange={(e) => setToDate(e.target.value)}
-                className="bg-white border border-slate-200 px-2.5 py-1.5 text-slate-900 font-mono font-medium rounded-lg outline-none focus:border-emerald-500 w-full shadow-xs"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-slate-700 font-semibold whitespace-nowrap">Chọn cổng soát vé :</span>
-              <select
-                value={nameSearch}
-                onChange={(e) => setNameSearch(e.target.value)}
-                className="bg-white border border-slate-200 px-2.5 py-1.5 text-slate-900 font-medium rounded-lg outline-none focus:border-emerald-500 w-full shadow-xs"
-              >
-                <option value="">-- Tất cả các cổng --</option>
-                {availableGates.map((gateName, idx) => (
-                  <option key={idx} value={gateName}>{gateName}</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-center justify-end gap-2">
+
+            {/* Cụm nút hành động */}
+            <div className="flex items-center gap-3 shrink-0 ml-auto sm:ml-0">
               <button
                 type="button"
-                onClick={() => setSearchTrigger(prev => prev + 1)}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-xs"
+                onClick={handleSearch}
+                disabled={loading}
+                className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-2xs cursor-pointer active:scale-95"
               >
                 <Search className="w-3.5 h-3.5" /> Tìm kiếm
               </button>
               <ExportExcelButton 
                 onExport={handleExport}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-xs"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-2xs cursor-pointer active:scale-95"
                 buttonText="Xuất excel"
               />
             </div>

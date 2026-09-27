@@ -29,7 +29,7 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({ subTab = 'BaoCaoDo
     customerGroupFilter, setCustomerGroupFilter, customerSourceFilter, setCustomerSourceFilter,
     selectedMonth, setSelectedMonth, ticketTypeFilter, setTicketTypeFilter,
     nameSearch, setNameSearch, selectedLog, setSelectedLog,
-    exportNotice, page, setPage, pageSize, setSearchTrigger, handleSearch, handleExportExcel,
+    exportNotice, page, setPage, pageSize, searchTrigger, setSearchTrigger, handleSearch, handleExportExcel,
     users, salesCounters, customerGroups, customerSources, ticketTemplates,
     orders, rawOrders, issuedTickets, ticketPageResponse,
     totalRevenue, totalTicketsSold, chartData, ticketStatsArray, totalCash, totalBankTransfer,
@@ -140,13 +140,14 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({ subTab = 'BaoCaoDo
       {currentTab === 'BaoCaoRaVao' && (
         <GateLogReportTab
           fromDate={fromDate} setFromDate={setFromDate} toDate={toDate} setToDate={setToDate} nameSearch={nameSearch} setNameSearch={setNameSearch}
-          setSearchTrigger={setSearchTrigger} handleExportExcel={handleExportExcel} page={page} setPage={setPage} pageSize={pageSize}
+          searchTrigger={searchTrigger} setSearchTrigger={setSearchTrigger} handleExportExcel={handleExportExcel} page={page} setPage={setPage} pageSize={pageSize}
         />
       )}
 
       {currentTab === 'BaoCaoHeThong' && (
         <SystemLogReportTab
-          fromDate={fromDate} setFromDate={setFromDate} toDate={toDate} setToDate={setToDate} setSearchTrigger={setSearchTrigger} handleExportExcel={handleExportExcel}
+          fromDate={fromDate} setFromDate={setFromDate} toDate={toDate} setToDate={setToDate}
+          searchTrigger={searchTrigger} setSearchTrigger={setSearchTrigger} handleExportExcel={handleExportExcel}
           page={page} setPage={setPage} pageSize={pageSize} setSelectedLog={setSelectedLog}
         />
       )}

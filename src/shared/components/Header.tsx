@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ShoppingCart,
   QrCode,
@@ -46,6 +46,30 @@ export const Header: React.FC<HeaderProps> = ({
   const [jwtUser, setJwtUser] = useState<string | null>(localStorage.getItem('hpticket_username'));
 
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const userDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userDropdownRef.current && !userDropdownRef.current.contains(event.target as Node)) {
+        setUserDropdownOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setUserDropdownOpen(false);
+      }
+    };
+
+    if (userDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [userDropdownOpen]);
 
   useEffect(() => {
     const fetchUser = () => {
@@ -139,10 +163,10 @@ export const Header: React.FC<HeaderProps> = ({
 
           <div className="flex items-center gap-2 sm:gap-3">
             {/* User Dropdown */}
-            <div className="relative">
+            <div className="relative" ref={userDropdownRef}>
               <button
                 onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                className="flex items-center gap-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl px-3 py-1.5 transition text-left"
+                className="flex items-center gap-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl px-3 py-1.5 transition text-left cursor-pointer"
               >
                 <img
                   src={`https://api.dicebear.com/7.x/notionists/svg?seed=${activeUser.username}&backgroundColor=3f72af`}

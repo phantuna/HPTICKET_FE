@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Code, Eye, CheckCircle2, XCircle, HelpCircle, 
   ShieldCheck, AlertTriangle, Copy, Check, Clock, User, Globe 
@@ -43,6 +43,16 @@ export const LogSnapshotModal: React.FC<LogSnapshotModalProps> = ({ selectedLog,
   const [activeTab, setActiveTab] = useState<'visual' | 'json'>('visual');
   const [copied, setCopied] = useState(false);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   const isFailed = selectedLog.result === 'FAILED';
   const isSuccess = selectedLog.result === 'SUCCESS';
   const isUnknown = !isFailed && !isSuccess;
@@ -80,7 +90,10 @@ export const LogSnapshotModal: React.FC<LogSnapshotModalProps> = ({ selectedLog,
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div 
+      className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
       <div className="bg-white border border-slate-200 rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl text-slate-900 overflow-hidden">
         
         {/* Header */}
