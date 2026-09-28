@@ -191,7 +191,7 @@ export const OrdersModule: React.FC = () => {
       return;
     }
 
-    await downloadExcelFromApi('/sales/orders/export', { fromDate, toDate }, 'DanhSachDonHang.xlsx');
+    await downloadExcelFromApi('/sales/orders/export', { fromDate, toDate }, 'BaoCao_DonHang_Ve_HangHoa.xlsx');
   };
 
   return (

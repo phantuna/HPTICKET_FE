@@ -150,6 +150,11 @@ export const RevenueReportTab: React.FC<RevenueReportTabProps> = ({
       URL.revokeObjectURL(url);
 
       toast.success('Đã xuất file báo cáo TXT thành công!');
+
+      // Ghi nhận nhật ký kiểm toán cho thao tác xuất báo cáo TXT
+      apiClient.post('/system/exports/log-client-export', null, {
+        params: { reportTitle: 'Báo cáo GM doanh thu tổng quan (TXT)', fileType: 'txt' }
+      }).catch(() => {});
     } catch (error) {
       toast.error('Có lỗi xảy ra khi xuất báo cáo!');
     } finally {

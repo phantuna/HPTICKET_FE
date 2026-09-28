@@ -17,75 +17,10 @@ export interface SystemLogReportTabProps {
   setSelectedLog: (log: any) => void;
 }
 
-const ENTITY_NAMES: Record<string, string> = {
-  orders: 'đơn hàng',
-  Order: 'đơn hàng',
-  products: 'sản phẩm / hàng hóa',
-  Product: 'sản phẩm / hàng hóa',
-  inventory_stock: 'tồn kho hàng hóa',
-  'issued-tickets': 'vé phát hành',
-  IssuedTicket: 'vé phát hành',
-  users: 'tài khoản người dùng',
-  User: 'tài khoản người dùng',
-  roles: 'vai trò',
-  Role: 'vai trò',
-  permissions: 'quyền hạn',
-  Permission: 'quyền hạn',
-  promotions: 'khuyến mãi',
-  Promotion: 'khuyến mãi',
-  'customer-groups': 'nhóm khách hàng',
-  'customer-sources': 'nguồn khách hàng',
-  holidays: 'ngày lễ',
-  companies: 'công ty đối tác',
-  Company: 'công ty đối tác',
-  templates: 'mẫu vé',
-  TicketTemplate: 'mẫu vé',
-  'ticket-zones': 'khu vực vé',
-  'control-zones': 'vùng kiểm soát',
-  gates: 'cổng kiểm soát',
-  Gate: 'cổng kiểm soát',
-  'audience-types': 'đối tượng khách',
-  counters: 'quầy bán vé',
-  SalesCounter: 'quầy bán vé',
-  locations: 'địa điểm bán',
-  Auth: 'hệ thống máy chủ'
-};
-
-const FIELD_LABELS: Record<string, string> = {
-  name: 'Tên',
-  code: 'Mã',
-  product_name: 'Tên sản phẩm',
-  product_code: 'Mã sản phẩm',
-  stock_quantity: 'Tồn kho',
-  quantity_deducted: 'Số lượng trừ',
-  quantity_change: 'Số lượng thay đổi',
-  movement_type: 'Loại thao tác',
-  unit: 'Đơn vị tính',
-  order_code: 'Mã đơn',
-  role: 'Vai trò',
-  status: 'Trạng thái',
-  active: 'Kích hoạt',
-  is_active: 'Kích hoạt',
-  price: 'Giá vé',
-  unit_price: 'Đơn giá',
-  quantity: 'Số lượng',
-  total_amount: 'Tổng tiền',
-  final_amount: 'Tiền thanh toán',
-  invoice_type: 'Loại HĐ VAT',
-  invoice_status: 'Trạng thái HĐ',
-  customer_name: 'Khách hàng',
-  customer_type: 'Loại khách hàng',
-  phone: 'Số điện thoại',
-  email: 'Email',
-  payment_method: 'Phương thức thanh toán',
-  booking_code: 'Mã đặt chỗ'
-};
-
-const IGNORED_DIFF_KEYS = new Set([
-  'array', 'bigDecimal', 'bigInteger', 'binary', 'boolean', 'containerNode',
-  'empty', 'floatingPointNumber', 'integralNumber', 'missingNode', 'nodeType',
-  'null', 'number', 'object', 'pojo', 'short', 'textual', 'valueNode'
-]);
+import { 
+  ENTITY_NAMES, FIELD_LABELS, IGNORED_DIFF_KEYS, 
+  getEntityLabel, getActionVerb, resolveEntityName 
+} from '../../../../shared/utils/auditLabels';
 
 const formatDate = (dateStr?: string | Date) => {
   if (!dateStr) return '--';
@@ -182,11 +117,32 @@ export const SystemLogReportTab: React.FC<SystemLogReportTabProps> = ({
     if (act.includes('THÊM') || act.includes('TẠO') || act === 'CREATE') {
       return <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Tạo mới</span>;
     }
+    if (act.includes('TRẠNG THÁI') || act.includes('STATUS')) {
+      return <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">Đổi trạng thái</span>;
+    }
     if (act.includes('CẬP NHẬT') || act.includes('SỬA') || act === 'UPDATE') {
       return <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">Cập nhật</span>;
     }
     if (act.includes('XÓA') || act === 'DELETE') {
       return <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">Xóa</span>;
+    }
+    if (act.includes('KHÓA') || act === 'LOCK') {
+      return <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">Khóa vé</span>;
+    }
+    if (act.includes('HỦY') || act === 'CANCEL') {
+      return <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300">Hủy bỏ</span>;
+    }
+    if (act.includes('GIA HẠN') || act === 'RENEW') {
+      return <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-teal-50 text-teal-700 border border-teal-200">Gia hạn</span>;
+    }
+    if (act.includes('SAO LƯU') || act.includes('BACKUP')) {
+      return <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-cyan-50 text-cyan-700 border border-cyan-200">Sao lưu</span>;
+    }
+    if (act.includes('KHÔI PHỤC') || act.includes('RESTORE')) {
+      return <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-50 text-orange-700 border border-orange-200">Khôi phục</span>;
+    }
+    if (act.includes('QUẸT') || act.includes('SCAN')) {
+      return <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200">Quét vé</span>;
     }
     if (act.includes('ĐĂNG NHẬP') || act.includes('LOGIN')) {
       return <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">Đăng nhập</span>;
@@ -213,11 +169,18 @@ export const SystemLogReportTab: React.FC<SystemLogReportTabProps> = ({
     return null;
   };
 
+  const formatValueSafe = (val: any): string => {
+    if (val === null || val === undefined) return 'trống';
+    if (typeof val === 'boolean') return val ? 'Bật' : 'Tắt';
+    return String(val);
+  };
+
   const renderNaturalDescription = (log: SystemLog) => {
     const rawAction = log.action || '';
     const user = log.username ? `@${log.username}` : 'Hệ thống';
-    const entityType = log.entity_type || '';
-    const entityLabel = ENTITY_NAMES[entityType] || entityType.toLowerCase();
+    const entityLabel = getEntityLabel(log.entity_type);
+    const verb = getActionVerb(rawAction);
+    const resolvedName = resolveEntityName(log);
     
     const shortEntityId = log.entity_id
       ? (log.entity_id.length > 12 ? `${log.entity_id.slice(0, 4)}...${log.entity_id.slice(-4)}` : log.entity_id)
@@ -249,25 +212,43 @@ export const SystemLogReportTab: React.FC<SystemLogReportTabProps> = ({
     let diffDetails: React.ReactNode = null;
 
     if (changes && typeof changes === 'object') {
-      const keys = Object.keys(changes).filter(k => !IGNORED_DIFF_KEYS.has(k));
+      const keys = Object.keys(changes)
+        .filter(k => !IGNORED_DIFF_KEYS.has(k) && !IGNORED_DIFF_KEYS.has(k.toLowerCase()))
+        .sort((a, b) => {
+          const aKnown = a in FIELD_LABELS ? 1 : 0;
+          const bKnown = b in FIELD_LABELS ? 1 : 0;
+          return bKnown - aKnown;
+        });
       if (keys.length > 0) {
-        const readableDiffs = keys.slice(0, 2).map((k) => {
+        const readableDiffs = keys.slice(0, 3).map((k) => {
           const item = changes[k];
-          const fieldName = FIELD_LABELS[k] || k;
+          const fieldName = (item && typeof item === 'object' && item.label) ? item.label : (FIELD_LABELS[k] || k);
           if (item && typeof item === 'object' && 'old' in item && 'new' in item) {
+            const oldStr = formatValueSafe(item.old);
+            const newStr = formatValueSafe(item.new);
             return (
               <span key={k} className="inline-flex items-center gap-1 bg-slate-100 px-1.5 py-0.5 rounded text-[10px]">
                 <span className="font-semibold text-slate-700">{fieldName}:</span>
-                <span className="text-rose-600 line-through truncate max-w-[60px]" title={String(item.old || '')}>{String(item.old || 'trống')}</span>
+                <span className="text-rose-600 line-through truncate max-w-[80px]" title={oldStr}>{oldStr}</span>
                 <span className="text-slate-400">→</span>
-                <span className="text-emerald-700 font-semibold truncate max-w-[80px]" title={String(item.new || '')}>{String(item.new || 'trống')}</span>
+                <span className="text-emerald-700 font-semibold truncate max-w-[100px]" title={newStr}>{newStr}</span>
               </span>
             );
           }
+          if (item && typeof item === 'object' && 'new' in item) {
+            const newStr = formatValueSafe(item.new);
+            return (
+              <span key={k} className="inline-flex items-center gap-1 bg-slate-100 px-1.5 py-0.5 rounded text-[10px]">
+                <span className="font-semibold text-slate-700">{fieldName}:</span>
+                <span className="text-emerald-700 truncate max-w-[100px]" title={newStr}>{newStr}</span>
+              </span>
+            );
+          }
+          const itemStr = formatValueSafe(item);
           return (
             <span key={k} className="inline-flex items-center gap-1 bg-slate-100 px-1.5 py-0.5 rounded text-[10px]">
               <span className="font-semibold text-slate-700">{fieldName}:</span>
-              <span className="text-emerald-700 truncate max-w-[100px]" title={String(item)}>{String(item)}</span>
+              <span className="text-emerald-700 truncate max-w-[100px]" title={itemStr}>{itemStr}</span>
             </span>
           );
         });
@@ -275,18 +256,13 @@ export const SystemLogReportTab: React.FC<SystemLogReportTabProps> = ({
         diffDetails = (
           <div className="mt-1 flex flex-wrap gap-1 items-center">
             {readableDiffs}
-            {keys.length > 2 && (
-              <span className="text-[10px] text-slate-400 italic">+{keys.length - 2} thay đổi khác</span>
+            {keys.length > 3 && (
+              <span className="text-[10px] text-slate-400 italic">+{keys.length - 3} thay đổi khác</span>
             )}
           </div>
         );
       }
     }
-
-    let verb = 'thao tác trên';
-    if (rawAction.includes('Thêm') || rawAction.includes('Tạo') || rawAction === 'CREATE') verb = 'tạo mới';
-    else if (rawAction.includes('Cập nhật') || rawAction.includes('Sửa') || rawAction === 'UPDATE') verb = 'cập nhật';
-    else if (rawAction.includes('Xóa') || rawAction === 'DELETE') verb = 'xóa';
 
     return (
       <div className="text-slate-800 text-[11px] leading-relaxed">
@@ -294,14 +270,18 @@ export const SystemLogReportTab: React.FC<SystemLogReportTabProps> = ({
           <strong className="text-slate-900 font-semibold">{user}</strong>{' '}
           <span className="text-slate-600">{verb}</span>{' '}
           <span className="font-semibold text-slate-900">{entityLabel}</span>{' '}
-          {shortEntityId && (
+          {resolvedName ? (
+            <span className="font-bold text-indigo-700 bg-indigo-50/80 px-1.5 py-0.5 rounded border border-indigo-200">
+              [{resolvedName}]
+            </span>
+          ) : shortEntityId ? (
             <span 
-              className="font-mono text-indigo-700 font-semibold cursor-help"
+              className="font-mono text-slate-500 font-medium cursor-help"
               title={log.entity_id}
             >
               #{shortEntityId}
             </span>
-          )}
+          ) : null}
         </div>
         {diffDetails}
       </div>
@@ -426,15 +406,19 @@ export const SystemLogReportTab: React.FC<SystemLogReportTabProps> = ({
 
                     {/* Đối tượng */}
                     <td className="p-2.5">
-                      <div className="flex flex-col min-w-0" title={`${log.entity_type} ${log.entity_id || ''}`}>
+                      <div className="flex flex-col min-w-0" title={`${getEntityLabel(log.entity_type)} ${resolveEntityName(log) || log.entity_id || ''}`}>
                         <span className="font-semibold text-slate-800 text-[11px] truncate">
-                          {ENTITY_NAMES[log.entity_type] || log.entity_type}
+                          {getEntityLabel(log.entity_type)}
                         </span>
-                        {log.entity_id && (
+                        {resolveEntityName(log) ? (
+                          <span className="font-semibold text-indigo-700 text-[10px] bg-indigo-50/80 px-1 py-0.5 rounded truncate w-fit max-w-full">
+                            {resolveEntityName(log)}
+                          </span>
+                        ) : log.entity_id ? (
                           <span className="font-mono text-indigo-700 text-[10px] bg-indigo-50/80 px-1 py-0.5 rounded truncate w-fit max-w-full">
                             #{log.entity_id.length > 12 ? `${log.entity_id.slice(0, 4)}...${log.entity_id.slice(-4)}` : log.entity_id}
                           </span>
-                        )}
+                        ) : null}
                       </div>
                     </td>
 

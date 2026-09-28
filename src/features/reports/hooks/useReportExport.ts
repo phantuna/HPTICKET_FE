@@ -19,36 +19,36 @@ export const useReportExport = (_setExportNotice: Dispatch<SetStateAction<string
       switch (tab) {
         // ── Tab 1: Doanh Thu Tổng Hợp ──────────────────────────────────────
         case 'BaoCaoDoanhThu': {
-          const { headers, rows, filename } = formatRevenueReportExcel(params);
-          await exportToExcel(headers, rows, filename);
+          const res = formatRevenueReportExcel(params);
+          await exportToExcel(res.headers, res.rows, res.filename, res.reportTitle, res.fromDate, res.toDate, res.summaryCards);
           break;
         }
 
         // ── Tab 2: Vé Chi Tiết ─────────────────────────────────────────────
         case 'BaoCaoVeChiTiet': {
-          const { headers, rows, filename } = formatTicketDetailExcel(params);
-          await exportToExcel(headers, rows, filename);
+          const res = formatTicketDetailExcel(params);
+          await exportToExcel(res.headers, res.rows, res.filename, res.reportTitle, res.fromDate, res.toDate, res.summaryCards);
           break;
         }
 
         // ── Tab 3: Doanh Thu Theo Loại Vé ──────────────────────────────────
         case 'BaoCaoDoanhThu_LoaiVe': {
-          const { headers, rows, filename } = formatTicketTypeExcel(params);
-          await exportToExcel(headers, rows, filename);
+          const res = formatTicketTypeExcel(params);
+          await exportToExcel(res.headers, res.rows, res.filename, res.reportTitle, res.fromDate, res.toDate, res.summaryCards);
           break;
         }
 
         // ── Tab 4: Doanh Thu Sản Phẩm ──────────────────────────────────────
         case 'BaoCaoDoanhThu_SanPham': {
-          const { headers, rows, filename } = formatProductExcel(params);
-          await exportToExcel(headers, rows, filename);
+          const res = formatProductExcel(params);
+          await exportToExcel(res.headers, res.rows, res.filename, res.reportTitle, res.fromDate, res.toDate, res.summaryCards);
           break;
         }
 
         // ── Tab 5: Doanh Thu Nhân Viên ─────────────────────────────────────
         case 'BaoCaoDoanhThu_User_Thang': {
-          const { headers, rows, filename } = formatUserRevenueExcel(params);
-          await exportToExcel(headers, rows, filename);
+          const res = formatUserRevenueExcel(params);
+          await exportToExcel(res.headers, res.rows, res.filename, res.reportTitle, res.fromDate, res.toDate, res.summaryCards);
           break;
         }
 
@@ -70,8 +70,8 @@ export const useReportExport = (_setExportNotice: Dispatch<SetStateAction<string
 
         // ── Tab 8: Báo Cáo So Sánh ─────────────────────────────────────────
         case 'BaoCaoSoSanh': {
-          const { headers, rows, filename } = formatComparisonExcel(params);
-          await exportToExcel(headers, rows, filename);
+          const res = formatComparisonExcel(params);
+          await exportToExcel(res.headers, res.rows, res.filename, res.reportTitle, res.fromDate, res.toDate, res.summaryCards);
           break;
         }
 

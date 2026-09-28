@@ -10,11 +10,14 @@ import { Promotion, Order } from '../../../shared/types/hpticket';
 import { ExpiringTicketsTable } from '../components/ExpiringTicketsTable';
 import { MonthlyTicketCardModal } from '../components/MonthlyTicketCardModal';
 import { MonthlyTicketDetailDrawer } from '../components/MonthlyTicketDetailDrawer';
+import { ExpiringTicketEditModal } from '../components/ExpiringTicketEditModal';
+import { ExpiringTicketRenewModal } from '../components/ExpiringTicketRenewModal';
 import { ReceiptPrintModal } from '../../pos/components/ReceiptPrintModal';
 import { usePermission } from '../../../shared/hooks/usePermission';
 import { iamService } from '../../../api/iamService';
 import { toast } from '../../../shared/utils/toast';
 import { RefreshButton } from '../../../shared/components/RefreshButton';
+import { Pagination } from '../../../shared/components/ui';
 
 export const ExpiringTicketsPage: React.FC = () => {
   const [tickets, setTickets] = useState<IssuedTicket[]>([]);
@@ -49,18 +52,11 @@ export const ExpiringTicketsPage: React.FC = () => {
   const [editingTicket, setEditingTicket] = useState<IssuedTicket | null>(null);
   const [renewingTicket, setRenewingTicket] = useState<IssuedTicket | null>(null);
   const [selectedCardTicket, setSelectedCardTicket] = useState<IssuedTicket | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Renewal print data (reuse ReceiptPrintModal after successful renewal)
   const [renewalPrintData, setRenewalPrintData] = useState<{ order: Order; ticket: IssuedTicket } | null>(null);
 
-  // Form states
-  const [customerForm, setCustomerForm] = useState({ name: '', phone: '', email: '' });
-  const [renewMonths, setRenewMonths] = useState(1);
-  const [renewAmount, setRenewAmount] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState('TIEN_MAT');
   const [promotions, setPromotions] = useState<Promotion[]>([]);
-  const [selectedPromotion, setSelectedPromotion] = useState<string>('');
 
   // Close filter popover on outside click
   useEffect(() => {
@@ -200,165 +196,12 @@ export const ExpiringTicketsPage: React.FC = () => {
   };
 
   const handleEditCustomer = (ticket: IssuedTicket) => {
-    setCustomerForm({
-      name: ticket.customer_name || '',
-      phone: ticket.customer_phone || '',
-      email: ticket.customer_email || ''
-    });
     setEditingTicket(ticket);
   };
 
   const handleRenewTicket = (ticket: IssuedTicket) => {
-    setRenewMonths(1);
-    setSelectedPromotion('');
-    setPaymentMethod('TIEN_MAT');
     setRenewingTicket(ticket);
   };
-
-  // Tính tiền & ngày gia hạn mới
-  const calculatedNewExpire = useMemo(() => {
-    if (!renewingTicket) return null;
-    const oldExpire = renewingTicket.expire_at ? new Date(renewingTicket.expire_at) : null;
-    const now = new Date();
-    const baseDate = oldExpire && oldExpire.getTime() > now.getTime() ? oldExpire : now;
-    const newDate = new Date(baseDate);
-    newDate.setMonth(newDate.getMonth() + renewMonths);
-    return newDate;
-  }, [renewingTicket, renewMonths]);
-
-  useEffect(() => {
-    if (renewingTicket) {
-      const basePrice = Number(renewingTicket.unit_price || 0) * renewMonths;
-      let finalPrice = basePrice;
-      const promo = promotions.find(p => p.id === selectedPromotion);
-      if (promo) {
-        const pct = (promo as any).discount_percent;
-        const val = promo.discount_value;
-        if (pct && pct > 0) {
-          finalPrice -= (basePrice * pct / 100);
-        } else if (val && val > 0) {
-          finalPrice -= Number(val);
-        }
-      }
-      setRenewAmount(finalPrice > 0 ? Math.round(finalPrice) : 0);
-    }
-  }, [renewMonths, renewingTicket, selectedPromotion, promotions]);
-
-  const submitCustomerUpdate = async () => {
-    if (!editingTicket) return;
-    try {
-      setIsSubmitting(true);
-      await salesService.updateCustomerInfo(
-        editingTicket.id,
-        customerForm.name,
-        customerForm.phone,
-        customerForm.email
-      );
-      setEditingTicket(null);
-      // Preserve current filter & search
-      fetchTickets(daysAhead, searchTerm, employeeSearch, statusFilter, currentPage, pageSize);
-      toast.success('Cập nhật thông tin khách hàng thành công!');
-    } catch (error) {
-      console.error('Error updating customer:', error);
-      toast.error('Có lỗi xảy ra khi cập nhật thông tin khách hàng!');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const submitRenew = async () => {
-    if (!renewingTicket) return;
-    const ticketSnapshot = renewingTicket; // capture before clearing state
-    try {
-      setIsSubmitting(true);
-      const res = await salesService.renewTicket(ticketSnapshot.id, renewMonths, renewAmount, paymentMethod, selectedPromotion);
-      const renewedTicket: IssuedTicket = res?.data ?? ticketSnapshot;
-
-      // Build synthetic Order for ReceiptPrintModal (same component used in POS)
-      const promo = promotions.find(p => p.id === selectedPromotion);
-      const basePrice = Number(ticketSnapshot.unit_price || 0) * renewMonths;
-      const now = new Date().toISOString();
-      const syntheticOrder: Order = {
-        id: `renew-${ticketSnapshot.id}`,
-        order_code: `GH-${ticketSnapshot.qr_code_string?.slice(-8) ?? ticketSnapshot.id.slice(-8)}`,
-        sales_counter_id: '',
-        total_amount: basePrice,
-        discount_amount: basePrice - renewAmount,
-        final_amount: renewAmount,
-        payment_method: paymentMethod as any,
-        status: 'COMPLETED' as any,
-        invoice_status: 'NOT_ISSUED' as any,
-        invoice_lookup_code: ticketSnapshot.qr_code_string,
-        created_at: now,
-        updated_at: now,
-        created_by: localStorage.getItem('hpticket_username') || '',
-        updated_by: '',
-        details: [
-          {
-            id: `d-${ticketSnapshot.id}`,
-            order_id: `renew-${ticketSnapshot.id}`,
-            item_type: 'TICKET' as any,
-            item_id: ticketSnapshot.ticket_template_id,
-            item_name: `Gia hạn ${renewMonths} tháng – ${ticketSnapshot.ticket_template_name || 'Vé Tháng'}`,
-            quantity: renewMonths,
-            unit_price: Number(ticketSnapshot.unit_price || 0),
-            total_price: renewAmount,
-            created_at: now,
-            updated_at: now,
-            created_by: localStorage.getItem('hpticket_username') || '',
-            updated_by: '',
-          }
-        ],
-      };
-
-      setRenewingTicket(null);
-      setRenewalPrintData({ order: syntheticOrder, ticket: renewedTicket });
-      fetchTickets(daysAhead, searchTerm, employeeSearch, statusFilter, currentPage, pageSize);
-      toast.success('Gia hạn vé tháng thành công!');
-    } catch (error: any) {
-      console.error('Error renewing ticket:', error);
-      toast.error(error?.response?.data?.message || 'Có lỗi xảy ra khi gia hạn vé!');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Keyboard shortcut: Enter để xác nhận gia hạn, Escape để đóng modal
-  useEffect(() => {
-    if (!renewingTicket) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Enter') {
-        const target = e.target as HTMLElement;
-        if (target?.tagName === 'BUTTON' && target.innerText.trim() === 'Hủy') return;
-        e.preventDefault();
-        if (!isSubmitting) {
-          submitRenew();
-        }
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        setRenewingTicket(null);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [renewingTicket, isSubmitting, renewMonths, renewAmount, paymentMethod, selectedPromotion]);
-
-  // Keyboard shortcut: Escape để đóng modal sửa thông tin khách hàng
-  useEffect(() => {
-    if (!editingTicket) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        setEditingTicket(null);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [editingTicket]);
 
   const handleResetFilters = () => {
     setDaysAhead(null);
@@ -616,65 +459,14 @@ export const ExpiringTicketsPage: React.FC = () => {
 
         {/* 5. Pagination */}
         {totalElements > 0 && (
-          <div className="p-3 border-t border-slate-100 flex items-center justify-between bg-white text-xs">
-            <div className="flex items-center gap-2 text-slate-500">
-              <span>Hiển thị</span>
-              <select
-                value={pageSize}
-                onChange={(e) => changePageSize(Number(e.target.value))}
-                className="border border-slate-200 rounded-lg px-2 py-1 text-slate-700 bg-white focus:ring-1 focus:ring-blue-500 outline-none font-medium"
-              >
-                {[10, 20, 50, 100].map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-              <span>vé/trang · Tổng cộng: <strong className="text-slate-800">{totalElements.toLocaleString('vi-VN')}</strong> vé</span>
-            </div>
-
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => goToPage(0)}
-                disabled={currentPage === 0}
-                className="px-2.5 py-1 text-xs rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition font-mono"
-              >
-                «
-              </button>
-              <button
-                onClick={() => goToPage(currentPage - 1)}
-                disabled={currentPage === 0}
-                className="px-2.5 py-1 text-xs rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition font-mono"
-              >
-                ‹
-              </button>
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                const start = Math.max(0, Math.min(currentPage - 2, totalPages - 5));
-                return start + i;
-              }).map(p => (
-                <button
-                  key={p}
-                  onClick={() => goToPage(p)}
-                  className={`w-7 h-7 text-xs rounded-lg border transition font-bold ${p === currentPage
-                      ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                      : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
-                    }`}
-                >
-                  {p + 1}
-                </button>
-              ))}
-              <button
-                onClick={() => goToPage(currentPage + 1)}
-                disabled={currentPage >= totalPages - 1}
-                className="px-2.5 py-1 text-xs rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition font-mono"
-              >
-                ›
-              </button>
-              <button
-                onClick={() => goToPage(totalPages - 1)}
-                disabled={currentPage >= totalPages - 1}
-                className="px-2.5 py-1 text-xs rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition font-mono"
-              >
-                »
-              </button>
-            </div>
-          </div>
+          <Pagination
+            currentPage={currentPage}
+            pageSize={pageSize}
+            totalElements={totalElements}
+            totalPages={totalPages}
+            onPageChange={goToPage}
+            onPageSizeChange={changePageSize}
+          />
         )}
       </div>
 
@@ -707,286 +499,22 @@ export const ExpiringTicketsPage: React.FC = () => {
       )}
 
       {/* 8. Edit Customer Modal */}
-      {editingTicket && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 animate-in fade-in duration-200"
-          onClick={() => setEditingTicket(null)}
-        >
-          <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <form onSubmit={(e) => { e.preventDefault(); submitCustomerUpdate(); }}>
-              <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-slate-50">
-                <div className="flex items-center gap-2">
-                  <User className="w-5 h-5 text-blue-600" />
-                  <h3 className="font-bold text-slate-900 text-sm">Cập Nhật Thông Tin Khách Hàng</h3>
-                </div>
-                <button type="button" onClick={() => setEditingTicket(null)} className="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              <div className="p-6 space-y-4 text-xs">
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Mã Vé (QR)</label>
-                  <input
-                    type="text"
-                    disabled
-                    value={editingTicket.qr_code_string}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-100 text-slate-500 font-mono font-bold"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Họ Tên Khách Hàng <span className="text-rose-500">*</span></label>
-                  <input
-                    type="text"
-                    required
-                    value={customerForm.name}
-                    onChange={e => setCustomerForm({ ...customerForm, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none font-medium"
-                    placeholder="Nhập họ và tên khách hàng"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Số Điện Thoại</label>
-                  <div className="relative">
-                    <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                    <input
-                      type="text"
-                      value={customerForm.phone}
-                      onChange={e => setCustomerForm({ ...customerForm, phone: e.target.value })}
-                      className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none font-medium"
-                      placeholder="e.g. 0912 345 678"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Email Thông Báo Gia Hạn</label>
-                  <div className="relative">
-                    <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                    <input
-                      type="email"
-                      value={customerForm.email}
-                      onChange={e => setCustomerForm({ ...customerForm, email: e.target.value })}
-                      className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none font-medium"
-                      placeholder="e.g. khachhang@gmail.com"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 border-t border-slate-100 flex justify-end gap-2 bg-slate-50">
-                <button
-                  type="button"
-                  onClick={() => setEditingTicket(null)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 bg-slate-100 rounded-xl transition"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition disabled:opacity-50 shadow-xs"
-                >
-                  {isSubmitting ? 'Đang lưu...' : 'Lưu Thay Đổi'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <ExpiringTicketEditModal
+        ticket={editingTicket}
+        onClose={() => setEditingTicket(null)}
+        onSuccess={() => fetchTickets(daysAhead, searchTerm, employeeSearch, statusFilter, currentPage, pageSize)}
+      />
 
       {/* 9. Mini-Checkout Renewal Modal */}
-      {renewingTicket && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 animate-in fade-in duration-200"
-          onClick={() => setRenewingTicket(null)}
-        >
-          <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <form onSubmit={(e) => { e.preventDefault(); submitRenew(); }}>
-              {/* Header */}
-              <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-slate-900 text-white">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-400">
-                    <RotateCw className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-sm tracking-wide">Gia Hạn Vé Tháng & Hội Viên</h3>
-                    <p className="text-[11px] text-slate-400">Cộng dồn ngày sử dụng và cập nhật hạn mới</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setRenewingTicket(null)}
-                  className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              <div className="p-6 space-y-4 text-xs">
-                {/* Customer Summary Banner */}
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-1.5">
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-500 font-medium">Khách hàng:</span>
-                    <span className="font-bold text-slate-900 text-sm">{renewingTicket.customer_name || 'Khách vãng lai'}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-500 font-medium">Mã vé (QR):</span>
-                    <span className="font-mono font-bold text-slate-800 bg-white px-2 py-0.5 rounded border border-slate-200">
-                      {renewingTicket.qr_code_string}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center pt-1 border-t border-slate-200/60">
-                    <span className="text-slate-500 font-medium">Hạn sử dụng hiện tại:</span>
-                    <span className="font-bold text-slate-800">
-                      {renewingTicket.expire_at ? new Date(renewingTicket.expire_at).toLocaleDateString('vi-VN') : renewingTicket.valid_date || '—'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Preset Chips for Months */}
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1.5">Chọn Thời Gian Gia Hạn:</label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {[
-                      { label: '+1 Tháng', months: 1 },
-                      { label: '+3 Tháng', months: 3 },
-                      { label: '+6 Tháng', months: 6 },
-                      { label: '+12 Tháng', months: 12 },
-                    ].map(preset => (
-                      <button
-                        type="button"
-                        key={preset.months}
-                        onClick={() => setRenewMonths(preset.months)}
-                        className={`py-2 px-1 text-center font-bold rounded-xl transition border text-xs ${renewMonths === preset.months
-                            ? 'bg-blue-600 text-white border-blue-600 shadow-xs ring-2 ring-blue-400/30'
-                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                          }`}
-                      >
-                        {preset.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Visual Date Transition Banner */}
-                {calculatedNewExpire && (
-                  <div className="flex items-center justify-between p-3.5 bg-blue-50/70 border border-blue-200 rounded-xl">
-                    <div className="flex items-center gap-2">
-                      <CalendarClock className="w-4 h-4 text-blue-600" />
-                      <span className="font-semibold text-blue-900">Hạn dùng mới sau khi gia hạn:</span>
-                    </div>
-                    <span className="font-black text-blue-800 font-mono text-sm bg-white px-3 py-1 rounded-lg border border-blue-300 shadow-2xs">
-                      {calculatedNewExpire.toLocaleDateString('vi-VN')}
-                    </span>
-                  </div>
-                )}
-
-                {/* Promotion / Voucher */}
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Chương Trình Khuyến Mãi / Voucher:</label>
-                  <select
-                    value={selectedPromotion}
-                    onChange={e => setSelectedPromotion(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none bg-slate-50"
-                  >
-                    <option value="">Không áp dụng khuyến mãi</option>
-                    {promotions
-                      .filter(p => {
-                        // Only show active promotions that still have remaining quota
-                        const isActive = p.is_active === true;
-                        const hasQuota = p.quantity == null || p.used_count == null || p.used_count < p.quantity;
-                        return isActive && hasQuota;
-                      })
-                      .map(p => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}{(p as any).discount_percent ? ` (-${(p as any).discount_percent}%)` : p.discount_value ? ` (-${Number(p.discount_value).toLocaleString('vi-VN')}đ)` : ''}
-                        </option>
-                      ))
-                    }
-                  </select>
-                </div>
-
-                {/* Payment Method */}
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1.5">Hình Thức Thanh Toán:</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { label: 'Tiền mặt', value: 'TIEN_MAT' },
-                      { label: 'Chuyển khoản', value: 'CHUYEN_KHOAN' },
-                      { label: 'Thẻ POS', value: 'THE_TIN_DUNG' },
-                    ].map(pm => (
-                      <button
-                        type="button"
-                        key={pm.value}
-                        onClick={() => setPaymentMethod(pm.value)}
-                        className={`py-2 px-2 text-center font-bold rounded-xl transition border text-xs ${paymentMethod === pm.value
-                            ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                          }`}
-                      >
-                        {pm.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Financial Checkout Summary (Big & Highlighted) */}
-                <div className="p-4 rounded-xl bg-gradient-to-br from-slate-900 to-slate-800 text-white space-y-2 shadow-inner">
-                  <div className="flex justify-between text-xs text-slate-300">
-                    <span>Đơn giá gói ({renewMonths} tháng):</span>
-                    <span className="font-mono">{((renewingTicket.unit_price || 0) * renewMonths).toLocaleString('vi-VN')} đ</span>
-                  </div>
-                  <div className="border-t border-slate-700/60 pt-2 flex justify-between items-center">
-                    <div>
-                      <span className="text-xs text-slate-300 block">Khách phải trả:</span>
-                      <span className="text-[10px] text-blue-300">Tổng thanh toán sau chiết khấu</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-2xl font-black font-mono text-amber-400">
-                        {renewAmount.toLocaleString('vi-VN')} đ
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Modal Footer */}
-              <div className="p-4 border-t border-slate-100 flex justify-end gap-2 bg-slate-50">
-                <button
-                  type="button"
-                  onClick={() => setRenewingTicket(null)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 bg-slate-100 rounded-xl transition"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-6 py-2.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 active:scale-95 rounded-xl transition shadow-xs disabled:opacity-50 flex items-center gap-1.5"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      Đang xử lý...
-                    </>
-                  ) : (
-                    'Xác Nhận & Gia Hạn'
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <ExpiringTicketRenewModal
+        ticket={renewingTicket}
+        promotions={promotions}
+        onClose={() => setRenewingTicket(null)}
+        onSuccess={(syntheticOrder, renewedTicket) => {
+          setRenewalPrintData({ order: syntheticOrder, ticket: renewedTicket });
+          fetchTickets(daysAhead, searchTerm, employeeSearch, statusFilter, currentPage, pageSize);
+        }}
+      />
 
       {/* 10. Renewal Receipt Print Modal (reuses same ReceiptPrintModal as POS for UI consistency) */}
       {renewalPrintData && (

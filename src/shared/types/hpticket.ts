@@ -367,6 +367,7 @@ export interface SystemLog extends BaseEntity {
   action: string;
   entity_type: string;
   entity_id: string;
+  entity_name?: string;
   result?: 'SUCCESS' | 'FAILED' | 'UNKNOWN';
   changes?: Record<string, any> | null;
   ip_address?: string;

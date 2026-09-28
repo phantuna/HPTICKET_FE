@@ -52,10 +52,20 @@ const fetchExcelWithAuth = async (url: string, body: object): Promise<Blob> => {
  * @param rows    - Mảng các hàng dữ liệu (mỗi phần tử là 1 hàng)
  * @param fileName - Tên file xuất ra (không cần đuôi .xlsx)
  */
+export interface SummaryCardItem {
+  title: string;
+  value: string;
+  isHighlight?: boolean;
+}
+
 export const downloadExcelFromJsonApi = async (
   headers: string[],
   rows: (string | number | null | undefined)[][],
-  fileName: string
+  fileName: string,
+  reportTitle?: string,
+  fromDate?: string,
+  toDate?: string,
+  summaryCards?: SummaryCardItem[]
 ): Promise<void> => {
   try {
     const url = `${API_BASE_URL}/system/exports/generate-from-json`;
@@ -65,6 +75,10 @@ export const downloadExcelFromJsonApi = async (
 
     const blob = await fetchExcelWithAuth(url, {
       fileName: fileName,
+      reportTitle: reportTitle,
+      fromDate: fromDate,
+      toDate: toDate,
+      summaryCards: summaryCards,
       headers: headers,
       rows: stringRows,
     });
@@ -89,11 +103,15 @@ export const downloadExcelFromJsonApi = async (
 export const exportToExcel = async (
   headers: string[],
   rows: (string | number | null | undefined)[][],
-  fileName: string
+  fileName: string,
+  reportTitle?: string,
+  fromDate?: string,
+  toDate?: string,
+  summaryCards?: SummaryCardItem[]
 ): Promise<void> => {
-  // Thay vì xuất nội bộ bằng trình duyệt, gọi API để nhờ Java Backend 
-  // chèn Logo và định dạng y như Báo Cáo Hệ Thống (đảm bảo đồng nhất giao diện 100%).
-  await downloadExcelFromJsonApi(headers, rows, fileName);
+  // Gửi về Java Backend để tự động chèn thông tin công ty, thời gian, thẻ thống kê (Summary Cards)
+  // và cố định dòng (Freeze Panes), định dạng chuẩn mực nhận diện thương hiệu.
+  await downloadExcelFromJsonApi(headers, rows, fileName, reportTitle, fromDate, toDate, summaryCards);
 };
 
 /**

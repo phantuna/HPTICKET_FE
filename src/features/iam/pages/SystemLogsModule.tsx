@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { FileText, Code, Search, Download, RefreshCw, Calendar, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 import { SystemLog } from '../../../shared/types/hpticket';
 import { iamService } from '../../../api/iamService';
+import { getEntityLabel } from '../../../shared/utils/auditLabels';
 
 const getTodayStr = () => new Date().toISOString().split('T')[0];
 
@@ -63,9 +64,14 @@ export const SystemLogsModule: React.FC = () => {
   };
 
   const getActionStyle = (action: string) => {
-    if (action.includes('Thêm') || action === 'CREATE') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-    if (action.includes('Cập nhật') || action === 'UPDATE') return 'bg-blue-50 text-blue-700 border-blue-200';
-    if (action.includes('Xóa') || action === 'DELETE') return 'bg-red-50 text-red-700 border-red-200';
+    const act = (action || '').toUpperCase();
+    if (act.includes('THÊM') || act.includes('TẠO') || act === 'CREATE') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    if (act.includes('TRẠNG THÁI') || act.includes('STATUS')) return 'bg-amber-50 text-amber-700 border-amber-200';
+    if (act.includes('CẬP NHẬT') || act.includes('SỬA') || act === 'UPDATE') return 'bg-blue-50 text-blue-700 border-blue-200';
+    if (act.includes('XÓA') || act === 'DELETE') return 'bg-red-50 text-red-700 border-red-200';
+    if (act.includes('KHÓA')) return 'bg-purple-50 text-purple-700 border-purple-200';
+    if (act.includes('HỦY')) return 'bg-rose-100 text-rose-800 border-rose-300';
+    if (act.includes('SAO LƯU') || act.includes('KHÔI PHỤC')) return 'bg-cyan-50 text-cyan-700 border-cyan-200';
     return 'bg-slate-50 text-slate-700 border-slate-200';
   };
 
@@ -185,8 +191,8 @@ export const SystemLogsModule: React.FC = () => {
                         {log.action}
                       </span>
                     </td>
-                    <td className="p-3.5 font-mono text-indigo-700 font-semibold text-[11px]">
-                      {log.entity_type}
+                    <td className="p-3.5 text-slate-800 font-semibold text-[11px]">
+                      {getEntityLabel(log.entity_type)}
                     </td>
                     <td className="p-3.5 font-mono text-slate-500 text-[11px] truncate max-w-[160px]">
                       {log.entity_id}

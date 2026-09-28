@@ -5,6 +5,7 @@ import { ControlZone, TicketTemplate } from '../../../shared/types/hpticket';
 import { ticketingService } from '../../../api/ticketingService';
 import { toast } from '../../../shared/utils/toast';
 import { usePermission } from '../../../shared/hooks/usePermission';
+import { Modal } from '../../../shared/components/ui';
 
 interface TicketZoneTabProps {
   controlZones: ControlZone[];
@@ -67,69 +68,49 @@ export const TicketZoneTab: React.FC<TicketZoneTabProps> = ({ controlZones, tick
         onDelete={async () => {}}
       />
 
-      {showModal && (
-        <div
-          className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4"
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') setShowModal(false);
-          }}
-        >
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSave();
-            }}
-            className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl text-slate-900"
-          >
-            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
-              <Layers className="w-5 h-5 text-purple-600" /> Sửa Khu Vực Kiểm Soát Cho Vé
-            </h3>
-            <div className="space-y-3 text-xs">
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">Tên Vé:</label>
-                <div className="w-full bg-slate-100 border border-slate-200 rounded-xl p-2.5 text-slate-600 font-medium cursor-not-allowed">
-                  {editingTemplate?.name}
-                </div>
-              </div>
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">Khu Vực Kiểm Soát:</label>
-                <div className="space-y-2 max-h-48 overflow-y-auto border border-slate-200 rounded-xl p-3 bg-slate-50">
-                  {controlZones.map((cz) => (
-                    <label key={cz.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-100 p-1 rounded">
-                      <input
-                        type="checkbox"
-                        checked={selectedControlZoneIds.includes(cz.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) setSelectedControlZoneIds(prev => [...prev, cz.id]);
-                          else setSelectedControlZoneIds(prev => prev.filter(id => id !== cz.id));
-                        }}
-                        className="rounded text-purple-600 focus:ring-purple-500 w-4 h-4"
-                      />
-                      <span className="font-medium text-slate-800">{cz.name}</span>
-                    </label>
-                  ))}
-                  {controlZones.length === 0 && <p className="text-slate-500 text-center py-2">Chưa có khu kiểm soát nào</p>}
-                </div>
-              </div>
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title="Sửa Khu Vực Kiểm Soát Cho Vé"
+        icon={<Layers className="w-5 h-5 text-emerald-600" />}
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSave();
+        }}
+        confirmText="Lưu Thay Đổi"
+        maxWidth="md"
+      >
+        <div className="space-y-3 text-xs">
+          <div>
+            <label className="block text-slate-700 font-semibold mb-1">Tên Vé:</label>
+            <div className="w-full bg-slate-100 border border-slate-200 rounded-xl p-2.5 text-slate-600 font-medium cursor-not-allowed">
+              {editingTemplate?.name}
             </div>
-            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setShowModal(false)}
-                className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition"
-              >
-                Hủy
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl transition shadow-xs"
-              >
-                Lưu Thay Đổi
-              </button>
+          </div>
+          <div>
+            <label className="block text-slate-700 font-semibold mb-1">Khu Vực Kiểm Soát:</label>
+            <div className="space-y-2 max-h-48 overflow-y-auto border border-slate-200 rounded-xl p-3 bg-slate-50">
+              {controlZones.map((cz) => (
+                <label key={cz.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-100 p-1 rounded">
+                  <input
+                    type="checkbox"
+                    checked={selectedControlZoneIds.includes(cz.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) setSelectedControlZoneIds((prev) => [...prev, cz.id]);
+                      else setSelectedControlZoneIds((prev) => prev.filter((id) => id !== cz.id));
+                    }}
+                    className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer"
+                  />
+                  <span className="font-medium text-slate-800">{cz.name}</span>
+                </label>
+              ))}
+              {controlZones.length === 0 && (
+                <p className="text-slate-500 text-center py-2">Chưa có khu kiểm soát nào</p>
+              )}
             </div>
-          </form>
+          </div>
         </div>
-      )}
+      </Modal>
     </>
   );
 };
