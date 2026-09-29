@@ -168,7 +168,7 @@ export const PromotionTab: React.FC<PromotionTabProps> = ({ promotions, setPromo
             { label: 'Số lượng', value: selectedPromotionForDetails.quantity || 'Không giới hạn' },
             { 
               label: 'Trạng thái', 
-              value: selectedPromotionForDetails.is_active ? 'Đang kích hoạt' : 'Đã khóa' 
+              value: (selectedPromotionForDetails.is_active ?? selectedPromotionForDetails.isActive ?? selectedPromotionForDetails.active) ? 'Đang kích hoạt' : 'Đã khóa' 
             },
             {
               label: 'Chính sách ngày lễ',

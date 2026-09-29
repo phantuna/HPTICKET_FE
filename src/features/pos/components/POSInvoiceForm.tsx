@@ -169,11 +169,19 @@ export const POSInvoiceForm: React.FC<POSInvoiceFormProps> = ({
             {dayContext?.isHoliday ? (
               <div className="ml-[140px] mt-1 flex items-center gap-1 text-[11px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md">
                 <span className="animate-pulse">🎉</span>
-                <span>LỄ: {dayContext.holidayName || 'Ngày lễ'} (Chỉ vé & KM lễ hiển thị)</span>
+                <span>LỄ: {dayContext.holidayName || 'Ngày lễ'} ({(() => {
+                  if (!usageDate || !usageDate.includes('-')) return usageDate;
+                  const [y, m, d] = usageDate.split('-');
+                  return `${d}/${m}/${y}`;
+                })()})</span>
               </div>
             ) : (
               <div className="ml-[140px] mt-0.5 flex items-center gap-1 text-[10px] font-medium text-slate-500">
-                <span>📅 Ngày thường</span>
+                <span>📅 Ngày thường ({(() => {
+                  if (!usageDate || !usageDate.includes('-')) return usageDate;
+                  const [y, m, d] = usageDate.split('-');
+                  return `${d}/${m}/${y}`;
+                })()})</span>
               </div>
             )}
           </div>

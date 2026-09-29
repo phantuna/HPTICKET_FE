@@ -81,15 +81,16 @@ export const OrdersModule: React.FC = () => {
         // Clear selection just in case the cancelled order was previously selected
         clearSelection();
         fetchData(); 
+        toast.success('Hủy đơn hàng thành công');
       } else {
-        alert(res.message || 'Hủy đơn hàng thất bại');
+        toast.error(res.message || 'Hủy đơn hàng thất bại');
       }
     } catch (err: any) {
       if (err.code === 403 || (err.message && err.message.toLowerCase().includes('quyền'))) {
-        alert('Lỗi 403: Bạn không có quyền thao tác trên quầy bán này hoặc quyền đã bị thu hồi. Ứng dụng sẽ tải lại.');
+        toast.error('Lỗi 403: Bạn không có quyền thao tác trên quầy bán này hoặc quyền đã bị thu hồi. Ứng dụng sẽ tải lại.');
         setTimeout(() => window.location.reload(), 1500);
       } else {
-        alert('Lỗi khi hủy đơn hàng. Vui lòng thử lại sau.');
+        toast.error('Lỗi khi hủy đơn hàng. Vui lòng thử lại sau.');
       }
     } finally {
       setIsCancellingId(undefined);
@@ -123,14 +124,14 @@ export const OrdersModule: React.FC = () => {
       }
 
       if (ticketsList.length === 0) {
-        alert('Đơn hàng này không có vé nào để in!');
+        toast.warning('Đơn hàng này không có vé nào để in!', 'Không thể in vé');
         return;
       }
       // 3. Đưa vào State để render ReceiptPrintModal
       setReprintData({ order: fullOrder, tickets: ticketsList });
     } catch (error) {
       console.error("Lỗi khi tải thông tin vé để in lại:", error);
-      alert('Đã xảy ra lỗi khi kết nối với máy chủ để in lại vé!');
+      toast.error('Đã xảy ra lỗi khi kết nối với máy chủ để in lại vé!');
     } finally {
       setIsReprinting(false);
     }

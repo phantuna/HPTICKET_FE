@@ -1,5 +1,6 @@
 import React from 'react';
 import { Eye, FileText, CheckCircle2, XCircle, Clock, Printer, Loader2 } from 'lucide-react';
+import { toast } from '../../../shared/utils/toast';
 
 interface OrdersTableProps {
   orders: any[];
@@ -200,7 +201,7 @@ export const OrdersTable: React.FC<OrdersTableProps> = ({
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   if (isInvoiceIssued) {
-                                    alert('Đơn hàng này đã được xuất Hóa đơn điện tử (Viettel S-Invoice).\n\nTheo quy định của Tổng cục Thuế, bạn không thể tự ý hủy đơn trên hệ thống POS.\nVui lòng lập biên bản Hủy/Điều chỉnh hóa đơn trên hệ thống phần mềm kế toán!');
+                                    toast.warning('Đơn hàng này đã được xuất Hóa đơn điện tử (Viettel S-Invoice). Không thể hủy trên POS, vui lòng lập biên bản trên phần mềm kế toán!', 'Không thể hủy đơn');
                                     return;
                                   }
                                   onCancelOrder && onCancelOrder(ord);

@@ -251,27 +251,46 @@ export const usePOS = () => {
   // 1. Phân giải trạng thái Ngày làm việc (Lễ hay ngày thường) dựa trên usageDate
   useEffect(() => {
     let isMounted = true;
-    marketingService.resolveBusinessDay(usageDate).then(res => {
-      if (isMounted && res?.data) {
-        setDayContext(res.data);
-      }
-    }).catch(() => {
-      const match = (holidays || []).find(h => {
+    const uDate = String(usageDate || '').substring(0, 10);
+
+    const checkLocalHolidays = () => {
+      return (holidays || []).find(h => {
         const active = h.is_active ?? h.isActive ?? true;
         if (!active || h.deleted_at) return false;
-        const s = String(h.start_date || h.startDate).split('T')[0];
-        const e = String(h.end_date || h.endDate).split('T')[0];
-        return usageDate >= s && usageDate <= e;
+        const s = String(h.start_date || h.startDate || '').substring(0, 10);
+        const e = String(h.end_date || h.endDate || '').substring(0, 10);
+        return uDate >= s && uDate <= e;
       });
-      if (isMounted) {
-        setDayContext({
-          businessDate: usageDate,
-          isHoliday: !!match,
-          holidayId: match?.id,
-          holidayName: match?.name,
-          holidayCode: match?.code,
-        });
+    };
+
+    marketingService.resolveBusinessDay(usageDate).then(res => {
+      if (!isMounted) return;
+      if (res?.data?.isHoliday) {
+        setDayContext(res.data);
+      } else {
+        const match = checkLocalHolidays();
+        if (match) {
+          setDayContext({
+            businessDate: usageDate,
+            isHoliday: true,
+            holidayId: match.id,
+            holidayName: match.name,
+            holidayCode: match.code,
+          });
+        } else if (res?.data) {
+          setDayContext(res.data);
+        }
       }
+    }).catch(() => {
+      if (!isMounted) return;
+      const match = checkLocalHolidays();
+      setDayContext({
+        businessDate: usageDate,
+        isHoliday: !!match,
+        holidayId: match?.id,
+        holidayName: match?.name,
+        holidayCode: match?.code,
+      });
     });
     return () => { isMounted = false; };
   }, [usageDate, holidays]);
@@ -300,10 +319,27 @@ export const usePOS = () => {
   }, [ticketTemplates, dayContext, usageDate]);
 
   // 3. Lọc danh sách khuyến mãi hiển thị tại POS:
+  //    - Loại bỏ các KM chưa đến ngày hoặc đã hết hạn so với Ngày sử dụng đã chọn
   //    - Ngày lễ: Ẩn NORMAL_ONLY, chỉ giữ ALL_DAYS hoặc HOLIDAY_ONLY đúng lễ
   //    - Ngày thường: Ẩn HOLIDAY_ONLY
   const visiblePromotions = useMemo(() => {
+    const uDateStr = usageDate ? String(usageDate).substring(0, 10) : '';
+
     return promotions.filter(p => {
+      // ── Kiểm tra thời hạn khuyến mãi ──────────────────────────────────
+      const rawStart = p.start_date || p.startDate;
+      const rawEnd   = p.end_date   || p.endDate;
+
+      if (rawStart && uDateStr) {
+        const sStr = typeof rawStart === 'string' ? rawStart.substring(0, 10) : new Date(rawStart).toLocaleDateString('en-CA');
+        if (sStr && uDateStr < sStr) return false; // Ngày SD trước ngày bắt đầu KM
+      }
+      if (rawEnd && uDateStr) {
+        const eStr = typeof rawEnd === 'string' ? rawEnd.substring(0, 10) : new Date(rawEnd).toLocaleDateString('en-CA');
+        if (eStr && uDateStr > eStr) return false;   // Ngày SD sau ngày kết thúc KM
+      }
+
+      // ── Kiểm tra chính sách ngày lễ / ngày thường ─────────────────────
       const policy = p.holiday_policy || p.holidayPolicy || 'ALL_DAYS';
       if (dayContext?.isHoliday) {
         if (policy === 'NORMAL_ONLY') return false;
@@ -318,7 +354,7 @@ export const usePOS = () => {
       }
       return true;
     });
-  }, [promotions, dayContext]);
+  }, [promotions, dayContext, usageDate]);
 
   // 4. Tự động dọn dẹp các vé không hợp lệ khỏi giỏ hàng khi thu ngân đổi Ngày sử dụng sang ngày lễ
   useEffect(() => {
@@ -729,8 +765,12 @@ export const usePOS = () => {
         setGeneratedTickets(ticketsForOrder);
         setCompletedOrder(normalizedOrder);
 
-        // KỊCH BẢN GỬI EMAIL THÔNG BÁO VÉ (Chỉ cần có điền Email nhận)
-        if (email && email.trim() !== '') {
+        // KỊCH BẢN GỬI EMAIL THÔNG BÁO VÉ & HÓA ĐƠN ĐIỆN TỬ
+        const targetEmail = (invoiceStatus === 'IMMEDIATE' && companyEmail?.trim())
+          ? companyEmail.trim()
+          : (email?.trim() || companyEmail?.trim() || '');
+
+        if (targetEmail) {
           try {
             // 1. Sinh Base64 QR Code và thông tin chi tiết từng vé khớp với vé in
             const emailTickets = await Promise.all(ticketsForOrder.map(async (t, idx) => {
@@ -775,7 +815,7 @@ export const usePOS = () => {
               };
             }));
 
-            const cName = customerName || 'Khách Hàng';
+            const cName = (invoiceStatus === 'IMMEDIATE' && companyName?.trim()) ? companyName.trim() : (customerName || 'Khách Hàng');
             const cPhone = phoneNumber || '';
             const eName = 'Tham quan Vui Chơi Trải Nghiệm';
             const loc = 'Khu du lịch sinh thái';
@@ -809,7 +849,9 @@ export const usePOS = () => {
 
             // 2. Fetch Active Template from Mock DB
             let htmlTemplate = '';
-            let subjectTemplate = 'Sự kiện: Tham quan Vui Chơi Trải Nghiệm';
+            let subjectTemplate = invoiceStatus === 'IMMEDIATE'
+              ? `[HPTicket] Hóa đơn điện tử & Vé điện tử - Đơn hàng ${normalizedOrder.order_code || orderId}`
+              : 'Sự kiện: Tham quan Vui Chơi Trải Nghiệm';
             try {
               const tmplRes = await marketingService.fetchEmailTemplates();
               if (tmplRes && tmplRes.data && tmplRes.data.length > 0) {
@@ -833,11 +875,31 @@ export const usePOS = () => {
               ticketListHtml += `<td>${t.price} đ</td>`;
               ticketListHtml += `<td>`;
               ticketListHtml += `<img src="${t.qrCodeBase64}" width="120" height="120" alt="QR Code" style="display:block;margin:0 auto;" />`;
-
               ticketListHtml += `</td>`;
               ticketListHtml += `</tr>`;
             });
             ticketListHtml += `<tr style="font-weight: bold;"><td colspan="4" style="text-align: right; padding-right: 15px;">Tổng tiền thanh toán</td><td colspan="2" style="text-align: left; padding-left: 15px; color: #059669; font-size: 15px;">${total} VND</td></tr></table>`;
+
+            // Khối thông tin Hóa đơn điện tử Viettel S-Invoice (nếu có yêu cầu xuất HĐ công ty)
+            let invoiceInfoHtml = '';
+            const lookupCode = normalizedOrder.invoice_lookup_code || (res.data as any).invoice_lookup_code || (res.data as any).invoiceLookupCode;
+            const invoiceNo = normalizedOrder.invoice_number || (res.data as any).invoice_number || (res.data as any).invoiceNumber;
+
+            if (invoiceStatus === 'IMMEDIATE' || lookupCode || invoiceNo) {
+              invoiceInfoHtml = `
+                <div style="margin: 20px 0; padding: 16px; background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px;">
+                  <h3 style="margin: 0 0 10px 0; color: #166534; font-size: 15px;">📄 THÔNG TIN HÓA ĐƠN ĐIỆN TỬ (VIETTEL S-INVOICE)</h3>
+                  ${companyTaxCode ? `<p style="margin: 4px 0; font-size: 13px;"><b>Mã số thuế:</b> <span style="font-family: monospace; font-weight: bold; color: #1e293b;">${companyTaxCode}</span></p>` : ''}
+                  ${companyName ? `<p style="margin: 4px 0; font-size: 13px;"><b>Đơn vị mua hàng:</b> <b style="color: #1e293b;">${companyName}</b></p>` : ''}
+                  ${invoiceNo ? `<p style="margin: 4px 0; font-size: 13px;"><b>Số hóa đơn:</b> <span style="font-family: monospace; font-weight: bold; color: #15803d;">${invoiceNo}</span></p>` : ''}
+                  ${lookupCode ? `<p style="margin: 6px 0; font-size: 13px;"><b>Mã tra cứu HĐĐT:</b> <span style="font-family: monospace; font-weight: bold; font-size: 15px; color: #047857; background: #dcfce7; padding: 2px 8px; border-radius: 4px; border: 1px dashed #059669;">${lookupCode}</span></p>` : ''}
+                  <p style="margin: 10px 0 0 0; font-size: 12px; color: #475569;">
+                    Tra cứu & tải hóa đơn gốc (PDF / XML) tại: 
+                    <a href="https://sinvoice.viettel.vn/tracuuhoadon" target="_blank" style="color: #059669; font-weight: bold; text-decoration: underline;">Portal Tra cứu Hóa đơn Viettel S-Invoice</a>
+                  </p>
+                </div>
+              `;
+            }
 
             // Default fallback if no template is saved
             if (!htmlTemplate) {
@@ -848,6 +910,7 @@ export const usePOS = () => {
                   <p><b>Thời gian mua vé:</b> {buy_time}</p>
                   <p><b>Ngày sử dụng:</b> {usage_date}</p>
                   <p><b>Địa điểm:</b> {location}</p>
+                  {invoice_info}
                   <h3>Thông tin vé:</h3>
                   {ticket_details}
                   <p style="margin-top: 20px;">Trân trọng,<br/>Đội ngũ HPTicket</p>
@@ -856,7 +919,7 @@ export const usePOS = () => {
             }
 
             // Replace template variables
-            const bodyHtml = htmlTemplate
+            let bodyHtml = htmlTemplate
               .replace(/{customer_name}/g, cName)
               .replace(/{event_name}/g, eName)
               .replace(/{start_time}/g, sTime)
@@ -864,15 +927,20 @@ export const usePOS = () => {
               .replace(/{usage_date}/g, usageDateStr)
               .replace(/{location}/g, loc)
               .replace(/{total_payment}/g, total)
+              .replace(/{invoice_info}/g, invoiceInfoHtml)
               .replace(/{ticket_details}/g, ticketListHtml);
+
+            if (invoiceInfoHtml && !bodyHtml.includes(invoiceInfoHtml)) {
+              bodyHtml = invoiceInfoHtml + bodyHtml;
+            }
 
             // 4. Tạo Data Payload để gửi lên Backend
             const emailPayload = {
-              emailTo: email,
+              emailTo: targetEmail,
               subject: subjectTemplate,
               customerName: cName,
               customerPhone: cPhone,
-              customerEmail: email,
+              customerEmail: targetEmail,
               eventName: eName,
               startTime: sTime,
               location: loc,
@@ -882,12 +950,12 @@ export const usePOS = () => {
             };
 
             console.log('[Email Payload generated at Frontend]:', emailPayload);
-            // 3. Gọi API Gửi Mail
+            // 5. Gọi API Gửi Mail
             await marketingService.sendTicketEmail(emailPayload);
-            showToast('success', 'Gửi Email', `Đã gửi thông báo vé thành công đến ${email}`);
+            showToast('success', 'Gửi Email & HĐĐT', `Đã xuất hóa đơn Viettel & gửi email thông báo tới ${targetEmail}`);
           } catch (emailErr) {
             console.error('Failed to send email:', emailErr);
-            showToast('error', 'Lỗi Gửi Email', 'Không thể gửi email thông báo, vui lòng thử lại sau.');
+            showToast('error', 'Lỗi Gửi Email', 'Không thể gửi email thông báo, vui lòng kiểm tra cấu hình SMTP.');
           }
         }
 

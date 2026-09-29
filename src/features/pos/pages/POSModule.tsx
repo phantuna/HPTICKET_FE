@@ -109,6 +109,8 @@ export const POSModule: React.FC = () => {
           email={email} setEmail={setEmail}
           phoneNumber={phoneNumber} setPhoneNumber={setPhoneNumber} usageDate={usageDate} setUsageDate={setUsageDate}
           dayContext={dayContext}
+          invoiceStatus={invoiceStatus} setInvoiceStatus={setInvoiceStatus}
+          setLineItems={setLineItems}
         />
 
         <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-0">

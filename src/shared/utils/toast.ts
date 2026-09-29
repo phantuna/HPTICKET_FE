@@ -5,7 +5,10 @@ export const toast = {
   error: (message: string, title: string = 'Thất bại') => {
     window.dispatchEvent(new CustomEvent('toast_notification', { detail: { message, title, type: 'error' } }));
   },
+  warning: (message: string, title: string = 'Cảnh báo') => {
+    window.dispatchEvent(new CustomEvent('toast_notification', { detail: { message, title, type: 'warning' } }));
+  },
   info: (message: string, title: string = 'Thông báo') => {
-    window.dispatchEvent(new CustomEvent('toast_notification', { detail: { message, title, type: 'success' } }));
+    window.dispatchEvent(new CustomEvent('toast_notification', { detail: { message, title, type: 'info' } }));
   }
 };

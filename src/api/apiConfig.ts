@@ -185,6 +185,9 @@ export const API_ENDPOINTS = {
 let isRefreshing = false;
 let failedQueue: Array<{ resolve: (value?: any) => void; reject: (reason?: any) => void }> = [];
 
+// Quản lý thời gian khóa Client khi bị Rate Limiting 429
+let rateLimitBlockedUntil = 0;
+
 const processQueue = (error: any, token: string | null = null) => {
   failedQueue.forEach(prom => {
     if (error) {
@@ -226,6 +229,12 @@ export const apiClient = {
       defaultHeaders['Authorization'] = `Bearer ${token}`;
     }
 
+    const posCounter = typeof window !== 'undefined' ? localStorage.getItem('hpticket_pos_selected_counter') : null;
+    if (posCounter) {
+      defaultHeaders['X-Counter-Id'] = posCounter;
+      defaultHeaders['X-Terminal-Id'] = posCounter;
+    }
+
     const mergedConfig: RequestInit = {
       method: customConfig.method || 'GET',
       headers: { ...defaultHeaders, ...headers },
@@ -249,6 +258,16 @@ export const apiClient = {
     // 2. In-flight Request Deduplication: Tránh gửi nhiều request trùng lặp cùng lúc
     if (pendingRequests.has(requestKey)) {
       return pendingRequests.get(requestKey) as Promise<T>;
+    }
+
+    // 3. Client Rate Limit Guard: Tạm dừng gửi tiếp nếu đang trong thời gian chờ Rate Limit
+    if (Date.now() < rateLimitBlockedUntil) {
+      const remaining = Math.max(1, Math.ceil((rateLimitBlockedUntil - Date.now()) / 1000));
+      const msg = `Thao tác quá nhanh! Vui lòng chờ ${remaining} giây để tiếp tục.`;
+      window.dispatchEvent(new CustomEvent('api_rate_limited', {
+        detail: { message: msg, retryAfterSeconds: remaining }
+      }));
+      return Promise.reject(new Error(msg));
     }
 
     const executeRequest = async (): Promise<T> => {
@@ -329,6 +348,36 @@ export const apiClient = {
         }
         // --- KẾT THÚC XỬ LÝ 401 ---
 
+        // --- XỬ LÝ LỖI 429 RATE LIMITING (CHỐNG SPAM API) ---
+        if (response.status === 429) {
+          const errorText = await response.text().catch(() => "");
+          let errorData: any = {};
+          try {
+            errorData = errorText ? JSON.parse(errorText) : {};
+          } catch(e) {}
+
+          const retryHeader = response.headers.get('Retry-After');
+          const retryAfter = errorData.data?.retryAfterSeconds 
+            || (retryHeader ? parseInt(retryHeader, 10) : 10);
+          const errorMessage = errorData.message || `Bạn đang thao tác quá nhanh! Vui lòng thử lại sau ${retryAfter} giây.`;
+
+          // Cập nhật mốc thời gian khóa client
+          rateLimitBlockedUntil = Date.now() + (retryAfter * 1000);
+
+          console.warn(`[RateLimit 429] Endpoint: ${fullUrl} | Chờ: ${retryAfter}s`, errorData);
+
+          // Bắn sự kiện riêng cho Toast đếm ngược (tránh bắn api_error thông thường)
+          window.dispatchEvent(new CustomEvent('api_rate_limited', {
+            detail: {
+              message: errorMessage,
+              retryAfterSeconds: retryAfter,
+              tier: errorData.data?.tier
+            }
+          }));
+
+          throw new Error(errorMessage);
+        }
+
         if (!response.ok) {
           const errorText = await response.text().catch(() => "");
           let errorData: any = {};
@@ -337,6 +386,17 @@ export const apiClient = {
           } catch(e) {}
           
           const errorMessage = errorData.message || `API Error: ${response.status} ${response.statusText}`;
+
+          // Hỗ trợ Developer điều tra lỗi: In chi tiết Trace ID và devMessage ra Console F12
+          if (errorData.traceId || errorData.devMessage) {
+            console.error(`[API Exception | ${errorData.traceId || 'NO-TRACE'}]`, {
+              message: errorMessage,
+              devDetail: errorData.devMessage,
+              status: response.status,
+              url: fullUrl
+            });
+          }
+
           window.dispatchEvent(new CustomEvent('api_error', { detail: { message: errorMessage } }));
           throw new Error(errorMessage);
         }

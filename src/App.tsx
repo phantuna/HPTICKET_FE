@@ -16,6 +16,7 @@ const SystemModule = lazy(() => import('./features/system/pages/SystemModule').t
 const SystemLockScreen = lazy(() => import('./features/auth/pages/SystemLockScreen').then(m => ({ default: m.SystemLockScreen })));
 const LoginScreen = lazy(() => import('./features/auth/pages/LoginScreen').then(m => ({ default: m.LoginScreen })));
 import { SessionLoginModal } from './shared/components/SessionLoginModal';
+import { RateLimitCountdownToast } from './shared/components/RateLimitCountdownToast';
 import { dbStore } from './shared/data/mockDatabase';
 
 export default function App() {
@@ -150,7 +151,7 @@ export default function App() {
   const lastToastRef = useRef<{ message: string; time: number }>({ message: '', time: 0 });
   const toastTimerRef = useRef<any>(null);
 
-  const triggerToast = useCallback((info: { message: string; title: string; type: 'success' | 'error' }) => {
+  const triggerToast = useCallback((info: { message: string; title: string; type: 'success' | 'error' | 'warning' | 'info' }) => {
     const now = Date.now();
     // Bỏ qua toast trùng lặp nội dung trong vòng 1.5s
     if (lastToastRef.current.message === info.message && now - lastToastRef.current.time < 1500) {
@@ -171,7 +172,7 @@ export default function App() {
     return () => window.removeEventListener('api_error', handleApiError);
   }, [triggerToast]);
 
-  // Lắng nghe Toast chung (Thành công/Thất bại từ code người dùng gọi)
+  // Lắng nghe Toast chung (Thành công/Thất bại/Cảnh báo từ code người dùng gọi)
   useEffect(() => {
     const handleToast = (e: any) => {
       triggerToast({ message: e.detail?.message, title: e.detail?.title || 'Thông báo', type: e.detail?.type || 'success' });
@@ -218,11 +219,23 @@ export default function App() {
         {/* Vẫn giữ Toast chung cho toàn App kể cả khi ở Login */}
         {toastInfo && (
           <div className={`fixed top-8 right-8 z-[9999] p-4 rounded-xl shadow-xl flex items-start gap-3 min-w-[340px] max-w-md transform transition-all duration-300 ease-out border-l-4 bg-white ${
-            toastInfo.type === 'error' ? 'border-rose-500 text-slate-800' : 'border-emerald-500 text-slate-800'
+            toastInfo.type === 'error' ? 'border-rose-500 text-slate-800' :
+            toastInfo.type === 'warning' ? 'border-amber-500 text-slate-800' :
+            toastInfo.type === 'info' ? 'border-blue-500 text-slate-800' :
+            'border-emerald-500 text-slate-800'
           }`}>
-            <div className={`mt-0.5 shrink-0 ${toastInfo.type === 'error' ? 'text-rose-500' : 'text-emerald-500'}`}>
+            <div className={`mt-0.5 shrink-0 ${
+              toastInfo.type === 'error' ? 'text-rose-500' :
+              toastInfo.type === 'warning' ? 'text-amber-500' :
+              toastInfo.type === 'info' ? 'text-blue-500' :
+              'text-emerald-500'
+            }`}>
               {toastInfo.type === 'error' ? (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+              ) : toastInfo.type === 'warning' ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+              ) : toastInfo.type === 'info' ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
               ) : (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
               )}
@@ -236,6 +249,7 @@ export default function App() {
             </button>
           </div>
         )}
+        <RateLimitCountdownToast />
         <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-slate-100"><div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div></div>}>
           <LoginScreen onLoginSuccess={() => window.location.hash = '/reports/BaoCaoDoanhThu'} />
         </Suspense>
@@ -247,11 +261,23 @@ export default function App() {
     <div className="min-h-screen bg-slate-100 text-slate-800 font-sans antialiased selection:bg-emerald-600 selection:text-white flex flex-col">
       {toastInfo && (
         <div className={`fixed top-8 right-8 z-[9999] p-4 rounded-xl shadow-xl flex items-start gap-3 min-w-[340px] max-w-md transform transition-all duration-300 ease-out border-l-4 bg-white ${
-          toastInfo.type === 'error' ? 'border-rose-500 text-slate-800' : 'border-emerald-500 text-slate-800'
+          toastInfo.type === 'error' ? 'border-rose-500 text-slate-800' :
+          toastInfo.type === 'warning' ? 'border-amber-500 text-slate-800' :
+          toastInfo.type === 'info' ? 'border-blue-500 text-slate-800' :
+          'border-emerald-500 text-slate-800'
         }`}>
-          <div className={`mt-0.5 shrink-0 ${toastInfo.type === 'error' ? 'text-rose-500' : 'text-emerald-500'}`}>
+          <div className={`mt-0.5 shrink-0 ${
+            toastInfo.type === 'error' ? 'text-rose-500' :
+            toastInfo.type === 'warning' ? 'text-amber-500' :
+            toastInfo.type === 'info' ? 'text-blue-500' :
+            'text-emerald-500'
+          }`}>
             {toastInfo.type === 'error' ? (
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            ) : toastInfo.type === 'warning' ? (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            ) : toastInfo.type === 'info' ? (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             ) : (
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             )}
@@ -319,6 +345,7 @@ export default function App() {
         </main>
       </div>
 
+      <RateLimitCountdownToast />
       <SessionLoginModal />
     </div>
   );

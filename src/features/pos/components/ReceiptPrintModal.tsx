@@ -141,7 +141,7 @@ export const ReceiptPrintModal: React.FC<ReceiptPrintModalProps> = ({
     <>
       {/* Cảnh báo lỗi máy in & Tùy chọn hành động thủ công cho Thu ngân */}
       {printError && (
-        <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="no-print print:hidden fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl border border-red-200 shadow-2xl max-w-md w-full p-6 text-slate-800 space-y-4">
             <div className="flex items-center gap-3 text-rose-600">
               <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center font-bold text-lg">⚠️</div>
@@ -177,8 +177,11 @@ export const ReceiptPrintModal: React.FC<ReceiptPrintModalProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  window.print();
-                  onNewOrder();
+                  setPrintError(null); // Đóng ngay popup cảnh báo để không lọt vào trang in
+                  setTimeout(() => {
+                    window.print();
+                    onNewOrder();
+                  }, 100);
                 }}
                 className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition"
               >
@@ -206,8 +209,11 @@ export const ReceiptPrintModal: React.FC<ReceiptPrintModalProps> = ({
           margin: 0;
         }
         @media print {
-          .no-print, header, aside, nav {
+          /* Ẩn hoàn toàn tất cả modal, popup cảnh báo, header, navbar */
+          .no-print, [class*="print:hidden"], header, aside, nav, [role="dialog"], .fixed {
             display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
           }
           html, body, #root, main {
             background: white !important;
@@ -217,19 +223,6 @@ export const ReceiptPrintModal: React.FC<ReceiptPrintModalProps> = ({
             margin: 0 !important;
             padding: 0 !important;
             position: static !important;
-          }
-          .fixed, .absolute, .sticky, [class*="max-h-"], [class*="overflow-"] {
-            position: static !important;
-            overflow: visible !important;
-            max-height: none !important;
-            max-width: none !important;
-            height: auto !important;
-            width: 100% !important;
-            background: white !important;
-            box-shadow: none !important;
-            border: none !important;
-            padding: 0 !important;
-            margin: 0 !important;
           }
           #receipt-print-area {
             display: block !important;
