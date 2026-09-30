@@ -73,7 +73,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               <input
                 type="file"
                 accept="image/*"
-                disabled
+
                 title="Chức năng này đã bị khóa. Vui lòng liên hệ Dev để cấu hình Logo gốc."
                 onChange={async (e) => {
                   const file = e.target.files?.[0];
@@ -85,7 +85,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                       // Extract old filename from URL if it's already a backend URL
                       let oldFilename = undefined;
                       if (editCompLogo && editCompLogo.includes('/system/files/logos/')) {
-                         oldFilename = editCompLogo.split('/').pop();
+                        oldFilename = editCompLogo.split('/').pop();
                       }
                       const res = await systemService.uploadLogo(file, 'web_logo', oldFilename);
                       if (res && res.code === 200 && res.data) {
@@ -105,14 +105,14 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               )}
             </div>
           </div>
-          
+
           <div>
             <label className="block text-slate-700 font-semibold mb-1">Upload Ảnh Logo Hóa Đơn (Sẽ được nén tự động trên Server):</label>
             <div className="flex gap-4 items-center">
               <input
                 type="file"
                 accept="image/*"
-                disabled
+
                 title="Chức năng này đã bị khóa. Vui lòng liên hệ Dev để cấu hình Logo gốc."
                 onChange={async (e) => {
                   const file = e.target.files?.[0];
@@ -123,7 +123,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                     try {
                       let oldFilename = undefined;
                       if (editCompInvoiceLogo && editCompInvoiceLogo.includes('/system/files/logos/')) {
-                         oldFilename = editCompInvoiceLogo.split('/').pop();
+                        oldFilename = editCompInvoiceLogo.split('/').pop();
                       }
                       const res = await systemService.uploadLogo(file, 'invoice_logo', oldFilename);
                       if (res && res.code === 200 && res.data) {

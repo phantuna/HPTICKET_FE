@@ -22,11 +22,11 @@ export const useIAM = (initialTab: string) => {
 
   useEffect(() => {
     if (activeSubTab === 'KhaiBaoPhanQuyen') {
-      if (!globalIamCache.roles) { iamService.fetchRoles().then(res => { setRoles(res.data || []); globalIamCache.roles = res.data; }); }
-      if (!globalIamCache.perms) { iamService.fetchPermissions().then(res => { setPermissions(res.data || []); globalIamCache.perms = res.data; }); }
+      iamService.fetchRoles().then(res => { setRoles(res.data || []); globalIamCache.roles = res.data; });
+      iamService.fetchPermissions().then(res => { setPermissions(res.data || []); globalIamCache.perms = res.data; });
     } else if (activeSubTab === 'KhaibaoDangNhap' || activeSubTab === 'KhaiBaoThe_NV') {
-      if (!globalIamCache.users) { iamService.fetchUsers().then(res => { setUsers(res.data || []); globalIamCache.users = res.data; }); }
-      if (!globalIamCache.roles) { iamService.fetchRoles().then(res => { setRoles(res.data || []); globalIamCache.roles = res.data; }); }
+      iamService.fetchUsers().then(res => { setUsers(res.data || []); globalIamCache.users = res.data; });
+      iamService.fetchRoles().then(res => { setRoles(res.data || []); globalIamCache.roles = res.data; });
     }
   }, [activeSubTab]);
 

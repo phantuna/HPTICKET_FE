@@ -1,4 +1,5 @@
 import { apiClient, API_BASE_URL } from './apiConfig';
+import { authState } from './authState';
 
 export interface BackupJobResponse {
   backupId: string;
@@ -14,8 +15,13 @@ export interface BackupJobResponse {
 
 export interface BackupConfig {
   backupIntervalMinutes: number;
+  backup_interval_minutes?: number;
+  backupIntervalDays?: number;
+  backup_interval_days?: number;
   maxFiles: number;
+  max_files?: number;
   backupPath: string;
+  backup_path?: string;
 }
 
 export const physicalBackupService = {
@@ -35,27 +41,20 @@ export const physicalBackupService = {
     return apiClient.delete(`/backups/${backupId}`);
   },
   
-  downloadBackup: async (backupId: string, customFileName?: string) => {
-    const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
-    const response = await fetch(`${API_BASE_URL}/backups/${backupId}/download`, {
-      headers: {
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-      }
-    });
+  downloadBackup: (backupId: string, customFileName?: string) => {
+    const token = authState.getToken() || localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+    const downloadUrl = `${API_BASE_URL}/backups/${backupId}/download?token=${encodeURIComponent(token || '')}`;
 
-    if (!response.ok) {
-      throw new Error(`Không thể tải file backup (${response.status})`);
-    }
-
-    const blob = await response.blob();
-    const downloadUrl = window.URL.createObjectURL(blob);
+    // Tải trực tiếp qua trình duyệt (Native Browser Download)
+    // Giúp tiến trình tải chạy ngầm độc lập trong trình duyệt, không bị gián đoạn hay huỷ bỏ khi chuyển trang
     const link = document.createElement('a');
     link.href = downloadUrl;
     link.download = customFileName || `backup_${backupId}.sql.gz`;
     document.body.appendChild(link);
     link.click();
-    link.remove();
-    window.URL.revokeObjectURL(downloadUrl);
+    setTimeout(() => {
+      link.remove();
+    }, 1000);
   },
   
   getConfig: () => {
@@ -63,6 +62,12 @@ export const physicalBackupService = {
   },
   
   updateConfig: (config: { backupIntervalMinutes: number; maxFiles: number }) => {
-    return apiClient.put('/backups/config', config);
+    const payload = {
+      backupIntervalMinutes: config.backupIntervalMinutes,
+      backup_interval_minutes: config.backupIntervalMinutes,
+      maxFiles: config.maxFiles,
+      max_files: config.maxFiles
+    };
+    return apiClient.put('/backups/config', payload);
   }
 };

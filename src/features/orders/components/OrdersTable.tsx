@@ -126,7 +126,7 @@ export const OrdersTable: React.FC<OrdersTableProps> = ({
                 const isSelected = selectedOrderIds.includes(ord.id);
                 const invoiceStatus = ord.invoice_status || (ord.invoice_number ? 'ISSUED' : 'UNISSUED');
                 const isEligible = ord.status !== 'CANCELLED' && invoiceStatus !== 'ISSUED' && invoiceStatus !== 'ISSUED_BULK' && invoiceStatus !== 'PENDING';
-                
+
                 return (
                   <tr
                     key={ord.id}
@@ -148,7 +148,26 @@ export const OrdersTable: React.FC<OrdersTableProps> = ({
                         onClick={(e) => e.stopPropagation()}
                       />
                     </td>
-                    <td className="px-2.5 py-3 font-mono font-bold text-emerald-700">{ord.order_code}</td>
+                    <td className="px-2.5 py-3">
+                      <div className="font-mono font-bold text-emerald-700">{ord.order_code}</div>
+                      {(() => {
+                        const items = ord.details || (ord as any).items || [];
+                        const maxPasses = items.reduce((max: number, d: any) => Math.max(max, d.allowed_passes_per_unit || d.allowed_passes || 1), 1);
+                        const groupDisplayName = ord.customer_group_name || (ord as any).customer_group?.name || ord.booker_name;
+                        if (!groupDisplayName && maxPasses <= 1) return null;
+
+                        const isMultiPass = maxPasses > 1;
+                        return (
+                          <span className={`inline-block mt-0.5 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border ${
+                            isMultiPass
+                              ? 'bg-purple-50 text-purple-700 border-purple-200'
+                              : 'bg-blue-50 text-blue-700 border-blue-200'
+                          }`}>
+                            {groupDisplayName ? `${groupDisplayName}${isMultiPass ? ` (${maxPasses} lượt)` : ''}` : `${maxPasses} lượt`}
+                          </span>
+                        );
+                      })()}
+                    </td>
                     <td className="px-2.5 py-3 text-slate-500 font-mono text-[11px]">
                       {formatDate(ord.created_at)}
                     </td>
@@ -264,8 +283,8 @@ export const OrdersTable: React.FC<OrdersTableProps> = ({
             }).map(p => (
               <button key={p} onClick={() => goToPage(p)}
                 className={`w-7 h-7 text-xs rounded-lg border transition font-semibold ${p === currentPage
-                    ? 'bg-emerald-600 text-white border-emerald-600'
-                    : 'border-slate-200 bg-white hover:bg-slate-100 text-slate-700'
+                  ? 'bg-emerald-600 text-white border-emerald-600'
+                  : 'border-slate-200 bg-white hover:bg-slate-100 text-slate-700'
                   }`}>
                 {p + 1}
               </button>

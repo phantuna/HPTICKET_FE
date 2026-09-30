@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { RefreshCw, FileText, X } from 'lucide-react';
 import { toast } from '../../../shared/utils/toast';
+import { VNDateInput } from '../../../shared/components/ui';
 import { invoiceService } from '../services/invoiceService';
 
 interface InvoiceRecoveryModalProps {
@@ -73,23 +74,19 @@ export const InvoiceRecoveryModal: React.FC<InvoiceRecoveryModalProps> = ({ isOp
           <div className="space-y-4 pt-2">
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-1">Từ ngày</label>
-              <input
-                type="date"
+              <VNDateInput
                 value={fromDate}
-                onChange={(e) => setFromDate(e.target.value)}
-                className="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition"
-                required
+                onChange={setFromDate}
+                className="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition bg-white"
               />
             </div>
             
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-1">Đến ngày</label>
-              <input
-                type="date"
+              <VNDateInput
                 value={toDate}
-                onChange={(e) => setToDate(e.target.value)}
-                className="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition"
-                required
+                onChange={setToDate}
+                className="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition bg-white"
               />
             </div>
           </div>

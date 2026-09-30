@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { salesService } from '../../../api/salesService';
 import { iamService } from '../../../api/iamService';
 import { marketingService } from '../../../api/marketingService';
@@ -23,6 +23,31 @@ export interface TicketLineItem {
   base_price_per_pass?: number;
 }
 
+const normalizeGroupStr = (str: string) =>
+  str ? str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d") : "";
+
+export const isGroupDoan = (g: any) => {
+  const code = normalizeGroupStr(g?.code);
+  const name = normalizeGroupStr(g?.name);
+  return code.includes('doan') || name.includes('doan') || code.includes('group') || name.includes('group');
+};
+
+export const isGroupLe = (g: any) => {
+  const code = normalizeGroupStr(g?.code);
+  const name = normalizeGroupStr(g?.name);
+  return code.includes('le') || code.includes('retail') || name.includes('le') || name.includes('retail') || code.includes('individual');
+};
+
+export const findRetailGroup = (groups: any[]) => {
+  if (!groups || groups.length === 0) return null;
+  return groups.find(isGroupLe) || groups.find((g: any) => !isGroupDoan(g)) || groups[0];
+};
+
+export const findDoanGroup = (groups: any[]) => {
+  if (!groups || groups.length === 0) return null;
+  return groups.find(isGroupDoan) || null;
+};
+
 export const usePOS = () => {
   const [searchBookingCode, setSearchBookingCode] = useState<string>('');
   const [invoiceCode, setInvoiceCode] = useState<string>(`2026_${Math.floor(1000000000 + Math.random() * 9000000000)}`);
@@ -31,8 +56,14 @@ export const usePOS = () => {
   const [customerName, setCustomerName] = useState<string>('Khách lẻ không lấy hóa đơn');
   const [phoneNumber, setPhoneNumber] = useState<string>('');
   const [email, setEmail] = useState<string>('');
-  const [selectedGroupCode, setSelectedGroupCode] = useState<string>('');
   const [selectedSourceId, setSelectedSourceId] = useState<string>('');
+  
+  // Dọn dẹp localStorage cũ tránh bị kẹt vĩnh viễn ở Khách đoàn
+  try {
+    localStorage.removeItem('hpticket_last_selected_group_code');
+  } catch { }
+
+  const [selectedGroupCode, setSelectedGroupCode] = useState<string>('');
   const [usageDate, setUsageDate] = useState<string>(new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit', }).format(new Date()));
   const [invoiceStatus, setInvoiceStatus] = useState<'PENDING' | 'IMMEDIATE'>('PENDING');
   const [companyName, setCompanyName] = useState<string>('');
@@ -147,10 +178,8 @@ export const usePOS = () => {
             const list = extractList({ data: masterData.customerGroups });
             if (list.length > 0) {
               setCustomerGroups(list);
-              if (!list.some((g: any) => g.code === selectedGroupCode)) {
-                const retailGroup = list.find((g: any) => g.code === 'KHACH_LE' || g.code === 'RETAIL');
-                setSelectedGroupCode(retailGroup ? retailGroup.code : list[0].code);
-              }
+              const retailGroup = findRetailGroup(list);
+              setSelectedGroupCode(retailGroup ? retailGroup.code : list[0].code);
             }
           }
           if (masterData.counters) {
@@ -211,10 +240,8 @@ export const usePOS = () => {
               const list = extractList(json);
               if (list.length > 0) {
                 setCustomerGroups(list);
-                if (!list.some((g: any) => g.code === selectedGroupCode)) {
-                  const retailGroup = list.find((g: any) => g.code === 'KHACH_LE' || g.code === 'RETAIL');
-                  setSelectedGroupCode(retailGroup ? retailGroup.code : list[0].code);
-                }
+                const retailGroup = findRetailGroup(list);
+                setSelectedGroupCode(retailGroup ? retailGroup.code : list[0].code);
               }
             }).catch(() => { }),
 
@@ -389,6 +416,51 @@ export const usePOS = () => {
     }
   }, [visiblePromotions, selectedPromotionId]);
 
+  // Tự động đồng bộ nhóm khách theo vé trong giỏ hàng:
+  // - Nếu trong giỏ có bất kỳ vé nào có số lượt > 1 -> Tự động chuyển sang Khách đoàn (KHACH DOAN) và cập nhật chiết khấu
+  // - Nếu tất cả vé trong giỏ đều là 1 lượt (vé lẻ) -> Tự động chuyển sang Khách lẻ (KHACH LE) và cập nhật chiết khấu
+  useEffect(() => {
+    if (customerGroups.length === 0) return;
+
+    const ticketItems = lineItems.filter(i => i.item_type === ItemType.TICKET);
+    if (ticketItems.length === 0) {
+      // Khi giỏ hàng không còn vé nào, nếu đang ở Khách đoàn thì tự động trả về Khách lẻ
+      const currentGroup = customerGroups.find(g => g.code === selectedGroupCode);
+      if (currentGroup && isGroupDoan(currentGroup)) {
+        const retailGroup = findRetailGroup(customerGroups);
+        if (retailGroup && selectedGroupCode !== retailGroup.code) {
+          setSelectedGroupCode(retailGroup.code);
+        }
+      }
+      return;
+    }
+
+    const hasMultiPass = ticketItems.some(i => (Number(i.allowed_passes_per_unit) || 1) > 1);
+
+    if (hasMultiPass) {
+      const doanGroup = findDoanGroup(customerGroups);
+      if (doanGroup && selectedGroupCode !== doanGroup.code) {
+        setSelectedGroupCode(doanGroup.code);
+        setLineItems(prev => prev.map(item => ({
+          ...item,
+          discount_percent: item.item_type === ItemType.TICKET ? doanGroup.discount_percent : item.discount_percent
+        })));
+      }
+    } else {
+      const retailGroup = findRetailGroup(customerGroups);
+      const currentGroup = customerGroups.find(g => g.code === selectedGroupCode);
+      const isCurrentlyDoan = currentGroup ? isGroupDoan(currentGroup) : false;
+
+      if (isCurrentlyDoan && retailGroup && selectedGroupCode !== retailGroup.code) {
+        setSelectedGroupCode(retailGroup.code);
+        setLineItems(prev => prev.map(item => ({
+          ...item,
+          discount_percent: item.item_type === ItemType.TICKET ? retailGroup.discount_percent : item.discount_percent
+        })));
+      }
+    }
+  }, [lineItems, customerGroups, selectedGroupCode]);
+
   // LRU Cache cho processedEventIds để deduplication event
   const [processedEventIds] = useState<Set<string>>(new Set());
 
@@ -555,12 +627,56 @@ export const usePOS = () => {
   const handleToggleItem = (itemData: any, itemType: ItemType) => {
     const existingIndex = lineItems.findIndex((item) => item.item_id === itemData.id);
     if (existingIndex >= 0) {
-      setLineItems((prev) => prev.filter((_, idx) => idx !== existingIndex));
+      const remaining = lineItems.filter((_, idx) => idx !== existingIndex);
+      const remainingTicketItems = remaining.filter(i => i.item_type === ItemType.TICKET);
+      const hasMultiPass = remainingTicketItems.some(i => (Number(i.allowed_passes_per_unit) || 1) > 1);
+
+      if (!hasMultiPass && customerGroups.length > 0) {
+        const currentGroup = customerGroups.find(g => g.code === selectedGroupCode);
+        if (currentGroup && isGroupDoan(currentGroup)) {
+          const retailGroup = findRetailGroup(customerGroups);
+          if (retailGroup) {
+            setSelectedGroupCode(retailGroup.code);
+            setLineItems(remaining.map(it => it.item_type === ItemType.TICKET ? { ...it, discount_percent: retailGroup.discount_percent } : it));
+            return;
+          }
+        }
+      }
+      setLineItems(remaining);
     } else {
-      const grp = customerGroups.find((g) => g.code === selectedGroupCode);
-      const discount = (grp && itemType === ItemType.TICKET) ? grp.discount_percent : 0;
+      const basePasses = Number(itemData.allowedPasses || itemData.allowed_passes || 1) || 1;
       const defaultTax = itemType === ItemType.PRODUCT ? 10 : 8;
-      const basePasses = itemData.allowedPasses || itemData.allowed_passes || 1;
+
+      let targetDiscount = 0;
+      if (itemType === ItemType.TICKET && customerGroups.length > 0) {
+        const willHaveMultiPass = basePasses > 1 || lineItems.some(i => i.item_type === ItemType.TICKET && (Number(i.allowed_passes_per_unit) || 1) > 1);
+        if (willHaveMultiPass) {
+          const doanGroup = findDoanGroup(customerGroups);
+          if (doanGroup) {
+            targetDiscount = doanGroup.discount_percent;
+            if (selectedGroupCode !== doanGroup.code) {
+              setSelectedGroupCode(doanGroup.code);
+            }
+          }
+        } else {
+          // Chỉ toàn vé 1 lượt
+          const currentGroup = customerGroups.find(g => g.code === selectedGroupCode);
+          if (currentGroup && isGroupDoan(currentGroup)) {
+            const retailGroup = findRetailGroup(customerGroups);
+            if (retailGroup) {
+              targetDiscount = retailGroup.discount_percent;
+              if (selectedGroupCode !== retailGroup.code) {
+                setSelectedGroupCode(retailGroup.code);
+              }
+            }
+          } else if (currentGroup) {
+            targetDiscount = currentGroup.discount_percent;
+          }
+        }
+      } else {
+        const grp = customerGroups.find((g) => g.code === selectedGroupCode);
+        targetDiscount = (grp && itemType === ItemType.TICKET) ? grp.discount_percent : 0;
+      }
 
       setLineItems((prev) => [
         ...prev,
@@ -572,7 +688,7 @@ export const usePOS = () => {
           quantity: 1,
           unit_price: itemData.price,
           tax_percent: itemData.tax_percent !== undefined ? itemData.tax_percent : defaultTax,
-          discount_percent: discount,
+          discount_percent: targetDiscount,
           ticket_type: itemData.ticket_type,
           allowed_passes_per_unit: basePasses,
           base_price_per_pass: itemData.price / basePasses
@@ -652,10 +768,14 @@ export const usePOS = () => {
     setDepositAmount(0);
     setExtraDiscount(0);
     setLineItems([]);
-    if (customerGroups.length > 0) {
+    try {
+      localStorage.removeItem('hpticket_last_selected_group_code');
+    } catch { }
+    const retailGroup = findRetailGroup(customerGroups);
+    if (retailGroup) {
+      setSelectedGroupCode(retailGroup.code);
+    } else if (customerGroups.length > 0) {
       setSelectedGroupCode(customerGroups[0].code);
-    } else {
-      setSelectedGroupCode('');
     }
     setSelectedSourceId('');
   };
@@ -693,9 +813,16 @@ export const usePOS = () => {
       const grp = customerGroups.find((g) => g.code === selectedGroupCode);
       const groupDiscount = grp ? grp.discount_percent : 0;
 
-      const effectiveBookerName = customerName && customerName !== 'Khách lẻ không lấy hóa đơn'
-        ? customerName.trim()
-        : 'Khách lẻ';
+      let effectiveBookerName = customerName?.trim() || '';
+      if (!effectiveBookerName || effectiveBookerName === 'Khách lẻ không lấy hóa đơn') {
+        if (grp && (grp.name.toLowerCase().includes('đoàn') || grp.code.includes('DOAN'))) {
+          effectiveBookerName = grp.name || 'Đoàn khách';
+        } else if (grp && grp.name) {
+          effectiveBookerName = grp.name;
+        } else {
+          effectiveBookerName = 'Khách lẻ';
+        }
+      }
 
       const res = await salesService.checkout({
         counter_id: selectedCounterId,

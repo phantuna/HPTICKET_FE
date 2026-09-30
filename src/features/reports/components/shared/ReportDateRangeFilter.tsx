@@ -1,5 +1,6 @@
 import React from 'react';
 import { Search } from 'lucide-react';
+import { VNDateInput } from '../../../../shared/components/ui';
 interface ReportDateRangeFilterProps {
   fromDate: string;
   setFromDate: (v: string) => void;
@@ -24,21 +25,19 @@ export const ReportDateRangeFilter: React.FC<ReportDateRangeFilterProps> = ({
   return (
     <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 bg-white p-4 rounded-md shadow-sm border border-slate-100 ${className}`}>
       <div className="flex flex-col">
-        <span className="text-slate-600 font-medium text-sm mb-1">Từ ngày:</span>
-        <input
-          type="date"
+        <span className="text-slate-600 font-medium text-sm mb-1">Từ ngày (dd/mm/yyyy):</span>
+        <VNDateInput
           value={fromDate}
-          onChange={(e) => setFromDate(e.target.value)}
-          className="w-full border border-slate-200 rounded-md px-3 py-1.5 outline-none focus:border-emerald-500 text-sm text-slate-800"
+          onChange={setFromDate}
+          className="w-full border border-slate-200 rounded-md px-3 py-1.5 outline-none focus:border-emerald-500 text-sm text-slate-800 bg-white"
         />
       </div>
       <div className="flex flex-col">
-        <span className="text-slate-600 font-medium text-sm mb-1">Đến ngày:</span>
-        <input
-          type="date"
+        <span className="text-slate-600 font-medium text-sm mb-1">Đến ngày (dd/mm/yyyy):</span>
+        <VNDateInput
           value={toDate}
-          onChange={(e) => setToDate(e.target.value)}
-          className="w-full border border-slate-200 rounded-md px-3 py-1.5 outline-none focus:border-emerald-500 text-sm text-slate-800"
+          onChange={setToDate}
+          className="w-full border border-slate-200 rounded-md px-3 py-1.5 outline-none focus:border-emerald-500 text-sm text-slate-800 bg-white"
         />
       </div>
       <div className="flex items-end gap-2">

@@ -12,8 +12,8 @@ const RestorePanel: React.FC<RestorePanelProps> = ({ backups = [] }) => {
   const [isRestoring, setIsRestoring] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  const completedBackups = backups.filter(b => b.status === 'COMPLETED');
-  const activeBackupInfo = completedBackups.find(b => b.backupId === selectedBackup);
+  const completedBackups = backups.filter(b => b.status?.toUpperCase() === 'COMPLETED');
+  const activeBackupInfo = completedBackups.find(b => (b.backupId || (b as any).backup_id) === selectedBackup);
 
   const handleRestore = () => {
     if (!selectedBackup) {
@@ -104,11 +104,16 @@ const RestorePanel: React.FC<RestorePanelProps> = ({ backups = [] }) => {
             className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium"
           >
             <option value="">-- Chọn bản sao lưu (chỉ bản COMPLETED) --</option>
-            {completedBackups.map(b => (
-              <option key={b.backupId} value={b.backupId}>
-                {b.backupId} ({formatSize(b.totalSize)} - {b.completedAt ? new Date(b.completedAt).toLocaleString('vi-VN') : ''})
-              </option>
-            ))}
+            {completedBackups.map(b => {
+              const id = b.backupId || (b as any).backup_id;
+              const size = b.totalSize ?? (b as any).total_size;
+              const date = b.completedAt || (b as any).completed_at;
+              return (
+                <option key={id} value={id}>
+                  {id} ({formatSize(size)} - {date ? new Date(date).toLocaleString('vi-VN') : ''})
+                </option>
+              );
+            })}
           </select>
           {completedBackups.length === 0 && (
             <p className="text-xs text-rose-500 mt-2">Không có bản sao lưu nào ở trạng thái Hoàn tất (COMPLETED).</p>
@@ -120,12 +125,12 @@ const RestorePanel: React.FC<RestorePanelProps> = ({ backups = [] }) => {
           <div className="mb-5 p-3.5 bg-blue-50/50 rounded-lg border border-blue-100 flex items-center justify-between text-xs text-gray-700">
             <div className="flex items-center gap-2">
               <FileArchive className="w-4 h-4 text-blue-600" />
-              <span className="font-semibold text-blue-900">{activeBackupInfo.backupId}</span>
+              <span className="font-semibold text-blue-900">{activeBackupInfo.backupId || (activeBackupInfo as any).backup_id}</span>
               <span className="text-gray-400">|</span>
-              <span>Dung lượng nén: <strong>{formatSize(activeBackupInfo.totalSize)}</strong></span>
+              <span>Dung lượng nén: <strong>{formatSize(activeBackupInfo.totalSize ?? (activeBackupInfo as any).total_size)}</strong></span>
             </div>
             <span className="text-gray-500">
-              {activeBackupInfo.completedAt ? new Date(activeBackupInfo.completedAt).toLocaleString('vi-VN') : ''}
+              {(activeBackupInfo.completedAt || (activeBackupInfo as any).completed_at) ? new Date(activeBackupInfo.completedAt || (activeBackupInfo as any).completed_at).toLocaleString('vi-VN') : ''}
             </span>
           </div>
         )}

@@ -3,6 +3,7 @@ import { Search, Clock } from 'lucide-react';
 import { downloadExcelFromApi } from '../../utils/excelExporter';
 import { toast } from '../../../../shared/utils/toast';
 import { ExportExcelButton } from '../../../../shared/components/ExportExcelButton';
+import { VNDateInput } from '../../../../shared/components/ui';
 import { apiClient, API_ENDPOINTS } from '../../../../api/apiConfig';
 import { ReportPagination } from '../shared/ReportPagination';
 
@@ -97,23 +98,19 @@ export const GateLogReportTab: React.FC<GateLogReportTabProps> = ({
             {/* Cụm bộ lọc điều kiện */}
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2.5 text-xs">
               <div className="flex items-center gap-2">
-                <span className="text-slate-600 font-semibold whitespace-nowrap">Từ ngày:</span>
-                <input
-                  type="date"
+                <span className="text-slate-600 font-semibold whitespace-nowrap shrink-0">Từ ngày:</span>
+                <VNDateInput
                   value={fromDate}
-                  onChange={(e) => setFromDate(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
-                  className="bg-white border border-slate-200 px-3 py-1.5 text-slate-800 font-mono font-medium rounded-lg outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 shadow-2xs w-[145px]"
+                  onChange={setFromDate}
+                  className="w-[145px] bg-white border border-slate-200 px-3 py-1.5 text-slate-800 font-mono font-medium rounded-lg outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 shadow-2xs text-xs"
                 />
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-slate-600 font-semibold whitespace-nowrap">Đến ngày:</span>
-                <input
-                  type="date"
+                <span className="text-slate-600 font-semibold whitespace-nowrap shrink-0">Đến ngày:</span>
+                <VNDateInput
                   value={toDate}
-                  onChange={(e) => setToDate(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
-                  className="bg-white border border-slate-200 px-3 py-1.5 text-slate-800 font-mono font-medium rounded-lg outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 shadow-2xs w-[145px]"
+                  onChange={setToDate}
+                  className="w-[145px] bg-white border border-slate-200 px-3 py-1.5 text-slate-800 font-mono font-medium rounded-lg outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 shadow-2xs text-xs"
                 />
               </div>
               <div className="flex items-center gap-2">

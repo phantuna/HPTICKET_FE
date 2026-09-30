@@ -387,7 +387,7 @@ export const ExpiringTicketsPage: React.FC = () => {
 
               {/* Popover Card */}
               {showFilterPopover && (
-                <div className="absolute left-0 top-full mt-2 w-72 bg-white rounded-xl shadow-xl border border-slate-200 p-4 z-40 space-y-3.5 animate-in fade-in zoom-in-95 duration-100">
+                <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-xl shadow-xl border border-slate-200 p-4 z-40 space-y-3.5 animate-in fade-in zoom-in-95 duration-100">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                     <span className="font-bold text-xs text-slate-800">Bộ Lọc Nâng Cao</span>
                     <button

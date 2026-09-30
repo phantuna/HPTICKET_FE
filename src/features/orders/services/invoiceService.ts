@@ -22,11 +22,13 @@ export const invoiceService = {
   },
 
   /**
-   * Gộp và phát hành HĐDT tổng cho toàn bộ đơn khách lẻ PENDING trong ngày.
+   * Gộp và phát hành HĐDT tổng cho toàn bộ đơn khách lẻ trong ngày.
    */
   async issueBulkRetail(date?: string) {
-    const params = date ? { date } : {};
-    return apiClient.post<any>(API_ENDPOINTS.VINVOICE.ISSUE_BULK_RETAIL, params);
+    const url = date
+      ? `${API_ENDPOINTS.VINVOICE.ISSUE_BULK_RETAIL}?date=${encodeURIComponent(date)}`
+      : API_ENDPOINTS.VINVOICE.ISSUE_BULK_RETAIL;
+    return apiClient.post<any>(url, date ? { date } : undefined);
   },
 
   /**

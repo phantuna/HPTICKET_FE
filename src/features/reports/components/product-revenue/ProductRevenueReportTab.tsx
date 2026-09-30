@@ -2,6 +2,7 @@ import React from 'react';
 import { Search } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { ExportExcelButton } from '../../../../shared/components/ExportExcelButton';
+import { VNDateInput } from '../../../../shared/components/ui';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
@@ -25,21 +26,19 @@ export const ProductRevenueReportTab: React.FC<ProductRevenueReportTabProps> = (
     <div className="space-y-6">
       <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-wrap items-center gap-6">
         <div className="flex items-center gap-2">
-          <span className="text-slate-600 font-medium text-sm">Từ ngày:</span>
-          <input
-            type="date"
+          <span className="text-slate-600 font-medium text-sm whitespace-nowrap shrink-0">Từ ngày:</span>
+          <VNDateInput
             value={fromDate}
-            onChange={(e) => setFromDate(e.target.value)}
-            className="border border-slate-200 rounded-md px-3 py-1.5 outline-none focus:border-emerald-500 text-sm"
+            onChange={setFromDate}
+            className="w-36 border border-slate-200 rounded-md px-3 py-1.5 outline-none focus:border-emerald-500 text-sm bg-white"
           />
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-slate-600 font-medium text-sm">Đến ngày:</span>
-          <input
-            type="date"
+          <span className="text-slate-600 font-medium text-sm whitespace-nowrap shrink-0">Đến ngày:</span>
+          <VNDateInput
             value={toDate}
-            onChange={(e) => setToDate(e.target.value)}
-            className="border border-slate-200 rounded-md px-3 py-1.5 outline-none focus:border-emerald-500 text-sm"
+            onChange={setToDate}
+            className="w-36 border border-slate-200 rounded-md px-3 py-1.5 outline-none focus:border-emerald-500 text-sm bg-white"
           />
         </div>
         <div className="flex items-center gap-2 ml-auto">

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Search, RefreshCw, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 import { ExportExcelButton } from '../../../../shared/components/ExportExcelButton';
+import { VNDateInput } from '../../../../shared/components/ui';
 import { apiClient, API_ENDPOINTS } from '../../../../api/apiConfig';
 import { toast } from '../../../../shared/utils/toast';
 
@@ -184,10 +185,10 @@ export const ComparisonReportTab: React.FC<ComparisonReportTabProps> = ({ handle
             </div>
 
             <div className="flex items-center gap-2">
-              <input type="date" value={fromDate1} onChange={(e) => { setFromDate1(e.target.value); setPreset1('custom'); }} className="border border-slate-200 rounded px-2 py-1 outline-none focus:border-blue-500 text-xs w-32" />
-              <span className="text-[10px] text-slate-400 font-medium">đến</span>
-              <input type="date" value={toDate1} onChange={(e) => { setToDate1(e.target.value); setPreset1('custom'); }} className="border border-slate-200 rounded px-2 py-1 outline-none focus:border-blue-500 text-xs w-32" />
-              {days1 > 0 && <span className="text-[10px] text-blue-600 font-bold ml-1">({days1} ngày)</span>}
+              <VNDateInput value={fromDate1} onChange={(val) => { setFromDate1(val); setPreset1('custom'); }} className="w-32 border border-slate-200 rounded px-2 py-1 outline-none focus:border-blue-500 text-xs bg-white" />
+              <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap shrink-0">đến</span>
+              <VNDateInput value={toDate1} onChange={(val) => { setToDate1(val); setPreset1('custom'); }} className="w-32 border border-slate-200 rounded px-2 py-1 outline-none focus:border-blue-500 text-xs bg-white" />
+              {days1 > 0 && <span className="text-[10px] text-blue-600 font-bold ml-1 whitespace-nowrap shrink-0">({days1} ngày)</span>}
             </div>
           </div>
 
@@ -206,10 +207,10 @@ export const ComparisonReportTab: React.FC<ComparisonReportTabProps> = ({ handle
             </div>
 
             <div className="flex items-center gap-2">
-              <input type="date" value={fromDate2} onChange={(e) => { setFromDate2(e.target.value); setPreset2('custom'); }} className="border border-slate-200 rounded px-2 py-1 outline-none focus:border-orange-500 text-xs w-32" />
-              <span className="text-[10px] text-slate-400 font-medium">đến</span>
-              <input type="date" value={toDate2} onChange={(e) => { setToDate2(e.target.value); setPreset2('custom'); }} className="border border-slate-200 rounded px-2 py-1 outline-none focus:border-orange-500 text-xs w-32" />
-              {days2 > 0 && <span className="text-[10px] text-orange-600 font-bold ml-1">({days2} ngày)</span>}
+              <VNDateInput value={fromDate2} onChange={(val) => { setFromDate2(val); setPreset2('custom'); }} className="w-32 border border-slate-200 rounded px-2 py-1 outline-none focus:border-orange-500 text-xs bg-white" />
+              <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap shrink-0">đến</span>
+              <VNDateInput value={toDate2} onChange={(val) => { setToDate2(val); setPreset2('custom'); }} className="w-32 border border-slate-200 rounded px-2 py-1 outline-none focus:border-orange-500 text-xs bg-white" />
+              {days2 > 0 && <span className="text-[10px] text-orange-600 font-bold ml-1 whitespace-nowrap shrink-0">({days2} ngày)</span>}
             </div>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Search, RefreshCw } from 'lucide-react';
 import { ExportExcelButton } from '../../../shared/components/ExportExcelButton';
+import { VNDateInput } from '../../../shared/components/ui';
 
 interface OrderFilterBarProps {
   activeSubTab: 'orders' | 'tickets';
@@ -67,12 +68,12 @@ export const OrderFilterBar: React.FC<OrderFilterBarProps> = ({
     <div className="border border-slate-200 rounded-2xl bg-white p-5 text-xs font-medium text-slate-700 mb-6 shadow-sm">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-5 items-end">
         <div className="flex flex-col gap-1.5">
-          <label className="text-slate-500 font-bold uppercase text-[10px]">Từ ngày</label>
-          <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="w-full border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 px-3 py-2 bg-slate-50 font-mono" />
+          <label className="text-slate-500 font-bold uppercase text-[10px]">Từ ngày (dd/mm/yyyy)</label>
+          <VNDateInput value={fromDate} onChange={setFromDate} className="w-full border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 px-3 py-2 bg-slate-50 font-mono text-xs" />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className="text-slate-500 font-bold uppercase text-[10px]">Đến ngày</label>
-          <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="w-full border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 px-3 py-2 bg-slate-50 font-mono" />
+          <label className="text-slate-500 font-bold uppercase text-[10px]">Đến ngày (dd/mm/yyyy)</label>
+          <VNDateInput value={toDate} onChange={setToDate} className="w-full border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 px-3 py-2 bg-slate-50 font-mono text-xs" />
         </div>
         <div className="flex flex-col gap-1.5">
           <label className="text-slate-500 font-bold uppercase text-[10px]">Quầy vé</label>

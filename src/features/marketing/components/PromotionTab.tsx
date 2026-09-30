@@ -6,6 +6,7 @@ import { marketingService } from '../../../api/marketingService';
 import { toast } from '../../../shared/utils/toast';
 import { usePermission } from '../../../shared/hooks/usePermission';
 import { DetailsModal } from '../../../shared/components/DetailsModal';
+import { VNDateInput } from '../../../shared/components/ui';
 
 interface PromotionTabProps {
   promotions: Promotion[];
@@ -160,29 +161,29 @@ export const PromotionTab: React.FC<PromotionTabProps> = ({ promotions, setPromo
           fields={[
             { label: 'Mã chương trình', value: selectedPromotionForDetails.code || selectedPromotionForDetails.id },
             { label: 'Tên chương trình', value: selectedPromotionForDetails.name },
-            { 
-              label: 'Thời gian áp dụng', 
-              value: `${selectedPromotionForDetails.start_date ? String(selectedPromotionForDetails.start_date).split('T')[0] : 'N/A'} đến ${selectedPromotionForDetails.end_date ? String(selectedPromotionForDetails.end_date).split('T')[0] : 'N/A'}` 
+            {
+              label: 'Thời gian áp dụng',
+              value: `${selectedPromotionForDetails.start_date ? String(selectedPromotionForDetails.start_date).split('T')[0] : 'N/A'} đến ${selectedPromotionForDetails.end_date ? String(selectedPromotionForDetails.end_date).split('T')[0] : 'N/A'}`
             },
             { label: 'Giảm giá', value: `${selectedPromotionForDetails.discount_percent || selectedPromotionForDetails.discount_value || 10}%` },
             { label: 'Số lượng', value: selectedPromotionForDetails.quantity || 'Không giới hạn' },
-            { 
-              label: 'Trạng thái', 
-              value: (selectedPromotionForDetails.is_active ?? selectedPromotionForDetails.isActive ?? selectedPromotionForDetails.active) ? 'Đang kích hoạt' : 'Đã khóa' 
+            {
+              label: 'Trạng thái',
+              value: (selectedPromotionForDetails.is_active ?? selectedPromotionForDetails.isActive ?? selectedPromotionForDetails.active) ? 'Đang kích hoạt' : 'Đã khóa'
             },
             {
               label: 'Chính sách ngày lễ',
               value: selectedPromotionForDetails.holiday_policy === 'HOLIDAY_ONLY'
                 ? `Chỉ áp dụng ngày lễ (${selectedPromotionForDetails.holiday_name || 'Tất cả các ngày lễ'})`
                 : selectedPromotionForDetails.holiday_policy === 'NORMAL_ONLY'
-                ? 'Chỉ áp dụng ngày thường (Không áp dụng ngày lễ)'
-                : 'Áp dụng tất cả các ngày (Cả ngày thường & ngày lễ)'
+                  ? 'Chỉ áp dụng ngày thường (Không áp dụng ngày lễ)'
+                  : 'Áp dụng tất cả các ngày (Cả ngày thường & ngày lễ)'
             },
             {
               label: 'Danh sách vé áp dụng',
               value: (
                 <div className="flex flex-col gap-1 mt-1">
-                  {(!selectedPromotionForDetails.applicable_tickets || selectedPromotionForDetails.applicable_tickets.length === 0) 
+                  {(!selectedPromotionForDetails.applicable_tickets || selectedPromotionForDetails.applicable_tickets.length === 0)
                     ? 'Tất cả các loại vé'
                     : selectedPromotionForDetails.applicable_tickets.map((id: string, i: number) => {
                       const t = ticketTemplates.find((tpl: any) => tpl.id === id || tpl.code === id);
@@ -232,24 +233,26 @@ export const PromotionTab: React.FC<PromotionTabProps> = ({ promotions, setPromo
                 <label className="w-32 shrink-0 font-medium text-slate-700">
                   <span className="text-red-500 mr-1">*</span>Từ ngày
                 </label>
-                <input
-                  type="date"
-                  value={newPromoStart}
-                  onChange={(e) => setNewPromoStart(e.target.value)}
-                  className="flex-1 bg-transparent border-b border-slate-400 py-1 outline-none focus:border-emerald-500 transition-colors font-mono"
-                />
+                <div className="flex-1">
+                  <VNDateInput
+                    value={newPromoStart}
+                    onChange={setNewPromoStart}
+                    className="w-full bg-transparent border-b border-slate-400 py-1 outline-none focus:border-emerald-500 transition-colors font-mono"
+                  />
+                </div>
               </div>
 
               <div className="flex items-center gap-4">
                 <label className="w-32 shrink-0 font-medium text-slate-700">
                   <span className="text-red-500 mr-1">*</span>Đến ngày
                 </label>
-                <input
-                  type="date"
-                  value={newPromoEnd}
-                  onChange={(e) => setNewPromoEnd(e.target.value)}
-                  className="flex-1 bg-transparent border-b border-slate-400 py-1 outline-none focus:border-emerald-500 transition-colors font-mono"
-                />
+                <div className="flex-1">
+                  <VNDateInput
+                    value={newPromoEnd}
+                    onChange={setNewPromoEnd}
+                    className="w-full bg-transparent border-b border-slate-400 py-1 outline-none focus:border-emerald-500 transition-colors font-mono"
+                  />
+                </div>
               </div>
 
               <div className="flex items-start gap-4">

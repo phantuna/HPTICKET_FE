@@ -22,6 +22,7 @@ import { StockMovementModal } from '../components/StockMovementModal';
 import { StockMovementDetailModal } from '../components/StockMovementDetailModal';
 import { usePermission } from '../../../shared/hooks/usePermission';
 import { DetailsModal } from '../../../shared/components/DetailsModal';
+import { VNDateInput } from '../../../shared/components/ui';
 
 interface InventoryModuleProps {
   subTab?: string;
@@ -378,27 +379,25 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({ subTab = 'KhoH
             {(datePreset === 'CUSTOM' || fromDate || toDate) && (
               <div className="flex items-center gap-2 flex-wrap animate-in fade-in duration-150">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-slate-500 font-medium text-[11px]">Từ ngày:</span>
-                  <input
-                    type="date"
+                  <span className="text-slate-500 font-medium text-[11px] whitespace-nowrap shrink-0">Từ ngày:</span>
+                  <VNDateInput
                     value={fromDate}
-                    onChange={(e) => {
-                      setFromDate(e.target.value);
+                    onChange={(val) => {
+                      setFromDate(val);
                       if (datePreset !== 'CUSTOM') setDatePreset('CUSTOM');
                     }}
-                    className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-800 font-mono outline-none focus:border-emerald-500 focus:bg-white"
+                    className="w-32 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-800 font-mono outline-none focus:border-emerald-500 focus:bg-white"
                   />
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-slate-500 font-medium text-[11px]">Đến ngày:</span>
-                  <input
-                    type="date"
+                  <span className="text-slate-500 font-medium text-[11px] whitespace-nowrap shrink-0">Đến ngày:</span>
+                  <VNDateInput
                     value={toDate}
-                    onChange={(e) => {
-                      setToDate(e.target.value);
+                    onChange={(val) => {
+                      setToDate(val);
                       if (datePreset !== 'CUSTOM') setDatePreset('CUSTOM');
                     }}
-                    className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-800 font-mono outline-none focus:border-emerald-500 focus:bg-white"
+                    className="w-32 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-800 font-mono outline-none focus:border-emerald-500 focus:bg-white"
                   />
                 </div>
                 {(fromDate || toDate) && (

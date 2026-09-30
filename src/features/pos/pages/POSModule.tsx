@@ -115,25 +115,26 @@ export const POSModule: React.FC = () => {
 
         <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-0">
           <div className="flex-1 min-w-0 flex flex-col">
-          <POSCartTable
-            lineItems={lineItems} setLineItems={setLineItems} updateLineItem={updateLineItem}
-            selectedGroupCode={selectedGroupCode} customerGroups={customerGroups} effectiveExtraDiscount={effectiveExtraDiscount}
-            handleCheckout={handleCheckout} subtotalAfterLineDiscounts={subtotalAfterLineDiscounts}
-            depositAmount={depositAmount} setDepositAmount={setDepositAmount}
-            extraDiscount={extraDiscount} setExtraDiscount={setExtraDiscount}
-            selectedPromotionId={selectedPromotionId} setSelectedPromotionId={setSelectedPromotionId}
-            remainingPayable={remainingPayable} paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod}
-            totalSubtotalBeforeDiscount={totalSubtotalBeforeDiscount} grandTotal={grandTotal}
-          />
+            <POSCartTable
+              lineItems={lineItems} setLineItems={setLineItems} updateLineItem={updateLineItem}
+              selectedGroupCode={selectedGroupCode} setSelectedGroupCode={setSelectedGroupCode}
+              customerGroups={customerGroups} effectiveExtraDiscount={effectiveExtraDiscount}
+              handleCheckout={handleCheckout} subtotalAfterLineDiscounts={subtotalAfterLineDiscounts}
+              depositAmount={depositAmount} setDepositAmount={setDepositAmount}
+              extraDiscount={extraDiscount} setExtraDiscount={setExtraDiscount}
+              selectedPromotionId={selectedPromotionId} setSelectedPromotionId={setSelectedPromotionId}
+              remainingPayable={remainingPayable} paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod}
+              totalSubtotalBeforeDiscount={totalSubtotalBeforeDiscount} grandTotal={grandTotal}
+            />
           </div>
 
           <div className="w-full lg:w-[340px] flex-shrink-0 flex flex-col">
-          <POSCatalog
-            activeListTab={activeListTab} setActiveListTab={setActiveListTab}
-            ticketTemplates={ticketTemplates} ticketZones={ticketZones} products={products}
-            lineItems={lineItems} handleToggleItem={handleToggleItem}
-            selectedCounter={selectedCounter}
-          />
+            <POSCatalog
+              activeListTab={activeListTab} setActiveListTab={setActiveListTab}
+              ticketTemplates={ticketTemplates} ticketZones={ticketZones} products={products}
+              lineItems={lineItems} handleToggleItem={handleToggleItem}
+              selectedCounter={selectedCounter}
+            />
           </div>
         </div>
 
@@ -153,6 +154,7 @@ export const POSModule: React.FC = () => {
               order={completedOrder}
               tickets={generatedTickets}
               customerName={customerName}
+              customerGroupName={appliedGroup?.name}
               phoneNumber={""}
               paymentMethod={paymentMethod}
               customerSourceName={selectedSourceId ? customerSources.find((s) => s.id === selectedSourceId)?.company_name || 'Khách vãng lai' : 'Khách vãng lai'}

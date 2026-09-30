@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FileText, Code, Search, Download, RefreshCw, Calendar, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 import { SystemLog } from '../../../shared/types/hpticket';
+import { VNDateInput } from '../../../shared/components/ui';
 import { iamService } from '../../../api/iamService';
 import { getEntityLabel } from '../../../shared/utils/auditLabels';
 
@@ -103,29 +104,21 @@ export const SystemLogsModule: React.FC = () => {
           </div>
           <div className="flex items-center gap-2">
             <div className="flex flex-col gap-0.5">
-              <label className="text-[10px] font-semibold text-slate-500 uppercase">Từ ngày</label>
-              <div className="relative">
-                <Calendar className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="date"
-                  value={pendingFrom}
-                  onChange={e => setPendingFrom(e.target.value)}
-                  className="pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg bg-slate-50 font-mono text-slate-800 focus:outline-none focus:border-indigo-400"
-                />
-              </div>
+              <label className="text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">Từ ngày</label>
+              <VNDateInput
+                value={pendingFrom}
+                onChange={setPendingFrom}
+                className="w-36 px-3 py-1.5 text-xs border border-slate-200 rounded-lg bg-slate-50 font-mono text-slate-800 focus:outline-none focus:border-indigo-400"
+              />
             </div>
-            <span className="text-slate-400 text-sm mt-4">→</span>
+            <span className="text-slate-400 text-sm mt-4 shrink-0">→</span>
             <div className="flex flex-col gap-0.5">
-              <label className="text-[10px] font-semibold text-slate-500 uppercase">Đến ngày</label>
-              <div className="relative">
-                <Calendar className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="date"
-                  value={pendingTo}
-                  onChange={e => setPendingTo(e.target.value)}
-                  className="pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg bg-slate-50 font-mono text-slate-800 focus:outline-none focus:border-indigo-400"
-                />
-              </div>
+              <label className="text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">Đến ngày</label>
+              <VNDateInput
+                value={pendingTo}
+                onChange={setPendingTo}
+                className="w-36 px-3 py-1.5 text-xs border border-slate-200 rounded-lg bg-slate-50 font-mono text-slate-800 focus:outline-none focus:border-indigo-400"
+              />
             </div>
           </div>
           <button

@@ -5,7 +5,7 @@ import { Holiday } from '../../../shared/types/hpticket';
 import { marketingService } from '../../../api/marketingService';
 import { toast } from '../../../shared/utils/toast';
 import { usePermission } from '../../../shared/hooks/usePermission';
-import { Modal } from '../../../shared/components/ui';
+import { Modal, VNDateInput } from '../../../shared/components/ui';
 
 interface HolidayTabProps {
   holidays: Holiday[];
@@ -87,12 +87,14 @@ export const HolidayTab: React.FC<HolidayTabProps> = ({ holidays, setHolidays, r
         columns={[
           { header: 'ID', accessor: (row: any, idx) => idx + 1, className: 'w-12 font-mono text-center' },
           { header: 'Mã', accessor: (row: any) => row.code ? <span className="font-mono text-xs bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">{row.code}</span> : '-', className: 'w-24' },
-          { header: 'Tên ngày lễ', accessor: (row: any) => (
-            <div>
-              <div className="font-semibold text-slate-900">{row.name}</div>
-              {row.description && <div className="text-xs text-slate-500 line-clamp-1">{row.description}</div>}
-            </div>
-          ), className: 'font-semibold text-slate-900' },
+          {
+            header: 'Tên ngày lễ', accessor: (row: any) => (
+              <div>
+                <div className="font-semibold text-slate-900">{row.name}</div>
+                {row.description && <div className="text-xs text-slate-500 line-clamp-1">{row.description}</div>}
+              </div>
+            ), className: 'font-semibold text-slate-900'
+          },
           { header: 'Từ ngày', accessor: (row: any) => formatDate(row.start_date || row.startDate), className: 'font-mono text-slate-800' },
           { header: 'Đến ngày', accessor: (row: any) => formatDate(row.end_date || row.endDate), className: 'font-mono text-slate-800' },
           { header: 'Sử dụng', accessor: 'is_active', className: 'text-center w-24' },
@@ -160,20 +162,18 @@ export const HolidayTab: React.FC<HolidayTabProps> = ({ holidays, setHolidays, r
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-700 font-semibold mb-1">Từ Ngày *:</label>
-              <input
-                type="date"
+              <label className="block text-slate-700 font-semibold mb-1">Từ Ngày * (dd/mm/yyyy):</label>
+              <VNDateInput
                 value={newHolidayStart}
-                onChange={(e) => setNewHolidayStart(e.target.value)}
+                onChange={setNewHolidayStart}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 font-mono outline-none focus:ring-1 focus:ring-emerald-500"
               />
             </div>
             <div>
-              <label className="block text-slate-700 font-semibold mb-1">Đến Ngày *:</label>
-              <input
-                type="date"
+              <label className="block text-slate-700 font-semibold mb-1">Đến Ngày * (dd/mm/yyyy):</label>
+              <VNDateInput
                 value={newHolidayEnd}
-                onChange={(e) => setNewHolidayEnd(e.target.value)}
+                onChange={setNewHolidayEnd}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 font-mono outline-none focus:ring-1 focus:ring-emerald-500"
               />
             </div>

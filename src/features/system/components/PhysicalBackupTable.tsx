@@ -23,9 +23,9 @@ const PhysicalBackupTable: React.FC<PhysicalBackupTableProps> = ({ backups, onRe
   const [isTriggering, setIsTriggering] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [config, setConfig] = useState<BackupConfig>({
-    backupIntervalMinutes: 10,
+    backupIntervalMinutes: 1440,
     maxFiles: 7,
-    backupPath: '/opt/hpticket/data/backup'
+    backupPath: '/app/data/backup'
   });
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -58,19 +58,12 @@ const PhysicalBackupTable: React.FC<PhysicalBackupTableProps> = ({ backups, onRe
   const fetchConfig = async () => {
     try {
       const response = await physicalBackupService.getConfig();
-      if (response && (response as any).data) {
-        const data = (response as any).data;
+      const rawData = response && (response as any).data ? (response as any).data : response;
+      if (rawData) {
         setConfig({
-          backupIntervalMinutes: data.backupIntervalMinutes ?? 10,
-          maxFiles: data.maxFiles ?? 7,
-          backupPath: data.backupPath || '/opt/hpticket/data/backup'
-        });
-      } else if (response) {
-        const data = response as any;
-        setConfig({
-          backupIntervalMinutes: data.backupIntervalMinutes ?? 10,
-          maxFiles: data.maxFiles ?? 7,
-          backupPath: data.backupPath || '/opt/hpticket/data/backup'
+          backupIntervalMinutes: rawData.backupIntervalMinutes ?? rawData.backup_interval_minutes ?? 1440,
+          maxFiles: rawData.maxFiles ?? rawData.max_files ?? 7,
+          backupPath: rawData.backupPath || rawData.backup_path || '/app/data/backup'
         });
       }
     } catch (error) {
@@ -129,6 +122,7 @@ const PhysicalBackupTable: React.FC<PhysicalBackupTableProps> = ({ backups, onRe
     try {
       setIsTriggering(true);
       await physicalBackupService.triggerBackup();
+      window.dispatchEvent(new CustomEvent('backup_job_started'));
       window.dispatchEvent(new CustomEvent('toast_notification', {
         detail: {
           title: 'Khởi chạy sao lưu',
@@ -155,19 +149,23 @@ const PhysicalBackupTable: React.FC<PhysicalBackupTableProps> = ({ backups, onRe
     }
   };
 
-  const handleDownload = async (backupId: string, fileName?: string) => {
+  const handleDownload = (backupId: string, fileName?: string) => {
     try {
       setDownloadingId(backupId);
-      await physicalBackupService.downloadBackup(backupId, fileName);
+      physicalBackupService.downloadBackup(backupId, fileName);
       window.dispatchEvent(new CustomEvent('toast_notification', {
-        detail: { title: 'Tải về thành công', message: `Đang tải file ${fileName || `backup_${backupId}.sql.gz`}`, type: 'success' }
+        detail: { 
+          title: 'Đang tải file sao lưu', 
+          message: `Trình duyệt đang tải file ${fileName || `backup_${backupId}.sql.gz`}. Tiến trình chạy ngầm trong trình duyệt, bạn có thể chuyển sang trang khác bán vé bình thường.`, 
+          type: 'success' 
+        }
       }));
     } catch (error: any) {
       window.dispatchEvent(new CustomEvent('toast_notification', {
         detail: { title: 'Lỗi tải file', message: error.message || 'Không thể tải file sao lưu.', type: 'error' }
       }));
     } finally {
-      setDownloadingId(null);
+      setTimeout(() => setDownloadingId(null), 1200);
     }
   };
 
@@ -472,7 +470,7 @@ const PhysicalBackupTable: React.FC<PhysicalBackupTableProps> = ({ backups, onRe
                 Thư mục lưu
               </div>
               <div className="flex-1 p-2.5 bg-gray-100/70 text-gray-600 font-mono text-xs cursor-not-allowed select-none overflow-hidden text-ellipsis whitespace-nowrap">
-                {config.backupPath || '/opt/hpticket/data/backup'}
+                {config.backupPath || '/app/data/backup'}
               </div>
             </div>
           </div>

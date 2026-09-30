@@ -94,12 +94,42 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                 {(selectedOrder as any).payment_method}
               </span>
             </div>
-            {(selectedOrder as any).booker_name && (
-              <div>
-                <p className="text-slate-500 mb-0.5">Người đặt</p>
-                <p className="font-semibold text-slate-800">{(selectedOrder as any).booker_name}</p>
-              </div>
-            )}
+            <div>
+              <p className="text-slate-500 mb-0.5">Nhóm khách</p>
+              {(() => {
+                const groupName = (orderDetail as any)?.customer_group_name 
+                  || (selectedOrder as any)?.customer_group_name 
+                  || (selectedOrder as any)?.customer_group?.name;
+
+                if (!groupName) {
+                  return <span className="text-slate-400 italic">Khách vãng lai</span>;
+                }
+
+                return (
+                  <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded border uppercase text-blue-700 bg-blue-50 border-blue-200">
+                    {groupName}
+                  </span>
+                );
+              })()}
+            </div>
+            {(() => {
+              const booker = (selectedOrder as any).booker_name;
+              const group = (orderDetail as any)?.customer_group_name 
+                || (selectedOrder as any)?.customer_group_name 
+                || (selectedOrder as any)?.customer_group?.name;
+              // Nếu nhóm là đoàn nhưng trước đây lưu 'Khách lẻ', hiển thị theo tên nhóm để tránh mâu thuẫn
+              let displayBooker = booker;
+              if (group && (group.toLowerCase().includes('đoàn') || group.toLowerCase().includes('doan')) && booker === 'Khách lẻ') {
+                displayBooker = group;
+              }
+              if (!displayBooker) return null;
+              return (
+                <div>
+                  <p className="text-slate-500 mb-0.5">Người đặt</p>
+                  <p className="font-semibold text-slate-800">{displayBooker}</p>
+                </div>
+              );
+            })()}
             {(selectedOrder as any).use_date && (
               <div>
                 <p className="text-slate-500 mb-0.5">Ngày sử dụng</p>
@@ -207,6 +237,19 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                         <div className="flex items-center gap-2 min-w-0">
                           <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full border ${statusColor}`}>
                             {statusLabel}
+                          </span>
+                          <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                            tkt.allowed_passes && tkt.allowed_passes > 1
+                              ? 'text-purple-700 bg-purple-50 border-purple-200'
+                              : 'text-blue-700 bg-blue-50 border-blue-200'
+                          }`}>
+                            {(() => {
+                              const label = tkt.audience_type_name || tkt.customer_group_name;
+                              if (tkt.allowed_passes && tkt.allowed_passes > 1) {
+                                return label ? `${label} (${tkt.allowed_passes} lượt)` : `Vé gộp (${tkt.allowed_passes} lượt)`;
+                              }
+                              return label || 'Vé đơn';
+                            })()}
                           </span>
                           <div className="min-w-0">
                             <p className="font-semibold text-slate-800 truncate">{tkt.ticket_template_name || 'Vé tham quan'}</p>

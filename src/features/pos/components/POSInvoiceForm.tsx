@@ -1,6 +1,7 @@
 import React from 'react';
 import { CheckCircle2, ChevronDown, ChevronUp, User } from 'lucide-react';
 import { ItemType } from '../../../shared/types/hpticket';
+import { VNDateInput } from '../../../shared/components/ui';
 
 interface POSInvoiceFormProps {
   searchBookingCode: string; setSearchBookingCode: (v: string) => void;
@@ -159,12 +160,13 @@ export const POSInvoiceForm: React.FC<POSInvoiceFormProps> = ({
           <div className="flex flex-col">
             <div className="flex items-center">
               <label className="w-[140px] shrink-0 whitespace-nowrap text-slate-700 font-semibold flex items-center gap-1">Ngày sử dụng</label>
-              <input
-                type="date"
-                value={usageDate}
-                onChange={(e) => setUsageDate(e.target.value)}
-                className="flex-1 min-w-0 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-emerald-500 shadow-xs"
-              />
+              <div className="flex-1 min-w-0">
+                <VNDateInput
+                  value={usageDate}
+                  onChange={setUsageDate}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-emerald-500 shadow-xs"
+                />
+              </div>
             </div>
             {dayContext?.isHoliday ? (
               <div className="ml-[140px] mt-1 flex items-center gap-1 text-[11px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md">

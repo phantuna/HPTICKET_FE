@@ -1,6 +1,7 @@
 import React from 'react';
 import { Search } from 'lucide-react';
 import { ExportExcelButton } from '../../../../shared/components/ExportExcelButton';
+import { VNDateInput } from '../../../../shared/components/ui';
 
 interface TicketFilterSectionProps {
   fromDate: string;
@@ -44,21 +45,23 @@ export const TicketFilterSection: React.FC<TicketFilterSectionProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs items-center">
           <div className="flex items-center gap-2">
             <span className="text-slate-700 font-semibold whitespace-nowrap">Từ ngày :</span>
-            <input
-              type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              className="bg-white border border-slate-200 px-2.5 py-1.5 text-slate-900 font-mono font-medium rounded-lg outline-none focus:border-emerald-500 w-full shadow-xs"
-            />
+            <div className="w-full">
+              <VNDateInput
+                value={fromDate}
+                onChange={setFromDate}
+                className="bg-white border border-slate-200 px-2.5 py-1.5 text-slate-900 font-mono font-medium rounded-lg outline-none focus:border-emerald-500 w-full shadow-xs"
+              />
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-slate-700 font-semibold whitespace-nowrap">Đến ngày :</span>
-            <input
-              type="date"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              className="bg-white border border-slate-200 px-2.5 py-1.5 text-slate-900 font-mono font-medium rounded-lg outline-none focus:border-emerald-500 w-full shadow-xs"
-            />
+            <div className="w-full">
+              <VNDateInput
+                value={toDate}
+                onChange={setToDate}
+                className="bg-white border border-slate-200 px-2.5 py-1.5 text-slate-900 font-mono font-medium rounded-lg outline-none focus:border-emerald-500 w-full shadow-xs"
+              />
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-slate-700 font-semibold whitespace-nowrap">Quầy vé :</span>

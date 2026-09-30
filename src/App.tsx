@@ -18,6 +18,8 @@ const LoginScreen = lazy(() => import('./features/auth/pages/LoginScreen').then(
 import { SessionLoginModal } from './shared/components/SessionLoginModal';
 import { RateLimitCountdownToast } from './shared/components/RateLimitCountdownToast';
 import { dbStore } from './shared/data/mockDatabase';
+import { physicalBackupService } from './api/physicalBackupService';
+import { hasPermission } from './shared/utils/permissionGuard';
 
 export default function App() {
   const getInitialTab = () => {
@@ -38,39 +40,26 @@ export default function App() {
   const [userContextKey, setUserContextKey] = useState<number>(0);
   const [isLocked, setIsLocked] = useState<boolean>(dbStore.isSystemLocked());
 
-  // Tải dữ liệu Mock từ Supabase khi khởi động
+  // Check system lock state on mount and listen to lock events (eliminate 1000ms polling)
   useEffect(() => {
-    dbStore.loadFromSupabase();
+    setIsLocked(dbStore.isSystemLocked());
+    const handleLockChanged = () => setIsLocked(dbStore.isSystemLocked());
+    window.addEventListener('hpticket_lock_changed', handleLockChanged);
+    return () => window.removeEventListener('hpticket_lock_changed', handleLockChanged);
   }, []);
 
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth < 1024) {
-        setSidebarOpen(false);
-      } else {
-        setSidebarOpen(true);
-      }
+      setSidebarOpen(window.innerWidth >= 1024);
     };
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Check system lock state periodically (every 1 second)
-  useEffect(() => {
-    const checkLockState = () => {
-      const locked = dbStore.isSystemLocked();
-      setIsLocked(locked);
-    };
-
-    checkLockState();
-    const interval = setInterval(checkLockState, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
   const [isInitializing, setIsInitializing] = useState(true);
 
-  // Check authentication status and perform silent refresh if needed
+  // Check authentication status once on startup (Mount only, not on every activeTab switch)
   useEffect(() => {
     const initializeAuth = async () => {
       const hash = window.location.hash.replace('#/', '');
@@ -104,7 +93,7 @@ export default function App() {
     };
 
     initializeAuth();
-  }, [activeTab]);
+  }, []);
   useEffect(() => {
     const handleDataSynced = () => setUserContextKey((prev) => prev + 1);
     window.addEventListener('hpticket_data_synced', handleDataSynced);
@@ -181,12 +170,68 @@ export default function App() {
     return () => window.removeEventListener('toast_notification', handleToast);
   }, [triggerToast]);
 
-  const handleUserSwitch = () => {
+  // Global background watcher for backup jobs (theo dõi tiến trình kể cả khi user rời trang Sao lưu sang POS bán vé)
+  useEffect(() => {
+    let timer: any = null;
+    let isMonitoring = false;
+    let lastActiveCount = 0;
+
+    const checkBackupStatus = async () => {
+      if (!hasPermission('SUPER_ADMIN')) return;
+      try {
+        const res = await physicalBackupService.getAllBackups();
+        const data = (res as any)?.data || res;
+        if (Array.isArray(data)) {
+          const activeJobs = data.filter((b: any) => b.status === 'RUNNING' || b.status === 'PENDING');
+          if (activeJobs.length > 0) {
+            isMonitoring = true;
+            lastActiveCount = activeJobs.length;
+            timer = setTimeout(checkBackupStatus, 4000);
+          } else {
+            if (isMonitoring && lastActiveCount > 0) {
+              const latest = data[0];
+              if (latest?.status === 'COMPLETED') {
+                triggerToast({
+                  title: 'Sao lưu CSDL hoàn tất',
+                  message: `Bản sao lưu CSDL (${latest.fileName || latest.backupId}) đã tạo thành công và sẵn sàng để tải về!`,
+                  type: 'success',
+                });
+              } else if (latest?.status === 'FAILED') {
+                triggerToast({
+                  title: 'Sao lưu CSDL thất bại',
+                  message: latest.errorMessage || 'Tiến trình sao lưu gặp sự cố.',
+                  type: 'error',
+                });
+              }
+              window.dispatchEvent(new CustomEvent('backup_job_completed'));
+            }
+            isMonitoring = false;
+            lastActiveCount = 0;
+          }
+        }
+      } catch (_) {}
+    };
+
+    const handleJobStarted = () => {
+      isMonitoring = true;
+      lastActiveCount = 1;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(checkBackupStatus, 2000);
+    };
+
+    window.addEventListener('backup_job_started', handleJobStarted);
+    return () => {
+      window.removeEventListener('backup_job_started', handleJobStarted);
+      if (timer) clearTimeout(timer);
+    };
+  }, [triggerToast]);
+
+  const handleUserSwitch = useCallback(() => {
     setUserContextKey((prev) => prev + 1);
     setIsLocked(dbStore.isSystemLocked());
-  };
+  }, []);
 
-  const handleSelectRoute = (module: string, subTab?: string) => {
+  const handleSelectRoute = useCallback((module: string, subTab?: string) => {
     let finalSubTab = subTab;
     if (!subTab) {
       if (module === 'location') finalSubTab = 'khaibaocongty';
@@ -199,7 +244,7 @@ export default function App() {
     
     // Update hash to show path
     window.location.hash = `/${module}${finalSubTab ? `/${finalSubTab}` : ''}`;
-  };
+  }, []);
 
   if (isInitializing) {
     return (

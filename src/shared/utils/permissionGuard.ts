@@ -52,6 +52,9 @@ export function getUserPermissions(): string[] {
  * @param perm - Tên permission cần kiểm tra (vd: 'VIEW_ROLE', 'CREATE_ORDER')
  */
 export function hasPermission(perm: string): boolean {
+  const role = (getUserRole() || '').toUpperCase();
+  if (role === 'ADMIN' || role === 'SUPER_ADMIN' || role.includes('ADMIN')) return true;
+
   const permissions = getUserPermissions();
   // SUPER_ADMIN qua hết
   if (permissions.includes('SUPER_ADMIN')) return true;

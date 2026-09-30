@@ -1,12 +1,14 @@
 import React from 'react';
 import { Trash2 } from 'lucide-react';
 import { ItemType, PaymentMethod } from '../../../shared/types/hpticket';
+import { findDoanGroup, findRetailGroup } from '../hooks/usePOS';
 
 interface POSCartTableProps {
   lineItems: any[];
   setLineItems: React.Dispatch<React.SetStateAction<any[]>>;
   updateLineItem: (index: number, field: string, value: any) => void;
   selectedGroupCode: string;
+  setSelectedGroupCode?: (v: string) => void;
   customerGroups?: any[];
   effectiveExtraDiscount: number;
   handleCheckout: (extraDiscount: number) => void;
@@ -21,195 +23,273 @@ interface POSCartTableProps {
 }
 
 export const POSCartTable: React.FC<POSCartTableProps> = ({
-  lineItems, setLineItems, updateLineItem, selectedGroupCode, customerGroups = [], effectiveExtraDiscount,
+  lineItems, setLineItems, updateLineItem, selectedGroupCode, setSelectedGroupCode, customerGroups = [], effectiveExtraDiscount,
   handleCheckout, subtotalAfterLineDiscounts, depositAmount, setDepositAmount,
   extraDiscount, setExtraDiscount, selectedPromotionId, setSelectedPromotionId,
   remainingPayable, paymentMethod, setPaymentMethod, totalSubtotalBeforeDiscount, grandTotal
 }) => {
-  const selectedGroup = customerGroups.find(g => g.code === selectedGroupCode);
-  const isRetail = selectedGroupCode === 'RETAIL' || selectedGroupCode === 'KHACH_LE' || 
-                   (selectedGroup && (selectedGroup.name.toLowerCase().includes('lẻ') || selectedGroup.name.toLowerCase().includes('retail')));
-
   return (
-  <div className="bg-white border border-slate-200 rounded-xl shadow-xs flex flex-col h-full overflow-hidden">
-    <div className="flex-1 overflow-auto bg-white min-h-0">
-      <table className="w-full text-left text-xs border-collapse">
-        <thead className="sticky top-0 bg-slate-50 z-10 shadow-sm border-b border-slate-200">
-          <tr className="text-slate-600 font-bold">
-            <th className="py-2.5 px-3 whitespace-nowrap">Loại vé / SP</th>
-            <th className="py-2.5 px-3 text-center whitespace-nowrap">Số lượt</th>
-            <th className="py-2.5 px-3 text-center whitespace-nowrap">Số lượng</th>
-            <th className="py-2.5 px-3 whitespace-nowrap">Đơn giá</th>
-            <th className="py-2.5 px-3 text-right whitespace-nowrap">Thành tiền</th>
-            <th className="py-2.5 px-3 text-center whitespace-nowrap">Thao tác</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100">
-          {lineItems.length === 0 ? (
-            <tr>
-              <td colSpan={6} className="py-8 text-center text-slate-500 italic">Chưa chọn loại vé nào. Vui lòng tick chọn danh sách vé ở cột bên phải.</td>
+    <div className="bg-white border border-slate-200 rounded-xl shadow-xs flex flex-col h-full overflow-hidden">
+      <div className="flex-1 overflow-auto bg-white min-h-0">
+        <table className="w-full text-left text-xs border-collapse">
+          <thead className="sticky top-0 bg-slate-50 z-10 shadow-sm border-b border-slate-200">
+            <tr className="text-slate-600 font-bold">
+              <th className="py-2.5 px-3 whitespace-nowrap">Loại vé / SP</th>
+              <th className="py-2.5 px-3 text-center whitespace-nowrap">Số lượt</th>
+              <th className="py-2.5 px-3 text-center whitespace-nowrap">Số lượng</th>
+              <th className="py-2.5 px-3 whitespace-nowrap">Đơn giá</th>
+              <th className="py-2.5 px-3 text-right whitespace-nowrap">Thành tiền</th>
+              <th className="py-2.5 px-3 text-center whitespace-nowrap">Thao tác</th>
             </tr>
-          ) : (
-            lineItems.map((item, index) => {
-              const qty = Number(item.quantity) || 0;
-              const lineTotal = Math.round(item.unit_price * qty * (1 - (item.discount_percent || 0) / 100));
-              const taxPercent = item.tax_percent !== undefined ? item.tax_percent : (item.item_type === ItemType.PRODUCT ? 10 : 8);
-              const taxMultiplier = 1 + (taxPercent / 100);
-              const lineBeforeVat = Math.round(lineTotal / taxMultiplier);
-              const lineVat = lineTotal - lineBeforeVat;
-              
-              return (
-                <tr key={item.item_id} className="hover:bg-slate-50 transition border-b border-slate-50 last:border-0">
-                  <td className="py-2.5 px-3">
-                    <div className="font-semibold text-slate-900 whitespace-normal leading-snug">
-                      {item.name}
-                      {item.item_type === ItemType.PRODUCT && <span className="ml-2 text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold inline-block align-middle">SP</span>}
-                    </div>
-                  </td>
-                  <td className="py-2.5 px-3 text-center align-middle">
-                    {item.item_type === ItemType.TICKET ? (
-                      <input
-                        type="number" min={1} value={item.allowed_passes_per_unit === '' ? '' : (item.allowed_passes_per_unit || 1)}
-                        disabled={isRetail}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          const newPasses = val === '' ? '' : parseInt(val);
-                          setLineItems((prev) => {
-                            const updated = [...prev];
-                            updated[index].allowed_passes_per_unit = newPasses;
-                            if (updated[index].base_price_per_pass && typeof newPasses === 'number') {
-                              updated[index].unit_price = newPasses * updated[index].base_price_per_pass!;
-                            }
-                            return updated;
-                          });
-                        }}
-                        onBlur={() => {
-                          if (!item.allowed_passes_per_unit || item.allowed_passes_per_unit < 1) {
-                            setLineItems((prev) => {
-                              const updated = [...prev];
-                              updated[index].allowed_passes_per_unit = 1;
-                              if (updated[index].base_price_per_pass) {
-                                updated[index].unit_price = updated[index].base_price_per_pass!;
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {lineItems.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="py-8 text-center text-slate-500 italic">Chưa chọn loại vé nào. Vui lòng tick chọn danh sách vé ở cột bên phải.</td>
+              </tr>
+            ) : (
+              lineItems.map((item, index) => {
+                const qty = Number(item.quantity) || 0;
+                const lineTotal = Math.round(item.unit_price * qty * (1 - (item.discount_percent || 0) / 100));
+                const taxPercent = item.tax_percent !== undefined ? item.tax_percent : (item.item_type === ItemType.PRODUCT ? 10 : 8);
+                const taxMultiplier = 1 + (taxPercent / 100);
+                const lineBeforeVat = Math.round(lineTotal / taxMultiplier);
+                const lineVat = lineTotal - lineBeforeVat;
+
+                return (
+                  <tr key={item.item_id} className="hover:bg-slate-50 transition border-b border-slate-50 last:border-0">
+                    <td className="py-2.5 px-3">
+                      <div className="font-semibold text-slate-900 whitespace-normal leading-snug">
+                        {item.name}
+                        {item.item_type === ItemType.PRODUCT && <span className="ml-2 text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold inline-block align-middle">SP</span>}
+                        {item.item_type === ItemType.TICKET && item.allowed_passes_per_unit && item.allowed_passes_per_unit > 1 && (
+                          <span className="ml-2 text-[10px] bg-purple-100 text-purple-700 border border-purple-200 px-1.5 py-0.5 rounded font-bold inline-block align-middle">
+                            {item.allowed_passes_per_unit} lượt
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-2.5 px-3 text-center align-middle">
+                      {item.item_type === ItemType.TICKET ? (
+                        <input
+                          type="number" min={1} value={item.allowed_passes_per_unit === '' ? '' : (item.allowed_passes_per_unit || 1)}
+                          title={`Số lượt quét QR: ${item.allowed_passes_per_unit || 1} lượt`}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            const newPasses = val === '' ? '' : parseInt(val);
+
+                            // Tự động chuyển nhóm khách hàng:
+                            // > 1 lượt: Tự động nhảy sang Khách đoàn (KHACH_DOAN) và áp CK đoàn
+                            // <= 1 lượt: Nếu không còn vé nào > 1 lượt thì tự động chuyển về Khách lẻ (KHACH_LE)
+                            let newDiscountPercent: number | null = null;
+                            if (setSelectedGroupCode && customerGroups.length > 0 && typeof newPasses === 'number') {
+                              if (newPasses > 1) {
+                                const doanGroup = findDoanGroup(customerGroups);
+                                if (doanGroup && selectedGroupCode !== doanGroup.code) {
+                                  setSelectedGroupCode(doanGroup.code);
+                                  newDiscountPercent = doanGroup.discount_percent;
+                                }
+                              } else if (newPasses <= 1) {
+                                const hasOtherMultiPass = lineItems.some((it, i) => i !== index && it.item_type === ItemType.TICKET && (Number(it.allowed_passes_per_unit) || 1) > 1);
+                                if (!hasOtherMultiPass) {
+                                  const retailGroup = findRetailGroup(customerGroups);
+                                  if (retailGroup && selectedGroupCode !== retailGroup.code) {
+                                    setSelectedGroupCode(retailGroup.code);
+                                    newDiscountPercent = retailGroup.discount_percent;
+                                  }
+                                }
                               }
-                              return updated;
+                            }
+
+                            setLineItems((prev) => {
+                              return prev.map((it, idx) => {
+                                if (idx === index) {
+                                  const itemCopy = { ...it };
+                                  itemCopy.allowed_passes_per_unit = newPasses;
+                                  if (typeof newPasses === 'number') {
+                                    itemCopy.is_group_ticket = newPasses > 1;
+                                  }
+                                  if (itemCopy.base_price_per_pass && typeof newPasses === 'number') {
+                                    itemCopy.unit_price = newPasses * itemCopy.base_price_per_pass!;
+                                  }
+                                  if (newDiscountPercent !== null && itemCopy.item_type === ItemType.TICKET) {
+                                    itemCopy.discount_percent = newDiscountPercent;
+                                  }
+                                  return itemCopy;
+                                }
+                                if (newDiscountPercent !== null && it.item_type === ItemType.TICKET) {
+                                  return { ...it, discount_percent: newDiscountPercent };
+                                }
+                                return it;
+                              });
                             });
+                          }}
+                          onBlur={() => {
+                            if (!item.allowed_passes_per_unit || item.allowed_passes_per_unit < 1) {
+                              let newDiscountPercent: number | null = null;
+                              const hasOtherMultiPass = lineItems.some((it, i) => i !== index && it.item_type === ItemType.TICKET && (Number(it.allowed_passes_per_unit) || 1) > 1);
+                              if (!hasOtherMultiPass && setSelectedGroupCode && customerGroups.length > 0) {
+                                const retailGroup = findRetailGroup(customerGroups);
+                                if (retailGroup && selectedGroupCode !== retailGroup.code) {
+                                  setSelectedGroupCode(retailGroup.code);
+                                  newDiscountPercent = retailGroup.discount_percent;
+                                }
+                              }
+
+                              setLineItems((prev) => {
+                                return prev.map((it, idx) => {
+                                  if (idx === index) {
+                                    const copy = { ...it, allowed_passes_per_unit: 1, is_group_ticket: false };
+                                    if (copy.base_price_per_pass) {
+                                      copy.unit_price = copy.base_price_per_pass!;
+                                    }
+                                    if (newDiscountPercent !== null && copy.item_type === ItemType.TICKET) {
+                                      copy.discount_percent = newDiscountPercent;
+                                    }
+                                    return copy;
+                                  }
+                                  if (newDiscountPercent !== null && it.item_type === ItemType.TICKET) {
+                                    return { ...it, discount_percent: newDiscountPercent };
+                                  }
+                                  return it;
+                                });
+                              });
+                            }
+                          }}
+                          className={`w-14 h-8 text-[13px] font-bold text-center rounded-lg shadow-2xs transition-colors focus:ring-emerald-500 focus:border-emerald-500 ${item.allowed_passes_per_unit && item.allowed_passes_per_unit > 1
+                              ? 'bg-purple-50 text-purple-900 border-purple-400 font-extrabold ring-1 ring-purple-300'
+                              : 'bg-white text-slate-900 border-slate-300'
+                            }`}
+                        />
+                      ) : <span className="text-slate-400">-</span>}
+                    </td>
+                    <td className="py-2.5 px-3 text-center align-middle">
+                      <div className="inline-flex items-center justify-center border border-slate-300 rounded-lg bg-white overflow-hidden shadow-2xs">
+                        <button type="button" onClick={() => updateLineItem(index, 'quantity', Math.max(1, (Number(item.quantity) || 0) - 1))} className="w-7 h-7 flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition">-</button>
+                        <input
+                          type="number"
+                          value={item.quantity === '' ? '' : item.quantity}
+                          min={1}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            updateLineItem(index, 'quantity', val === '' ? '' : parseInt(val));
+                          }}
+                          onBlur={() => {
+                            if (!item.quantity || item.quantity < 1) updateLineItem(index, 'quantity', 1);
+                          }}
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleCheckout(effectiveExtraDiscount); } }}
+                          className="w-10 py-1 text-center font-mono font-bold text-slate-900 border-x border-slate-200 focus:outline-none focus:bg-emerald-50/50 text-[11px]"
+                        />
+                        <button type="button" onClick={() => updateLineItem(index, 'quantity', (Number(item.quantity) || 0) + 1)} className="w-7 h-7 flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition">+</button>
+                      </div>
+                    </td>
+                    <td className="py-2.5 px-3 font-mono text-slate-700">
+                      <div className="flex flex-col">
+                        <span>{item.unit_price.toLocaleString('vi-VN')}</span>
+                        {item.discount_percent > 0 && (
+                          <span className="text-[10px] text-emerald-600 font-bold">-{(item.discount_percent)}%</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">{lineTotal.toLocaleString('vi-VN')}</td>
+                    <td className="py-2.5 px-3 text-center">
+                      <button onClick={() => {
+                        const remaining = lineItems.filter((_, idx) => idx !== index);
+                        let newDiscountPercent: number | null = null;
+                        if (setSelectedGroupCode && customerGroups.length > 0) {
+                          const hasMultiPass = remaining.some(it => it.item_type === ItemType.TICKET && (Number(it.allowed_passes_per_unit) || 1) > 1);
+                          if (!hasMultiPass) {
+                            const retailGroup = findRetailGroup(customerGroups);
+                            if (retailGroup && selectedGroupCode !== retailGroup.code) {
+                              setSelectedGroupCode(retailGroup.code);
+                              newDiscountPercent = retailGroup.discount_percent;
+                            }
                           }
-                        }}
-                        className={`w-14 h-8 text-[13px] font-bold text-center border-slate-300 rounded-lg shadow-2xs transition-colors ${
-                          isRetail ? 'bg-slate-100 text-slate-500 cursor-not-allowed opacity-70' : 'focus:ring-emerald-500 focus:border-emerald-500 bg-white text-slate-900'
-                        }`}
-                      />
-                    ) : <span className="text-slate-400">-</span>}
-                  </td>
-                  <td className="py-2.5 px-3 text-center align-middle">
-                    <div className="inline-flex items-center justify-center border border-slate-300 rounded-lg bg-white overflow-hidden shadow-2xs">
-                      <button type="button" onClick={() => updateLineItem(index, 'quantity', Math.max(1, (Number(item.quantity) || 0) - 1))} className="w-7 h-7 flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition">-</button>
-                      <input 
-                        type="number" 
-                        value={item.quantity === '' ? '' : item.quantity} 
-                        min={1} 
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          updateLineItem(index, 'quantity', val === '' ? '' : parseInt(val));
-                        }} 
-                        onBlur={() => {
-                          if (!item.quantity || item.quantity < 1) updateLineItem(index, 'quantity', 1);
-                        }}
-                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleCheckout(effectiveExtraDiscount); } }} 
-                        className="w-10 py-1 text-center font-mono font-bold text-slate-900 border-x border-slate-200 focus:outline-none focus:bg-emerald-50/50 text-[11px]" 
-                      />
-                      <button type="button" onClick={() => updateLineItem(index, 'quantity', (Number(item.quantity) || 0) + 1)} className="w-7 h-7 flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition">+</button>
-                    </div>
-                  </td>
-                  <td className="py-2.5 px-3 font-mono text-slate-700">
-                    <div className="flex flex-col">
-                      <span>{item.unit_price.toLocaleString('vi-VN')}</span>
-                      {item.discount_percent > 0 && (
-                        <span className="text-[10px] text-emerald-600 font-bold">-{(item.discount_percent)}%</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">{lineTotal.toLocaleString('vi-VN')}</td>
-                  <td className="py-2.5 px-3 text-center">
-                    <button onClick={() => setLineItems((prev) => prev.filter((_, idx) => idx !== index))} className="text-rose-600 hover:text-rose-800 transition p-1" title="Xóa vé">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
+                        }
+                        if (newDiscountPercent !== null) {
+                          setLineItems(remaining.map(it => it.item_type === ItemType.TICKET ? { ...it, discount_percent: newDiscountPercent! } : it));
+                        } else {
+                          setLineItems(remaining);
+                        }
+                      }} className="text-rose-600 hover:text-rose-800 transition p-1" title="Xóa vé">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="border-t border-slate-200 p-3 bg-slate-50 shrink-0">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-3 text-xs">
+          {/* Cột trái: Tiền hàng, Đặt cọc, Giảm giá */}
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-slate-700 font-semibold">Thành tiền :</span>
+              <span className="font-mono font-bold text-base text-rose-600">{subtotalAfterLineDiscounts.toLocaleString('vi-VN')} đ</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-slate-700 font-semibold">Đặt cọc :</span>
+              <input type="number" value={depositAmount || ''} onChange={(e) => setDepositAmount(parseFloat(e.target.value) || 0)} placeholder="0" className="w-32 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-right font-mono text-slate-900 focus:outline-none focus:border-emerald-500 shadow-xs" />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-slate-700 font-semibold">Giảm giá thêm (KM) :</span>
+              <input type="number" value={effectiveExtraDiscount || ''} onChange={(e) => { setExtraDiscount(parseFloat(e.target.value) || 0); if (selectedPromotionId) setSelectedPromotionId(''); }} placeholder="0" className="w-32 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-right font-mono text-amber-600 font-semibold focus:outline-none focus:border-emerald-500 shadow-xs" />
+            </div>
+          </div>
+
+          {/* Cột phải: Thanh toán, VAT, Hình thức */}
+          <div className="space-y-2.5 lg:border-l lg:border-slate-200 lg:pl-6 border-t border-slate-200 lg:border-t-0 pt-3 lg:pt-0">
+            <div className="flex items-center justify-between">
+              <span className="text-slate-900 font-bold">Còn phải thanh toán :</span>
+              <span className="font-mono font-extrabold text-base text-blue-600">{remainingPayable.toLocaleString('vi-VN')} đ</span>
+            </div>
+
+            {(() => {
+              let orderTotalPreTax = 0, orderTotalTax = 0;
+              const totalDiscountToDistribute = Math.max(0, totalSubtotalBeforeDiscount - grandTotal);
+              const ticketTotalGross = lineItems.filter(i => i.item_type === ItemType.TICKET).reduce((acc, i) => acc + (i.unit_price * (Number(i.quantity) || 0)), 0);
+
+              lineItems.forEach(item => {
+                const itemGross = item.unit_price * (Number(item.quantity) || 0);
+                let itemNet = itemGross;
+                const taxPercent = item.tax_percent !== undefined ? item.tax_percent : (item.item_type === ItemType.PRODUCT ? 10 : 8);
+
+                if (item.item_type === ItemType.TICKET && ticketTotalGross > 0) {
+                  const itemDiscountShare = (itemGross * totalDiscountToDistribute) / ticketTotalGross;
+                  itemNet = itemGross - itemDiscountShare;
+                }
+
+                const taxMultiplier = 1 + (taxPercent / 100);
+                const preTaxTotal = itemNet / taxMultiplier;
+                const taxTotal = itemNet - preTaxTotal;
+
+                orderTotalPreTax += preTaxTotal;
+                orderTotalTax += taxTotal;
+              });
+
+              return (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-slate-500 text-[11px]"><span className="italic">- Giá trị trước thuế:</span><span className="font-mono">{Math.round(orderTotalPreTax).toLocaleString('vi-VN')} đ</span></div>
+                  <div className="flex items-center justify-between text-slate-500 text-[11px]"><span className="italic">- Thuế VAT:</span><span className="font-mono">{Math.round(orderTotalTax).toLocaleString('vi-VN')} đ</span></div>
+                </div>
               );
-            })
-          )}
-        </tbody>
-      </table>
-    </div>
+            })()}
 
-    <div className="border-t border-slate-200 p-3 bg-slate-50 shrink-0">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-3 text-xs">
-        {/* Cột trái: Tiền hàng, Đặt cọc, Giảm giá */}
-        <div className="space-y-2.5">
-          <div className="flex items-center justify-between">
-            <span className="text-slate-700 font-semibold">Thành tiền :</span>
-            <span className="font-mono font-bold text-base text-rose-600">{subtotalAfterLineDiscounts.toLocaleString('vi-VN')} đ</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-slate-700 font-semibold">Đặt cọc :</span>
-            <input type="number" value={depositAmount || ''} onChange={(e) => setDepositAmount(parseFloat(e.target.value) || 0)} placeholder="0" className="w-32 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-right font-mono text-slate-900 focus:outline-none focus:border-emerald-500 shadow-xs" />
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-slate-700 font-semibold">Giảm giá thêm (KM) :</span>
-            <input type="number" value={effectiveExtraDiscount || ''} onChange={(e) => { setExtraDiscount(parseFloat(e.target.value) || 0); if (selectedPromotionId) setSelectedPromotionId(''); }} placeholder="0" className="w-32 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-right font-mono text-amber-600 font-semibold focus:outline-none focus:border-emerald-500 shadow-xs" />
-          </div>
-        </div>
-
-        {/* Cột phải: Thanh toán, VAT, Hình thức */}
-        <div className="space-y-2.5 lg:border-l lg:border-slate-200 lg:pl-6 border-t border-slate-200 lg:border-t-0 pt-3 lg:pt-0">
-          <div className="flex items-center justify-between">
-            <span className="text-slate-900 font-bold">Còn phải thanh toán :</span>
-            <span className="font-mono font-extrabold text-base text-blue-600">{remainingPayable.toLocaleString('vi-VN')} đ</span>
-          </div>
-          
-          {(() => {
-            let orderTotalPreTax = 0, orderTotalTax = 0;
-            const totalDiscountToDistribute = Math.max(0, totalSubtotalBeforeDiscount - grandTotal);
-            const ticketTotalGross = lineItems.filter(i => i.item_type === ItemType.TICKET).reduce((acc, i) => acc + (i.unit_price * (Number(i.quantity) || 0)), 0);
-
-            lineItems.forEach(item => {
-               const itemGross = item.unit_price * (Number(item.quantity) || 0);
-               let itemNet = itemGross;
-               const taxPercent = item.tax_percent !== undefined ? item.tax_percent : (item.item_type === ItemType.PRODUCT ? 10 : 8);
-
-               if (item.item_type === ItemType.TICKET && ticketTotalGross > 0) {
-                   const itemDiscountShare = (itemGross * totalDiscountToDistribute) / ticketTotalGross;
-                   itemNet = itemGross - itemDiscountShare;
-               }
-
-               const taxMultiplier = 1 + (taxPercent / 100);
-               const preTaxTotal = itemNet / taxMultiplier;
-               const taxTotal = itemNet - preTaxTotal;
-
-               orderTotalPreTax += preTaxTotal;
-               orderTotalTax += taxTotal;
-            });
-
-            return (
-              <div className="space-y-1">
-                <div className="flex items-center justify-between text-slate-500 text-[11px]"><span className="italic">- Giá trị trước thuế:</span><span className="font-mono">{Math.round(orderTotalPreTax).toLocaleString('vi-VN')} đ</span></div>
-                <div className="flex items-center justify-between text-slate-500 text-[11px]"><span className="italic">- Thuế VAT:</span><span className="font-mono">{Math.round(orderTotalTax).toLocaleString('vi-VN')} đ</span></div>
-              </div>
-            );
-          })()}
-
-          <div className="flex items-center justify-between pt-1 border-t border-slate-100 mt-1">
-            <span className="text-slate-700 font-semibold">Hình thức :</span>
-            <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)} className="w-32 bg-slate-50 border border-slate-200 text-rose-600 font-bold rounded-lg px-2.5 py-1 text-xs focus:outline-none focus:border-rose-500 shadow-xs">
-              <option value={PaymentMethod.CASH}>Tiền mặt</option>
-              <option value={PaymentMethod.BANK_TRANSFER}>Chuyển khoản / QR</option>
-              <option value={PaymentMethod.CREDIT_CARD}>Thẻ tín dụng</option>
-            </select>
+            <div className="flex items-center justify-between pt-1 border-t border-slate-100 mt-1">
+              <span className="text-slate-700 font-semibold">Hình thức :</span>
+              <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)} className="w-32 bg-slate-50 border border-slate-200 text-rose-600 font-bold rounded-lg px-2.5 py-1 text-xs focus:outline-none focus:border-rose-500 shadow-xs">
+                <option value={PaymentMethod.CASH}>Tiền mặt</option>
+                <option value={PaymentMethod.BANK_TRANSFER}>Chuyển khoản / QR</option>
+                <option value={PaymentMethod.CREDIT_CARD}>Thẻ tín dụng</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
-);
+  );
 };

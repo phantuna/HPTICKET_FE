@@ -6,10 +6,10 @@ import RestorePanel from '../components/RestorePanel';
 import { usePermission } from '../../../shared/hooks/usePermission';
 
 const SystemDataPage: React.FC = () => {
-  const { role, permissions } = usePermission();
+  const { role, permissions, can, isAdmin } = usePermission();
   const [backups, setBackups] = useState<BackupJobResponse[]>([]);
 
-  const isSuperAdmin = permissions.includes('SUPER_ADMIN') || role === 'SUPER_ADMIN';
+  const isSuperAdmin = isAdmin || can('SUPER_ADMIN') || permissions.includes('SUPER_ADMIN') || (role || '').toUpperCase().includes('ADMIN');
 
   const fetchBackups = async () => {
     if (!isSuperAdmin) return;
@@ -29,7 +29,14 @@ const SystemDataPage: React.FC = () => {
   useEffect(() => {
     fetchBackups();
     const interval = setInterval(fetchBackups, 30000);
-    return () => clearInterval(interval);
+    const handleUpdate = () => fetchBackups();
+    window.addEventListener('backup_job_completed', handleUpdate);
+    window.addEventListener('backup_job_started', handleUpdate);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('backup_job_completed', handleUpdate);
+      window.removeEventListener('backup_job_started', handleUpdate);
+    };
   }, [isSuperAdmin]);
 
   if (!isSuperAdmin) {
