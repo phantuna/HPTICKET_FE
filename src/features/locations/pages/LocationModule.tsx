@@ -91,16 +91,12 @@ export const LocationModule: React.FC<LocationModuleProps> = ({ subTab = 'khaiba
               <span className="text-slate-800 font-bold block mb-2">Biểu trưng & Logo hiển thị trên vé:</span>
               <div className="flex items-center gap-4">
                 <div className="w-20 h-20 bg-white border border-slate-200 rounded-xl p-2 flex items-center justify-center shadow-sm">
-                  {company?.web_logo_url ? (
-                    <img src={(() => {
-                      const url = company.web_logo_url;
-                      if (!url || url === '/logo.png') return "/logo.png";
-                      if (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:')) return url;
-                      return API_BASE_URL + url;
-                    })()} alt="Logo Web" className="max-h-full max-w-full object-contain rounded" />
-                  ) : (
-                    <span className="text-[10px] text-slate-400">No Logo</span>
-                  )}
+                  <img src={(() => {
+                    const url = company?.web_logo_url;
+                    if (!url || url === '/logo.png') return "/hoang-phat-logo.jpg";
+                    if (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:')) return url;
+                    return API_BASE_URL + url;
+                  })()} alt="Logo Web" className="max-h-full max-w-full object-contain rounded" />
                 </div>
                 <div className="flex-1">
                   <p className="text-slate-900 font-bold text-sm">Logo Website</p>
@@ -109,16 +105,12 @@ export const LocationModule: React.FC<LocationModuleProps> = ({ subTab = 'khaiba
               </div>
               <div className="flex items-center gap-4 pt-3 border-t border-slate-200">
                 <div className="w-20 h-20 bg-white border border-slate-200 rounded-xl p-2 flex items-center justify-center shadow-sm">
-                  {company?.invoice_logo_url ? (
-                    <img src={(() => {
-                      const url = company.invoice_logo_url;
-                      if (!url || url === '/logo.png') return "/logo.png";
-                      if (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:')) return url;
-                      return API_BASE_URL + url;
-                    })()} alt="Logo Hóa Đơn" className="max-h-full max-w-full object-contain rounded" />
-                  ) : (
-                    <span className="text-[10px] text-slate-400">No Logo</span>
-                  )}
+                  <img src={(() => {
+                    const url = company?.invoice_logo_url;
+                    if (!url || url === '/logo.png') return "/hoang-phat-logo.jpg";
+                    if (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:')) return url;
+                    return API_BASE_URL + url;
+                  })()} alt="Logo Hóa Đơn" className="max-h-full max-w-full object-contain rounded" />
                 </div>
                 <div className="flex-1">
                   <p className="text-slate-900 font-bold text-sm">Logo Hóa Đơn Điện Tử</p>
