@@ -3,6 +3,7 @@ import { salesService } from '../../../api/salesService';
 import { iamService } from '../../../api/iamService';
 import { marketingService } from '../../../api/marketingService';
 import { apiClient, API_ENDPOINTS, API_BASE_URL } from '../../../api/apiConfig';
+import { authState } from '../../../api/authState';
 import { PaymentMethod, ItemType, Order, IssuedTicket, BusinessDayContext } from '../../../shared/types/hpticket';
 import { dbStore } from '../../../shared/data/mockDatabase';
 import { toast } from '../../../shared/utils/toast';
@@ -508,6 +509,11 @@ export const usePOS = () => {
       }
 
       try {
+        const token = authState.getToken();
+        if (token) {
+          const sep = wsUrl.includes('?') ? '&' : '?';
+          wsUrl = `${wsUrl}${sep}token=${encodeURIComponent(token)}`;
+        }
         ws = new WebSocket(wsUrl);
 
         ws.onopen = () => {
