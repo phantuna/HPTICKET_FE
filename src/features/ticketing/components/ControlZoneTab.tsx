@@ -16,22 +16,32 @@ export const ControlZoneTab: React.FC<ControlZoneTabProps> = ({ controlZones, se
   const [editingControlZone, setEditingControlZone] = useState<ControlZone | null>(null);
   const [newControlZoneCode, setNewControlZoneCode] = useState('');
   const [newControlZoneName, setNewControlZoneName] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const handleSave = async () => {
+    if (isSubmitting) return;
     if (!newControlZoneCode || !newControlZoneName) { toast.error('Vui lòng nhập đầy đủ Mã và Tên Khu vực kiểm soát!'); return; }
-    const payload: any = {
+
+    setIsSubmitting(true);
+    try {
+      const payload: any = {
       code: newControlZoneCode.toUpperCase(),
       name: newControlZoneName,
       is_active: true,
     };
-    if (editingControlZone) {
-      await ticketingService.updateControlZone(editingControlZone.id, payload);
-    } else {
-      const item = { ...payload, id: `cz-${Date.now()}` };
-      await ticketingService.createControlZone(item);
+      if (editingControlZone) {
+        await ticketingService.updateControlZone(editingControlZone.id, payload);
+      } else {
+        const item = { ...payload, id: `cz-${Date.now()}` };
+        await ticketingService.createControlZone(item);
+      }
+      refreshData();
+      setShowModal(false);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi lưu khu vực kiểm soát');
+    } finally {
+      setIsSubmitting(false);
     }
-    refreshData();
-    setShowModal(false);
   };
 
   const handleToggleActive = async (id: string, currentActive: boolean) => {
@@ -125,9 +135,11 @@ export const ControlZoneTab: React.FC<ControlZoneTabProps> = ({ controlZones, se
               </button>
               <button
                 type="submit"
-                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition shadow-xs"
+                disabled={isSubmitting}
+                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition shadow-xs flex items-center justify-center gap-1.5"
               >
-                Lưu
+                {isSubmitting && <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                {isSubmitting ? 'Đang lưu...' : 'Lưu'}
               </button>
             </div>
           </form>

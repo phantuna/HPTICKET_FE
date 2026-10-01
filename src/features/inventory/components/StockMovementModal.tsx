@@ -123,8 +123,9 @@ interface StockMovementModalProps {
   selectedProductForIn: Product;
   movementType: 'IMPORT' | 'EXPORT';
   movementQty: number; setMovementQty: (v: number) => void;
-  movementUnitPrice: number; setMovementUnitPrice: (v: number) => void;
   movementNote: string; setMovementNote: (v: string) => void;
+  loading?: boolean;
+  isSubmitting?: boolean;
   onSubmit: (e: React.FormEvent) => void;
   onClose: () => void;
 }
@@ -132,8 +133,9 @@ interface StockMovementModalProps {
 export const StockMovementModal: React.FC<StockMovementModalProps> = ({
   selectedProductForIn, movementType, movementQty, setMovementQty,
   movementUnitPrice, setMovementUnitPrice, movementNote, setMovementNote,
-  onSubmit, onClose
+  loading = false, isSubmitting = false, onSubmit, onClose
 }) => {
+  const isBusy = Boolean(loading || isSubmitting);
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -213,14 +215,16 @@ export const StockMovementModal: React.FC<StockMovementModalProps> = ({
         </div>
 
         <div className="flex gap-2 pt-3 border-t border-slate-100">
-          <button type="button" onClick={onClose} className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-lg transition">Hủy</button>
+          <button type="button" disabled={isBusy} onClick={onClose} className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 font-semibold text-xs rounded-lg transition">Hủy</button>
           <button
             type="submit"
-            className={`flex-1 py-2 text-white font-bold text-xs rounded-lg transition shadow-xs ${
+            disabled={isBusy}
+            className={`flex-1 py-2 text-white font-bold text-xs rounded-lg transition shadow-xs disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 ${
               movementType === 'IMPORT' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-amber-600 hover:bg-amber-700'
             }`}
           >
-            Xác Nhận {movementType === 'IMPORT' ? 'Nhập Kho' : 'Xuất Kho'}
+            {isBusy && <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+            {isBusy ? 'Đang xử lý...' : `Xác Nhận ${movementType === 'IMPORT' ? 'Nhập Kho' : 'Xuất Kho'}`}
           </button>
         </div>
       </form>

@@ -24,6 +24,7 @@ export const SourceTab: React.FC<SourceTabProps> = ({ sources, setSources, group
   const [newSourceAddress, setNewSourceAddress] = useState('');
   const [newSourcePhone, setNewSourcePhone] = useState('');
   const [selectedGroupId, setSelectedGroupId] = useState(groups[0]?.id || '');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isItemActive = (item: any) => {
     const val = item?.is_active ?? item?.isActive ?? item?.active ?? item?.status;
@@ -31,23 +32,32 @@ export const SourceTab: React.FC<SourceTabProps> = ({ sources, setSources, group
   };
 
   const handleSave = async () => {
+    if (isSubmitting) return;
     if (!newSourceCompany) { toast.error('Vui lòng nhập tên/công ty Nguồn khách!'); return; }
-    const payload = {
-      code: newSourceCode || `SRC-${Date.now()}`,
-      company_name: newSourceCompany,
-      address: newSourceAddress || 'Hà Nội',
-      phone: newSourcePhone || '0900000000',
-      email: 'partner@hpticket.vn',
-      customer_group_id: selectedGroupId,
-      is_active: true,
-    };
-    if (editingSourceId) {
-      await marketingService.updateCustomerSource(editingSourceId, payload);
-    } else {
-      await marketingService.createCustomerSource(payload);
+    
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        code: newSourceCode || `SRC-${Date.now()}`,
+        company_name: newSourceCompany,
+        address: newSourceAddress || 'Hà Nội',
+        phone: newSourcePhone || '0900000000',
+        email: 'partner@hpticket.vn',
+        customer_group_id: selectedGroupId,
+        is_active: true,
+      };
+      if (editingSourceId) {
+        await marketingService.updateCustomerSource(editingSourceId, payload);
+      } else {
+        await marketingService.createCustomerSource(payload);
+      }
+      refreshData(true);
+      setShowModal(false);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Có lỗi xảy ra khi lưu nguồn khách');
+    } finally {
+      setIsSubmitting(false);
     }
-    refreshData(true);
-    setShowModal(false);
   };
 
   const handleDelete = (ids: (string | number)[]) => {
@@ -105,6 +115,7 @@ export const SourceTab: React.FC<SourceTabProps> = ({ sources, setSources, group
         onClose={() => setShowModal(false)}
         title={editingSourceId ? 'Sửa Nguồn Khách' : 'Thêm Nguồn Khách Hàng'}
         icon={<Building2 className="w-5 h-5 text-emerald-600" />}
+        isSubmitting={isSubmitting}
         onSubmit={(e) => {
           e.preventDefault();
           handleSave();

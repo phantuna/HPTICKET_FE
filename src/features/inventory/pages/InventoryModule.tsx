@@ -51,6 +51,7 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({ subTab = 'KhoH
     adjustmentReason, setAdjustmentReason,
     movementType, setMovementType, movementQty, setMovementQty, movementUnitPrice, setMovementUnitPrice, movementNote, setMovementNote,
     categories, categoryLabels, movementTypeLabels, filteredProducts, lowStockCount, totalStockItems,
+    isSubmitting,
     handleAddProduct, handleStockMovement, handleDeleteProducts
   } = invState;
 
@@ -767,6 +768,7 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({ subTab = 'KhoH
           setNewSupplier={setNewSupplier}
           adjustmentReason={adjustmentReason}
           setAdjustmentReason={setAdjustmentReason}
+          isSubmitting={isSubmitting}
           onSubmit={handleAddProduct}
           onClose={() => {
             setShowAddProductModal(false);
@@ -793,6 +795,7 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({ subTab = 'KhoH
           setMovementUnitPrice={setMovementUnitPrice}
           movementNote={movementNote}
           setMovementNote={setMovementNote}
+          isSubmitting={isSubmitting}
           onSubmit={handleStockMovement}
           onClose={() => {
             setShowStockInModal(false);

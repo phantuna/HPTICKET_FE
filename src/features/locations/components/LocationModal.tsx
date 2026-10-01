@@ -10,6 +10,7 @@ interface LocationModalProps {
   setNewLocName: (v: string) => void;
   newLocAddress: string;
   setNewLocAddress: (v: string) => void;
+  isSubmitting?: boolean;
   onSubmit: () => void;
   onClose: () => void;
 }
@@ -22,6 +23,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({
   setNewLocName,
   newLocAddress,
   setNewLocAddress,
+  isSubmitting = false,
   onSubmit,
   onClose,
 }) => (
@@ -30,6 +32,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({
     onClose={onClose}
     title={editingLocId ? 'Sửa Điểm Bán Vé' : 'Thêm Điểm Bán Vé Mới'}
     icon={<MapPin className="w-5 h-5 text-emerald-600" />}
+    isSubmitting={isSubmitting}
     onSubmit={(e) => {
       e.preventDefault();
       onSubmit();

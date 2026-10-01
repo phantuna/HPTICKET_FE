@@ -24,6 +24,7 @@ export const useInventory = (initialTab: string) => {
   const [totalPages, setTotalPages] = useState<number>(1);
   const [stockLogs, setStockLogs] = useState<StockMovementLog[]>([]);
   const [isLoadingMovements, setIsLoadingMovements] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   // Xử lý chống nhảy hàng / xô lệch dữ liệu khi người dùng đang xem trang > 1
   const [unseenLogsCount, setUnseenLogsCount] = useState<number>(0);
@@ -197,124 +198,127 @@ export const useInventory = (initialTab: string) => {
 
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     if (!newCode || !newName) {
       toast.error('Vui lòng nhập đầy đủ mã và tên sản phẩm');
       return;
     }
 
-    const payload = {
-      code: newCode.trim().toUpperCase(),
-      name: newName.trim(),
-      category: newCategory as any,
-      unit: newUnit,
-      cost_price: Number(newCostPrice) || 0,
-      price: Number(newPrice) || 0,
-      tax_percent: Number(newTaxPercent) || 0,
-      stock_quantity: Number(newStock) || 0,
-      min_stock_alert: Number(newMinAlert) || 20,
-      supplier: newSupplier.trim(),
-      is_active: true,
-    };
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        code: newCode.trim().toUpperCase(),
+        name: newName.trim(),
+        category: newCategory as any,
+        unit: newUnit,
+        cost_price: Number(newCostPrice) || 0,
+        price: Number(newPrice) || 0,
+        tax_percent: Number(newTaxPercent) || 0,
+        stock_quantity: Number(newStock) || 0,
+        min_stock_alert: Number(newMinAlert) || 20,
+        supplier: newSupplier.trim(),
+        is_active: true,
+      };
 
-    if (editingProduct) {
-      const oldStock = Number(editingProduct.stock_quantity) || 0;
-      const targetStock = Number(newStock) || 0;
+      if (editingProduct) {
+        const oldStock = Number(editingProduct.stock_quantity) || 0;
+        const targetStock = Number(newStock) || 0;
 
-      if (oldStock !== targetStock) {
-        if (!adjustmentReason.trim()) {
-          toast.error('Cảnh báo: Bạn đang thay đổi số lượng tồn kho. Bắt buộc phải nhập Lý do điều chỉnh kho!');
-          return;
-        }
+        if (oldStock !== targetStock) {
+          if (!adjustmentReason.trim()) {
+            toast.error('Cảnh báo: Bạn đang thay đổi số lượng tồn kho. Bắt buộc phải nhập Lý do điều chỉnh kho!');
+            return;
+          }
 
-        // Ghi nhận biến động điều chỉnh kho
-        await inventoryService.recordStockMovement({
-          productId: editingProduct.id,
-          type: 'ADJUST',
-          targetQuantity: targetStock,
-          unitPrice: payload.price,
-          referenceType: 'INVENTORY_ADJUSTMENT',
-          referenceCode: `ADJUST-${Date.now()}`,
-          reason: adjustmentReason.trim(),
-          note: `Điều chỉnh tồn kho từ ${oldStock} sang ${targetStock} ${payload.unit}`,
-        });
-      }
-
-      const res = await salesService.updateProduct(editingProduct.id, payload);
-      if (res?.data) {
-        setProducts((prev) => prev.map((p) => (p.id === editingProduct.id ? (res.data as Product) : p)));
-        toast.success('Cập nhật thông tin sản phẩm thành công!');
-      }
-    } else {
-      const res = await salesService.createProduct(payload);
-      if (res?.data) {
-        const createdPrd = res.data;
-        setProducts((prev) => [...prev, createdPrd]);
-
-        // Ghi log khởi tạo tồn kho
-        if (Number(newStock) > 0) {
+          // Ghi nhận biến động điều chỉnh kho
           await inventoryService.recordStockMovement({
-            productId: createdPrd.id,
-            type: 'OPENING_BALANCE',
-            quantity: Number(newStock),
-            targetQuantity: Number(newStock),
-            unitPrice: payload.cost_price || payload.price,
-            referenceType: 'OPENING_BALANCE',
-            referenceCode: `INIT-${Date.now()}`,
-            note: `Tạo sản phẩm mới và nạp tồn ban đầu (+${newStock} ${payload.unit})`,
-            reason: 'Khởi tạo tồn kho ban đầu',
+            productId: editingProduct.id,
+            type: 'ADJUST',
+            targetQuantity: targetStock,
+            unitPrice: payload.price,
+            referenceType: 'INVENTORY_ADJUSTMENT',
+            referenceCode: `ADJUST-${Date.now()}`,
+            reason: adjustmentReason.trim(),
+            note: `Điều chỉnh tồn kho từ ${oldStock} sang ${targetStock} ${payload.unit}`,
           });
         }
-        toast.success('Thêm mới sản phẩm thành công!');
-      }
-    }
 
-    setShowAddProductModal(false);
-    setEditingProduct(null);
-    setAdjustmentReason('');
-    loadStockLogsFromBackend(1);
+        const res = await salesService.updateProduct(editingProduct.id, payload);
+        if (res?.data) {
+          setProducts((prev) => prev.map((p) => (p.id === editingProduct.id ? (res.data as Product) : p)));
+          toast.success('Cập nhật thông tin sản phẩm thành công!');
+        }
+      } else {
+        // Backend ProductServiceImpl.createProduct đã tự động ghi nhận số dư đầu kỳ trong cùng transaction
+        const res = await salesService.createProduct(payload);
+        if (res?.data) {
+          const createdPrd = res.data;
+          setProducts((prev) => [...prev, createdPrd]);
+          toast.success('Thêm mới sản phẩm thành công!');
+        }
+      }
+
+      setShowAddProductModal(false);
+      setEditingProduct(null);
+      setAdjustmentReason('');
+      loadStockLogsFromBackend(1);
+    } catch (err: any) {
+      console.error('[useInventory] Error saving product:', err);
+      toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi lưu sản phẩm');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleStockMovement = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedProductForIn) return;
+    if (isSubmitting || !selectedProductForIn) return;
 
-    const prd = selectedProductForIn;
-    const isImport = movementType === 'IMPORT';
-    const cleanQty = Math.max(1, parseInt(String(movementQty), 10) || 1);
-    const cleanUnitPrice = Number(movementUnitPrice) || (isImport ? Number(prd.cost_price) || 0 : Number(prd.price) || 0);
+    setIsSubmitting(true);
+    try {
+      const prd = selectedProductForIn;
+      const isImport = movementType === 'IMPORT';
+      const cleanQty = Math.max(1, parseInt(String(movementQty), 10) || 1);
+      const cleanUnitPrice = Number(movementUnitPrice) || (isImport ? Number(prd.cost_price) || 0 : Number(prd.price) || 0);
 
-    const result = await inventoryService.recordStockMovement({
-      productId: prd.id,
-      type: movementType,
-      quantity: cleanQty,
-      unitPrice: cleanUnitPrice,
-      referenceType: 'MANUAL',
-      referenceCode: `MANUAL-${Date.now()}`,
-      note: movementNote || (isImport ? `Nhập kho bổ sung (+${cleanQty} ${prd.unit || 'Cái'})` : `Xuất kho / Điều chuyển (-${cleanQty} ${prd.unit || 'Cái'})`),
-      reason: movementNote,
-    });
+      const result = await inventoryService.recordStockMovement({
+        productId: prd.id,
+        type: movementType,
+        quantity: cleanQty,
+        unitPrice: cleanUnitPrice,
+        referenceType: 'MANUAL',
+        referenceCode: `MANUAL-${Date.now()}`,
+        note: movementNote || (isImport ? `Nhập kho bổ sung (+${cleanQty} ${prd.unit || 'Cái'})` : `Xuất kho / Điều chuyển (-${cleanQty} ${prd.unit || 'Cái'})`),
+        reason: movementNote,
+      });
 
-    if (!result.success) {
-      toast.error(result.message || 'Thao tác không thành công');
-      return;
+      if (!result.success) {
+        toast.error(result.message || 'Thao tác không thành công');
+        return;
+      }
+
+      // Cập nhật tồn kho sản phẩm trong giao diện
+      salesService.fetchProducts().then((res) => {
+        if (res.data) setProducts(res.data);
+      });
+
+      toast.success(
+        isImport
+          ? `Nhập kho thành công: +${cleanQty} ${prd.unit || 'Cái'} cho ${prd.name}`
+          : `Xuất kho thành công: -${cleanQty} ${prd.unit || 'Cái'} cho ${prd.name}`
+      );
+
+      setShowStockInModal(false);
+      setSelectedProductForIn(null);
+      setMovementNote('');
+      setMovementUnitPrice(0);
+      loadStockLogsFromBackend(page);
+    } catch (err: any) {
+      console.error('[useInventory] handleStockMovement error:', err);
+      toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi thực hiện biến động kho');
+    } finally {
+      setIsSubmitting(false);
     }
-
-    // Cập nhật tồn kho sản phẩm trong giao diện
-    salesService.fetchProducts().then((res) => {
-      if (res.data) setProducts(res.data);
-    });
-
-    toast.success(
-      isImport
-        ? `Nhập kho thành công: +${cleanQty} ${prd.unit || 'Cái'} cho ${prd.name}`
-        : `Xuất kho thành công: -${cleanQty} ${prd.unit || 'Cái'} cho ${prd.name}`
-    );
-
-    setShowStockInModal(false);
-    setSelectedProductForIn(null);
-    setMovementNote('');
-    setMovementUnitPrice(0);
-    loadStockLogsFromBackend(page);
   };
 
   const handleDeleteProducts = async (ids: string[]) => {
@@ -391,7 +395,7 @@ export const useInventory = (initialTab: string) => {
     
     categories, categoryLabels, movementTypeLabels,
     filteredProducts, lowStockCount, totalStockItems,
-    
+    isSubmitting,
     handleAddProduct, handleStockMovement, handleDeleteProducts
   };
 };

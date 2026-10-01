@@ -8,6 +8,7 @@ interface ZoneModalProps {
   setNewZoneCode: (v: string) => void;
   newZoneName: string;
   setNewZoneName: (v: string) => void;
+  isSubmitting?: boolean;
   onSubmit: () => void;
   onClose: () => void;
 }
@@ -18,6 +19,7 @@ export const ZoneModal: React.FC<ZoneModalProps> = ({
   setNewZoneCode,
   newZoneName,
   setNewZoneName,
+  isSubmitting = false,
   onSubmit,
   onClose,
 }) => (
@@ -26,6 +28,7 @@ export const ZoneModal: React.FC<ZoneModalProps> = ({
     onClose={onClose}
     title={editingZoneId ? 'Sửa Khu Kiểm Soát' : 'Thêm Khu Kiểm Soát Mới'}
     icon={<ShieldCheck className="w-5 h-5 text-emerald-600" />}
+    isSubmitting={isSubmitting}
     onSubmit={(e) => {
       e.preventDefault();
       onSubmit();

@@ -59,16 +59,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
       <div className="w-full max-w-md relative z-10">
         {/* Logo/Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center p-3 bg-white rounded-[2rem] shadow-xl shadow-slate-300/60 mb-5 border border-slate-100/50 backdrop-blur-sm">
+          <div className="inline-flex items-center justify-center p-4 bg-white rounded-3xl shadow-xl shadow-slate-300/60 mb-5 border border-slate-100/50 backdrop-blur-sm">
             <img 
               src={(() => {
-                const url = dbStore.companies?.[0]?.web_logo_url;
-                if (!url || url === '/logo.png') return "/hoang-phat-logo.jpg";
+                const url = dbStore.companies?.[0]?.invoice_logo_url;
+                if (!url || url === '/logo.png') return "/hoang-phat-invoice-logo.png";
                 if (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:')) return url;
                 return API_BASE_URL + url;
               })()}
               alt="Hoàng Phát Technology Era" 
-              className="h-24 w-auto max-w-[240px] object-contain scale-110" 
+              className="h-24 w-auto max-w-[200px] object-contain" 
             />
           </div>
           <p className="text-slate-500 mt-1 font-medium">Hệ Thống Quản Lý Bán Vé & Kiểm Soát</p>

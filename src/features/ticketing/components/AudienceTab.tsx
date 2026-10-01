@@ -18,29 +18,39 @@ export const AudienceTab: React.FC<AudienceTabProps> = ({ audienceTypes, setAudi
   const [editingAud, setEditingAud] = useState<AudienceType | null>(null);
   const [newAudCode, setNewAudCode] = useState('');
   const [newAudName, setNewAudName] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const handleSave = async () => {
+    if (isSubmitting) return;
     if (!newAudCode || !newAudName) { toast.error('Vui lòng nhập đầy đủ Mã và Tên Đối tượng vé!'); return; }
 
-    if (editingAud) {
-      const updatedItem = { ...editingAud, code: newAudCode.toUpperCase(), name: newAudName };
-      await ticketingService.updateAudienceType(editingAud.id, updatedItem);
-    } else {
-      const item: AudienceType = {
-        id: `aud-${Date.now()}`,
-        code: newAudCode.toUpperCase(),
-        name: newAudName,
-        is_active: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        created_by: 'admin',
-        updated_by: 'admin',
-      };
-      await ticketingService.createAudienceType(item);
-    }
+    setIsSubmitting(true);
+    try {
 
-    refreshData();
-    setShowModal(false);
+      if (editingAud) {
+        const updatedItem = { ...editingAud, code: newAudCode.toUpperCase(), name: newAudName };
+        await ticketingService.updateAudienceType(editingAud.id, updatedItem);
+      } else {
+        const item: AudienceType = {
+          id: `aud-${Date.now()}`,
+          code: newAudCode.toUpperCase(),
+          name: newAudName,
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          created_by: 'admin',
+          updated_by: 'admin',
+        };
+        await ticketingService.createAudienceType(item);
+      }
+
+      refreshData();
+      setShowModal(false);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi lưu đối tượng');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleToggleActive = async (id: string, currentActive: boolean) => {
@@ -136,9 +146,11 @@ export const AudienceTab: React.FC<AudienceTabProps> = ({ audienceTypes, setAudi
               </button>
               <button
                 type="submit"
-                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition shadow-xs"
+                disabled={isSubmitting}
+                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition shadow-xs flex items-center justify-center gap-1.5"
               >
-                Lưu Đối Tượng
+                {isSubmitting && <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                {isSubmitting ? 'Đang lưu...' : 'Lưu Đối Tượng'}
               </button>
             </div>
           </form>

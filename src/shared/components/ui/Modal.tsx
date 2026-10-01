@@ -96,7 +96,7 @@ export const Modal: React.FC<ModalProps> = ({
             footer
           ) : (
             <>
-              <Button type="button" variant="secondary" size="md" onClick={onClose}>
+              <Button type="button" variant="secondary" size="md" onClick={onClose} disabled={isSubmitting}>
                 {cancelText}
               </Button>
               <Button

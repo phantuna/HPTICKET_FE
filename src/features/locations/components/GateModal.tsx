@@ -14,6 +14,7 @@ interface GateModalProps {
   setNewGatePort: (v: number) => void;
   controlZones: any[];
   isItemActive: (item: any) => boolean;
+  isSubmitting?: boolean;
   onSubmit: () => void;
   onClose: () => void;
 }
@@ -30,6 +31,7 @@ export const GateModal: React.FC<GateModalProps> = ({
   setNewGatePort,
   controlZones,
   isItemActive,
+  isSubmitting = false,
   onSubmit,
   onClose,
 }) => (
@@ -38,6 +40,7 @@ export const GateModal: React.FC<GateModalProps> = ({
     onClose={onClose}
     title={editingGateId ? 'Sửa Thiết Bị Cổng Soát' : 'Thêm Thiết Bị Cổng Soát'}
     icon={<Server className="w-5 h-5 text-emerald-600" />}
+    isSubmitting={isSubmitting}
     onSubmit={(e) => {
       e.preventDefault();
       onSubmit();

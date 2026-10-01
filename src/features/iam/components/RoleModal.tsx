@@ -7,6 +7,7 @@ interface RoleModalProps {
   roleName: string; setRoleName: (v: string) => void;
   rolePermissions: string[]; setRolePermissions: (v: string[]) => void;
   allPermissions: any[];
+  isSubmitting?: boolean;
   onClose: () => void;
   onSubmit: (e: React.FormEvent) => void;
 }
@@ -29,6 +30,7 @@ const SORT_ORDER = ['MANAGE', 'VIEW', 'CREATE', 'UPDATE', 'DELETE'];
 export const RoleModal: React.FC<RoleModalProps> = ({
   editingRoleId, roleCode, setRoleCode, roleName, setRoleName,
   rolePermissions, setRolePermissions, allPermissions,
+  isSubmitting = false,
   onClose, onSubmit
 }) => {
   const handleTogglePermission = (code: string) => {
@@ -108,15 +110,24 @@ export const RoleModal: React.FC<RoleModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition text-sm"
+              disabled={isSubmitting}
+              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 font-semibold rounded-xl transition text-sm"
             >
               Hủy
             </button>
             <button
               type="submit"
-              className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition shadow-sm flex items-center gap-1.5 text-sm"
+              disabled={isSubmitting}
+              className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition shadow-sm flex items-center gap-1.5 text-sm"
             >
-              Lưu
+              {isSubmitting ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block mr-1" />
+                  Đang lưu...
+                </>
+              ) : (
+                'Lưu'
+              )}
             </button>
           </div>
         </div>

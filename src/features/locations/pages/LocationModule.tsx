@@ -38,7 +38,8 @@ export const LocationModule: React.FC<LocationModuleProps> = ({ subTab = 'khaiba
     handleToggleLocationActive, handleToggleCounterActive, handleToggleZoneActive, handleToggleGateActive,
     handleAddLocation, handleAddCounter, handleAddZone, handleAddGate,
     handleOpenCompanyModal, handleSaveCompany,
-    handleDeleteLocations, handleDeleteCounters, handleDeleteZones, handleDeleteGates
+    handleDeleteLocations, handleDeleteCounters, handleDeleteZones, handleDeleteGates,
+    isSubmitting
   } = locState;
 
   const currentTab = onSelectSubTab ? subTab : activeSubTab;
@@ -221,6 +222,7 @@ export const LocationModule: React.FC<LocationModuleProps> = ({ subTab = 'khaiba
         <LocationModal
           editingLocId={editingLocId} newLocCode={newLocCode} setNewLocCode={setNewLocCode}
           newLocName={newLocName} setNewLocName={setNewLocName} newLocAddress={newLocAddress} setNewLocAddress={setNewLocAddress}
+          isSubmitting={isSubmitting}
           onSubmit={handleAddLocation} onClose={() => setShowLocationModal(false)}
         />
       )}
@@ -230,14 +232,18 @@ export const LocationModule: React.FC<LocationModuleProps> = ({ subTab = 'khaiba
           editingCounterId={editingCounterId} selectedLocId={selectedLocId} setSelectedLocId={setSelectedLocId}
           newCounterCode={newCounterCode} setNewCounterCode={setNewCounterCode} newCounterName={newCounterName} setNewCounterName={setNewCounterName}
           newCounterTypes={newCounterTypes} setNewCounterTypes={setNewCounterTypes}
-          locations={locations} isItemActive={isItemActive} onSubmit={handleAddCounter} onClose={() => setShowCounterModal(false)}
+          locations={locations} isItemActive={isItemActive}
+          isSubmitting={isSubmitting}
+          onSubmit={handleAddCounter} onClose={() => setShowCounterModal(false)}
         />
       )}
 
       {showZoneModal && (
         <ZoneModal
           editingZoneId={editingZoneId} newZoneCode={newZoneCode} setNewZoneCode={setNewZoneCode}
-          newZoneName={newZoneName} setNewZoneName={setNewZoneName} onSubmit={handleAddZone} onClose={() => setShowZoneModal(false)}
+          newZoneName={newZoneName} setNewZoneName={setNewZoneName}
+          isSubmitting={isSubmitting}
+          onSubmit={handleAddZone} onClose={() => setShowZoneModal(false)}
         />
       )}
 
@@ -246,6 +252,7 @@ export const LocationModule: React.FC<LocationModuleProps> = ({ subTab = 'khaiba
           editingGateId={editingGateId} selectedZoneId={selectedZoneId} setSelectedZoneId={setSelectedZoneId}
           newGateName={newGateName} setNewGateName={setNewGateName} newGateIp={newGateIp} setNewGateIp={setNewGateIp}
           newGatePort={newGatePort} setNewGatePort={setNewGatePort} controlZones={controlZones} isItemActive={isItemActive}
+          isSubmitting={isSubmitting}
           onSubmit={handleAddGate} onClose={() => setShowGateModal(false)}
         />
       )}
@@ -259,6 +266,7 @@ export const LocationModule: React.FC<LocationModuleProps> = ({ subTab = 'khaiba
           editCompEmail={editCompEmail} setEditCompEmail={setEditCompEmail}
           editCompLogo={editCompLogo} setEditCompLogo={setEditCompLogo}
           editCompInvoiceLogo={editCompInvoiceLogo} setEditCompInvoiceLogo={setEditCompInvoiceLogo}
+          isSubmitting={isSubmitting}
           onSubmit={handleSaveCompany} onClose={() => setShowCompanyModal(false)}
         />
       )}

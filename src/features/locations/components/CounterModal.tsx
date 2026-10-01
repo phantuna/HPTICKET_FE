@@ -14,6 +14,7 @@ interface CounterModalProps {
   setNewCounterTypes: (v: string[]) => void;
   locations: any[];
   isItemActive: (item: any) => boolean;
+  isSubmitting?: boolean;
   onSubmit: () => void;
   onClose: () => void;
 }
@@ -30,6 +31,7 @@ export const CounterModal: React.FC<CounterModalProps> = ({
   setNewCounterTypes,
   locations,
   isItemActive,
+  isSubmitting = false,
   onSubmit,
   onClose,
 }) => {
@@ -47,6 +49,7 @@ export const CounterModal: React.FC<CounterModalProps> = ({
       onClose={onClose}
       title={editingCounterId ? 'Sửa Quầy Bán Vé' : 'Thêm Quầy Bán Vé Mới'}
       icon={<Store className="w-5 h-5 text-emerald-600" />}
+      isSubmitting={isSubmitting}
       onSubmit={(e) => {
         e.preventDefault();
         onSubmit();

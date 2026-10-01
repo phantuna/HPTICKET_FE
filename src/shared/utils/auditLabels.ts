@@ -108,11 +108,11 @@ export const ENTITY_NAMES: Record<string, string> = {
   products: 'Quản lý kho & Sản phẩm',
   Product: 'Quản lý kho & Sản phẩm',
   product: 'Quản lý kho & Sản phẩm',
-  'stock-movements': 'Quản lý kho & Sản phẩm',
-  StockMovement: 'Quản lý kho & Sản phẩm',
+  'stock-movements': 'Biến động kho',
+  StockMovement: 'Biến động kho',
   inventory_stock: 'Quản lý kho & Sản phẩm',
   'Sản phẩm / Hàng hóa': 'Quản lý kho & Sản phẩm',
-  'Biến động kho': 'Quản lý kho & Sản phẩm',
+  'Biến động kho': 'Biến động kho',
 
   // ── 2. Quản Lý Vé & POS (Khớp 100% Navbar Sidebar) ────────────────────────
   orders: 'Đặt vé / Bán vé thu ngân',

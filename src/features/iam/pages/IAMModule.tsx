@@ -52,7 +52,8 @@ export const IAMModule: React.FC<IAMModuleProps> = ({ subTab = 'KhaiBaoPhanQuyen
     handleDeleteRoles,
     handleToggleRoleActive,
     openNewRoleModal,
-    openEditRoleModal
+    openEditRoleModal,
+    isSubmitting
   } = useIAM(subTab);
 
   const currentTab = onSelectSubTab ? subTab : activeSubTab;
@@ -266,6 +267,7 @@ export const IAMModule: React.FC<IAMModuleProps> = ({ subTab = 'KhaiBaoPhanQuyen
           salesCounters={salesCounters}
           selectedCounterIds={selectedCounterIds}
           setSelectedCounterIds={setSelectedCounterIds}
+          isSubmitting={isSubmitting}
           onClose={() => setShowUserModal(false)} onSubmit={handleCreateOrUpdateUser}
         />
       )}
@@ -277,6 +279,7 @@ export const IAMModule: React.FC<IAMModuleProps> = ({ subTab = 'KhaiBaoPhanQuyen
           roleName={roleName} setRoleName={setRoleName}
           rolePermissions={rolePermissions} setRolePermissions={setRolePermissions}
           allPermissions={permissions}
+          isSubmitting={isSubmitting}
           onClose={() => setShowRoleModal(false)}
           onSubmit={handleCreateOrUpdateRole}
         />

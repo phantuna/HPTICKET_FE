@@ -23,6 +23,7 @@ export const HolidayTab: React.FC<HolidayTabProps> = ({ holidays, setHolidays, r
   const [newHolidayStart, setNewHolidayStart] = useState('');
   const [newHolidayEnd, setNewHolidayEnd] = useState('');
   const [newHolidayDescription, setNewHolidayDescription] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const formatDate = (d: string) => {
     if (!d) return '';
@@ -34,6 +35,7 @@ export const HolidayTab: React.FC<HolidayTabProps> = ({ holidays, setHolidays, r
   };
 
   const handleSave = async () => {
+    if (isSubmitting) return;
     if (!newHolidayName) { toast.error('Vui lòng nhập Tên Ngày Lễ!'); return; }
     if (!newHolidayStart || !newHolidayEnd) { toast.error('Vui lòng chọn Từ Ngày và Đến Ngày!'); return; }
     if (newHolidayStart > newHolidayEnd) {
@@ -50,6 +52,7 @@ export const HolidayTab: React.FC<HolidayTabProps> = ({ holidays, setHolidays, r
       is_active: true,
     };
 
+    setIsSubmitting(true);
     try {
       if (editingHolidayId) {
         await marketingService.updateHoliday(editingHolidayId, payload);
@@ -62,6 +65,8 @@ export const HolidayTab: React.FC<HolidayTabProps> = ({ holidays, setHolidays, r
       setShowModal(false);
     } catch (err: any) {
       toast.error(err.message || 'Không thể lưu ngày lễ. Vui lòng kiểm tra lại!');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -130,6 +135,7 @@ export const HolidayTab: React.FC<HolidayTabProps> = ({ holidays, setHolidays, r
         onClose={() => setShowModal(false)}
         title={editingHolidayId ? 'Sửa Ngày Lễ' : 'Thêm Ngày Lễ Cụ Thể'}
         icon={<Calendar className="w-5 h-5 text-emerald-600" />}
+        isSubmitting={isSubmitting}
         onSubmit={(e) => {
           e.preventDefault();
           handleSave();

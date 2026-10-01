@@ -61,6 +61,7 @@ export const useIAM = (initialTab: string) => {
   const [roleId, setRoleId] = useState('');
   const [selectedCounterIds, setSelectedCounterIds] = useState<string[]>([]);
   const [salesCounters, setSalesCounters] = useState<any[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   // Load sales counters when needed
   useEffect(() => {
@@ -78,22 +79,24 @@ export const useIAM = (initialTab: string) => {
 
   const handleCreateOrUpdateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullname || !username) return;
+    if (isSubmitting || !fullname || !username) return;
 
-    if (editingUserId) {
+    setIsSubmitting(true);
+    try {
+      if (editingUserId) {
         const res = await iamService.updateUser(editingUserId, {
-            fullname,
-            username,
-            phone,
-            qr_code: qrCode || undefined,
-            role_id: roleId,
-            assigned_counter_ids: selectedCounterIds,
-            ...(password ? { password } : {})
+          fullname,
+          username,
+          phone,
+          qr_code: qrCode || undefined,
+          role_id: roleId,
+          assigned_counter_ids: selectedCounterIds,
+          ...(password ? { password } : {})
         });
         if (res.code === 200) {
-            setUsers(prev => prev.map(u => u.id === editingUserId ? {...u, fullname, username, phone, qr_code: qrCode || u.qr_code, role_id: roleId} : u));
+          setUsers(prev => prev.map(u => u.id === editingUserId ? {...u, fullname, username, phone, qr_code: qrCode || u.qr_code, role_id: roleId} : u));
         }
-    } else {
+      } else {
         const qrCodeStr = qrCode || `EMP-${roleId.toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
         const res = await iamService.createUser({
           fullname,
@@ -109,16 +112,22 @@ export const useIAM = (initialTab: string) => {
         if (res.code === 201 && res.data) {
           setUsers(prev => [...prev, res.data]);
         }
-    }
+      }
 
-    setShowUserModal(false);
-    setEditingUserId(null);
-    setFullname('');
-    setUsername('');
-    setPassword('');
-    setPhone('');
-    setQrCode('');
-    setSelectedCounterIds([]);
+      setShowUserModal(false);
+      setEditingUserId(null);
+      setFullname('');
+      setUsername('');
+      setPassword('');
+      setPhone('');
+      setQrCode('');
+      setSelectedCounterIds([]);
+    } catch (err: any) {
+      console.error('[useIAM] Error saving user:', err);
+      toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi lưu người dùng');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleDeleteUsers = async (ids: (string | number)[]) => {
@@ -170,8 +179,9 @@ export const useIAM = (initialTab: string) => {
 
   const handleCreateOrUpdateRole = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!roleCode || !roleName) return;
+    if (isSubmitting || !roleCode || !roleName) return;
 
+    setIsSubmitting(true);
     try {
       if (editingRoleId) {
         const res = await iamService.updateRole(editingRoleId, {
@@ -202,6 +212,8 @@ export const useIAM = (initialTab: string) => {
     } catch (err: any) {
       toast.error(err.message || 'Thao tác thất bại');
       console.error(err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -282,6 +294,7 @@ export const useIAM = (initialTab: string) => {
     handleDeleteRoles,
     handleToggleRoleActive,
     openNewRoleModal,
-    openEditRoleModal
+    openEditRoleModal,
+    isSubmitting
   };
 };

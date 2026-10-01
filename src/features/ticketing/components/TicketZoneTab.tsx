@@ -18,17 +18,26 @@ export const TicketZoneTab: React.FC<TicketZoneTabProps> = ({ controlZones, tick
   const [showModal, setShowModal] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<TicketTemplate | null>(null);
   const [selectedControlZoneIds, setSelectedControlZoneIds] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSave = async () => {
+    if (isSubmitting) return;
     if (editingTemplate) {
-      const updatedItem: any = { 
-        ...editingTemplate, 
-        control_zone_ids: selectedControlZoneIds,
-      };
-      await ticketingService.updateTicketTemplate(editingTemplate.id, updatedItem);
-      refreshData();
-      setShowModal(false);
-      toast.success('Đã cập nhật khu vực kiểm soát cho vé!');
+      setIsSubmitting(true);
+      try {
+        const updatedItem: any = { 
+          ...editingTemplate, 
+          control_zone_ids: selectedControlZoneIds,
+        };
+        await ticketingService.updateTicketTemplate(editingTemplate.id, updatedItem);
+        refreshData();
+        setShowModal(false);
+        toast.success('Đã cập nhật khu vực kiểm soát cho vé!');
+      } catch (err: any) {
+        toast.error(err?.response?.data?.message || 'Có lỗi xảy ra khi cập nhật');
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -73,6 +82,7 @@ export const TicketZoneTab: React.FC<TicketZoneTabProps> = ({ controlZones, tick
         onClose={() => setShowModal(false)}
         title="Sửa Khu Vực Kiểm Soát Cho Vé"
         icon={<Layers className="w-5 h-5 text-emerald-600" />}
+        isSubmitting={isSubmitting}
         onSubmit={(e) => {
           e.preventDefault();
           handleSave();

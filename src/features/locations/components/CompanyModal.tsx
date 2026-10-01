@@ -15,6 +15,7 @@ interface CompanyModalProps {
   editCompEmail: string; setEditCompEmail: (v: string) => void;
   editCompLogo: string; setEditCompLogo: (v: string) => void;
   editCompInvoiceLogo: string; setEditCompInvoiceLogo: (v: string) => void;
+  isSubmitting?: boolean;
   onSubmit: () => void;
   onClose: () => void;
 }
@@ -25,6 +26,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
   editCompFax, setEditCompFax, editCompTaxCode, setEditCompTaxCode,
   editCompContact, setEditCompContact, editCompEmail, setEditCompEmail, editCompLogo, setEditCompLogo,
   editCompInvoiceLogo, setEditCompInvoiceLogo,
+  isSubmitting = false,
   onSubmit, onClose
 }) => (
   <div
@@ -73,7 +75,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               <input
                 type="file"
                 accept="image/*"
-
+                disabled
                 title="Chức năng này đã bị khóa. Vui lòng liên hệ Dev để cấu hình Logo gốc."
                 onChange={async (e) => {
                   const file = e.target.files?.[0];
@@ -112,7 +114,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               <input
                 type="file"
                 accept="image/*"
-
+                disabled
                 title="Chức năng này đã bị khóa. Vui lòng liên hệ Dev để cấu hình Logo gốc."
                 onChange={async (e) => {
                   const file = e.target.files?.[0];
@@ -146,8 +148,15 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
         </div>
       </div>
       <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
-        <button type="button" onClick={onClose} className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition">Hủy</button>
-        <button type="submit" className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition shadow-xs">Lưu Công Ty</button>
+        <button type="button" disabled={isSubmitting} onClick={onClose} className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 text-xs font-semibold rounded-xl transition">Hủy</button>
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition shadow-xs flex items-center justify-center gap-1.5"
+        >
+          {isSubmitting && <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+          {isSubmitting ? 'Đang lưu...' : 'Lưu Công Ty'}
+        </button>
       </div>
     </form>
   </div>

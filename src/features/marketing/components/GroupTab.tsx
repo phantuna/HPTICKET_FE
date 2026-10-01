@@ -20,22 +20,32 @@ export const GroupTab: React.FC<GroupTabProps> = ({ groups, setGroups, refreshDa
   const [newGroupCode, setNewGroupCode] = useState('');
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupDiscount, setNewGroupDiscount] = useState<number>(10);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSave = async () => {
+    if (isSubmitting) return;
     if (!newGroupCode || !newGroupName) { toast.error('Vui lòng nhập đầy đủ Mã và Tên Nhóm khách hàng!'); return; }
-    const payload = {
-      code: newGroupCode.toUpperCase(),
-      name: newGroupName,
-      discount_percent: newGroupDiscount,
-      is_active: true,
-    };
-    if (editingGroupId) {
-      await marketingService.updateCustomerGroup(editingGroupId, payload);
-    } else {
-      await marketingService.createCustomerGroup(payload);
+    
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        code: newGroupCode.toUpperCase(),
+        name: newGroupName,
+        discount_percent: newGroupDiscount,
+        is_active: true,
+      };
+      if (editingGroupId) {
+        await marketingService.updateCustomerGroup(editingGroupId, payload);
+      } else {
+        await marketingService.createCustomerGroup(payload);
+      }
+      refreshData(true);
+      setShowModal(false);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Có lỗi xảy ra khi lưu nhóm khách hàng');
+    } finally {
+      setIsSubmitting(false);
     }
-    refreshData(true);
-    setShowModal(false);
   };
 
   const handleDelete = (ids: (string | number)[]) => {
@@ -96,6 +106,7 @@ export const GroupTab: React.FC<GroupTabProps> = ({ groups, setGroups, refreshDa
         onClose={() => setShowModal(false)}
         title={editingGroupId ? 'Sửa Nhóm Khách Hàng' : 'Thêm Nhóm Khách Hàng'}
         icon={<Users className="w-5 h-5 text-emerald-600" />}
+        isSubmitting={isSubmitting}
         onSubmit={(e) => {
           e.preventDefault();
           handleSave();

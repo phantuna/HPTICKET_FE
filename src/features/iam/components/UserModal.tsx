@@ -80,6 +80,7 @@ interface UserModalProps {
   salesCounters: any[];
   selectedCounterIds: string[];
   setSelectedCounterIds: (v: string[]) => void;
+  isSubmitting?: boolean;
   onClose: () => void;
   onSubmit: (e: React.FormEvent) => void;
 }
@@ -88,6 +89,7 @@ export const UserModal: React.FC<UserModalProps> = ({
   editingUserId, fullname, setFullname, username, setUsername,
   password, setPassword, phone, setPhone, qrCode, setQrCode, roleId, setRoleId, roles,
   salesCounters, selectedCounterIds, setSelectedCounterIds,
+  isSubmitting = false,
   onClose, onSubmit
 }) => {
   const toggleCounter = (id: string) => {
@@ -246,14 +248,23 @@ export const UserModal: React.FC<UserModalProps> = ({
         <div className="flex justify-center gap-4 mt-8">
           <button
             type="submit"
-            className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition shadow-xs flex items-center gap-1.5 text-sm"
+            disabled={isSubmitting}
+            className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition shadow-xs flex items-center gap-1.5 text-sm"
           >
-            Lưu 💾
+            {isSubmitting ? (
+              <>
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block mr-1" />
+                Đang lưu...
+              </>
+            ) : (
+              'Lưu 💾'
+            )}
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition text-sm"
+            disabled={isSubmitting}
+            className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 font-semibold rounded-xl transition text-sm"
           >
             Hủy
           </button>

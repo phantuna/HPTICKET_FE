@@ -30,9 +30,13 @@ export const PromotionTab: React.FC<PromotionTabProps> = ({ promotions, setPromo
   const [newPromoValue, setNewPromoValue] = useState<number | ''>(10);
   const [newHolidayPolicy, setNewHolidayPolicy] = useState<HolidayPolicy>('ALL_DAYS');
   const [newPromoHolidayId, setNewPromoHolidayId] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const handleSave = async () => {
+    if (isSubmitting) return;
     if (!newPromoName) { toast.error('Vui lòng nhập Tên Khuyến mãi!'); return; }
+
+    setIsSubmitting(true);
     const payload = {
       code: `KM-${Date.now()}`,
       name: newPromoName.trim(),
@@ -59,6 +63,8 @@ export const PromotionTab: React.FC<PromotionTabProps> = ({ promotions, setPromo
       setShowModal(false);
     } catch (err: any) {
       toast.error(err.message || 'Không thể lưu chương trình khuyến mãi!');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -346,9 +352,11 @@ export const PromotionTab: React.FC<PromotionTabProps> = ({ promotions, setPromo
               </button>
               <button
                 type="submit"
-                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition shadow-xs"
+                disabled={isSubmitting}
+                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition shadow-xs flex items-center justify-center gap-1.5"
               >
-                Lưu Khuyến Mại
+                {isSubmitting && <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                {isSubmitting ? 'Đang lưu...' : 'Lưu Khuyến Mại'}
               </button>
             </div>
           </form>

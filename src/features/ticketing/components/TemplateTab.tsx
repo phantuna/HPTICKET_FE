@@ -36,6 +36,7 @@ export const TemplateTab: React.FC<TemplateTabProps> = ({
   const [newTicketType, setNewTicketType] = useState<'SINGLE' | 'MULTI' | 'UNLIMITED'>('SINGLE');
   const [newValidityDays, setNewValidityDays] = useState<number>(1);
   const [newAllowedPasses, setNewAllowedPasses] = useState<number>(1);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const isItemActive = (item: any) => {
     const val = item?.is_active ?? item?.isActive ?? item?.active ?? item?.status;
@@ -43,8 +44,10 @@ export const TemplateTab: React.FC<TemplateTabProps> = ({
   };
 
   const handleSave = async () => {
+    if (isSubmitting) return;
     if (!newTplCode || !newTplName) { toast.error('Vui lòng nhập đầy đủ Mã Mẫu Vé và Tên Mẫu Vé!'); return; }
 
+    setIsSubmitting(true);
     try {
       if (editingTpl) {
         const zoneIds = editingTpl.control_zone_ids ||
@@ -98,6 +101,8 @@ export const TemplateTab: React.FC<TemplateTabProps> = ({
     } catch (err: any) {
       const msg = err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi lưu mẫu vé!';
       toast.error(msg);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -385,9 +390,11 @@ export const TemplateTab: React.FC<TemplateTabProps> = ({
               </button>
               <button
                 type="submit"
-                className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition shadow-xs"
+                disabled={isSubmitting}
+                className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition shadow-xs flex items-center justify-center gap-1.5"
               >
-                Lưu Mẫu Vé
+                {isSubmitting && <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                {isSubmitting ? 'Đang lưu...' : 'Lưu Mẫu Vé'}
               </button>
             </div>
           </form>

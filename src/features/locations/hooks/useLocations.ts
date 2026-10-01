@@ -72,6 +72,7 @@ export const useLocations = (initialTab: string) => {
   const [editingCounterId, setEditingCounterId] = useState<string | null>(null);
   const [editingZoneId, setEditingZoneId] = useState<string | null>(null);
   const [editingGateId, setEditingGateId] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const [editCompName, setEditCompName] = useState('');
   const [editCompAddress, setEditCompAddress] = useState('');
@@ -142,83 +143,111 @@ export const useLocations = (initialTab: string) => {
   };
 
   const handleAddLocation = async () => {
-    if (!newLocName || !newLocCode) return;
-    if (editingLocId) {
-      const target = locations.find((l) => l.id === editingLocId);
-      if (target) await salesService.updateSalesLocation(editingLocId, { ...target, code: newLocCode.toUpperCase(), name: newLocName, address: newLocAddress });
-    } else {
-      const item: SalesLocation = {
-        id: `loc-${Date.now()}`, code: newLocCode.toUpperCase(), name: newLocName, address: newLocAddress,
-        is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), created_by: 'admin', updated_by: 'admin',
-      };
-      await salesService.createSalesLocation(item);
-    }
+    if (isSubmitting || !newLocName || !newLocCode) return;
+    setIsSubmitting(true);
     try {
-      const locRes = await salesService.fetchSalesLocations();
-      if (locRes.data && locRes.data.length > 0) setLocations(locRes.data);
-    } catch (err) {}
-    setNewLocName(''); setNewLocCode(''); setNewLocAddress('');
-    setEditingLocId(null); setShowLocationModal(false);
+      if (editingLocId) {
+        const target = locations.find((l) => l.id === editingLocId);
+        if (target) await salesService.updateSalesLocation(editingLocId, { ...target, code: newLocCode.toUpperCase(), name: newLocName, address: newLocAddress });
+      } else {
+        const item: SalesLocation = {
+          id: `loc-${Date.now()}`, code: newLocCode.toUpperCase(), name: newLocName, address: newLocAddress,
+          is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), created_by: 'admin', updated_by: 'admin',
+        };
+        await salesService.createSalesLocation(item);
+      }
+      try {
+        const locRes = await salesService.fetchSalesLocations();
+        if (locRes.data && locRes.data.length > 0) setLocations(locRes.data);
+      } catch (err) {}
+      setNewLocName(''); setNewLocCode(''); setNewLocAddress('');
+      setEditingLocId(null); setShowLocationModal(false);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi lưu điểm bán');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleAddCounter = async () => {
-    if (!newCounterName || !newCounterCode) return;
-    if (editingCounterId) {
-      const target = counters.find((c) => c.id === editingCounterId);
-      if (target) await salesService.updateSalesCounter(editingCounterId, { ...target, code: newCounterCode.toUpperCase(), name: newCounterName, sales_location_id: selectedLocId, supportedTypes: newCounterTypes as any });
-    } else {
-      const item: SalesCounter = {
-        id: `cnt-${Date.now()}`, code: newCounterCode.toUpperCase(), name: newCounterName, sales_location_id: selectedLocId, supportedTypes: newCounterTypes as any,
-        is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), created_by: 'admin', updated_by: 'admin',
-      };
-      await salesService.createSalesCounter(item);
-    }
+    if (isSubmitting || !newCounterName || !newCounterCode) return;
+    setIsSubmitting(true);
     try {
-      const cntRes = await salesService.fetchSalesCounters();
-      if (cntRes.data && cntRes.data.length > 0) setCounters(cntRes.data);
-    } catch (err) {}
-    setNewCounterName(''); setNewCounterCode(''); setNewCounterTypes([]);
-    setEditingCounterId(null); setShowCounterModal(false);
+      if (editingCounterId) {
+        const target = counters.find((c) => c.id === editingCounterId);
+        if (target) await salesService.updateSalesCounter(editingCounterId, { ...target, code: newCounterCode.toUpperCase(), name: newCounterName, sales_location_id: selectedLocId, supportedTypes: newCounterTypes as any });
+      } else {
+        const item: SalesCounter = {
+          id: `cnt-${Date.now()}`, code: newCounterCode.toUpperCase(), name: newCounterName, sales_location_id: selectedLocId, supportedTypes: newCounterTypes as any,
+          is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), created_by: 'admin', updated_by: 'admin',
+        };
+        await salesService.createSalesCounter(item);
+      }
+      try {
+        const cntRes = await salesService.fetchSalesCounters();
+        if (cntRes.data && cntRes.data.length > 0) setCounters(cntRes.data);
+      } catch (err) {}
+      setNewCounterName(''); setNewCounterCode(''); setNewCounterTypes([]);
+      setEditingCounterId(null); setShowCounterModal(false);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi lưu quầy bán');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleAddZone = async () => {
-    if (!newZoneName || !newZoneCode) return;
-    if (editingZoneId) {
-      const target = controlZones.find((z) => z.id === editingZoneId);
-      if (target) await ticketingService.updateControlZone(editingZoneId, { ...target, code: newZoneCode.toUpperCase(), name: newZoneName });
-    } else {
-      const item: ControlZone = {
-        id: `czone-${Date.now()}`, code: newZoneCode.toUpperCase(), name: newZoneName,
-        is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), created_by: 'admin', updated_by: 'admin',
-      };
-      await ticketingService.createControlZone(item);
-    }
+    if (isSubmitting || !newZoneName || !newZoneCode) return;
+    setIsSubmitting(true);
     try {
-      const zoneRes = await ticketingService.fetchControlZones();
-      if (zoneRes.data && zoneRes.data.length > 0) setControlZones(zoneRes.data);
-    } catch (err) {}
-    setNewZoneName(''); setNewZoneCode('');
-    setEditingZoneId(null); setShowZoneModal(false);
+      if (editingZoneId) {
+        const target = controlZones.find((z) => z.id === editingZoneId);
+        if (target) await ticketingService.updateControlZone(editingZoneId, { ...target, code: newZoneCode.toUpperCase(), name: newZoneName });
+      } else {
+        const item: ControlZone = {
+          id: `czone-${Date.now()}`, code: newZoneCode.toUpperCase(), name: newZoneName,
+          is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), created_by: 'admin', updated_by: 'admin',
+        };
+        await ticketingService.createControlZone(item);
+      }
+      try {
+        const zoneRes = await ticketingService.fetchControlZones();
+        if (zoneRes.data && zoneRes.data.length > 0) setControlZones(zoneRes.data);
+      } catch (err) {}
+      setNewZoneName(''); setNewZoneCode('');
+      setEditingZoneId(null); setShowZoneModal(false);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi lưu khu vực');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleAddGate = async () => {
-    if (!newGateName) return;
-    if (editingGateId) {
-      const target = controlGates.find((g) => g.id === editingGateId);
-      if (target) await ticketingService.updateControlGate(editingGateId, { ...target, device_name: newGateName, ip_address: newGateIp, device_port: newGatePort, control_zone_id: selectedZoneId });
-    } else {
-      const item: ControlGate = {
-        id: `gate-${Date.now()}`, device_name: newGateName, ip_address: newGateIp, device_port: newGatePort, control_zone_id: selectedZoneId,
-        is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), created_by: 'admin', updated_by: 'admin',
-      };
-      await ticketingService.createControlGate(item);
-    }
+    if (isSubmitting || !newGateName) return;
+    setIsSubmitting(true);
     try {
-      const gateRes = await ticketingService.fetchControlGates();
-      if (gateRes.data && gateRes.data.length > 0) setControlGates(gateRes.data);
-    } catch (err) {}
-    setNewGateName('');
-    setEditingGateId(null); setShowGateModal(false);
+      if (editingGateId) {
+        const target = controlGates.find((g) => g.id === editingGateId);
+        if (target) await ticketingService.updateControlGate(editingGateId, { ...target, device_name: newGateName, ip_address: newGateIp, device_port: newGatePort, control_zone_id: selectedZoneId });
+      } else {
+        const item: ControlGate = {
+          id: `gate-${Date.now()}`, device_name: newGateName, ip_address: newGateIp, device_port: newGatePort, control_zone_id: selectedZoneId,
+          is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), created_by: 'admin', updated_by: 'admin',
+        };
+        await ticketingService.createControlGate(item);
+      }
+      try {
+        const gateRes = await ticketingService.fetchControlGates();
+        if (gateRes.data && gateRes.data.length > 0) setControlGates(gateRes.data);
+      } catch (err) {}
+      setNewGateName('');
+      setEditingGateId(null); setShowGateModal(false);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi lưu cổng soát vé');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleOpenCompanyModal = () => {
@@ -238,6 +267,8 @@ export const useLocations = (initialTab: string) => {
   };
 
   const handleSaveCompany = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     const updated: any = {
       name: editCompName, address: editCompAddress, phone: editCompPhone, fax: editCompFax,
       code: editCompCode, tax_code: editCompTaxCode, contact_person: editCompContact, email: editCompEmail,
@@ -256,8 +287,11 @@ export const useLocations = (initialTab: string) => {
           if (compRes.data && compRes.data.length > 0) setCompany(compRes.data[0]);
         }
       }
+      setShowCompanyModal(false);
     } catch(err: any) { toast.error(err.message || 'Lỗi lưu thông tin công ty'); console.error(err); }
-    setShowCompanyModal(false);
+    finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleDeleteLocations = async (ids: string[]) => {
@@ -327,6 +361,7 @@ export const useLocations = (initialTab: string) => {
     handleToggleLocationActive, handleToggleCounterActive, handleToggleZoneActive, handleToggleGateActive,
     handleAddLocation, handleAddCounter, handleAddZone, handleAddGate,
     handleOpenCompanyModal, handleSaveCompany,
-    handleDeleteLocations, handleDeleteCounters, handleDeleteZones, handleDeleteGates
+    handleDeleteLocations, handleDeleteCounters, handleDeleteZones, handleDeleteGates,
+    isSubmitting
   };
 };

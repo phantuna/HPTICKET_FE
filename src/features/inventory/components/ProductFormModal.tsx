@@ -114,8 +114,10 @@ interface ProductFormModalProps {
   newTaxPercent: number; setNewTaxPercent: (v: number) => void;
   newStock: number; setNewStock: (v: number) => void;
   newMinAlert: number; setNewMinAlert: (v: number) => void;
-  newSupplier: string; setNewSupplier: (v: string) => void;
+  newSupplier?: string; setNewSupplier?: (v: string) => void;
   adjustmentReason?: string; setAdjustmentReason?: (v: string) => void;
+  loading?: boolean;
+  isSubmitting?: boolean;
   onSubmit: (e: React.FormEvent) => void;
   onClose: () => void;
 }
@@ -124,8 +126,10 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   editingProduct, newCode, setNewCode, newName, setNewName, newCategory, setNewCategory,
   newUnit, setNewUnit, newCostPrice, setNewCostPrice, newPrice, setNewPrice,
   newTaxPercent, setNewTaxPercent, newStock, setNewStock, newMinAlert, setNewMinAlert,
-  newSupplier, setNewSupplier, adjustmentReason = '', setAdjustmentReason, onSubmit, onClose
+  newSupplier, setNewSupplier,
+  adjustmentReason = '', setAdjustmentReason, loading = false, isSubmitting = false, onSubmit, onClose
 }) => {
+  const isBusy = Boolean(loading || isSubmitting);
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -288,8 +292,15 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           )}
         </div>
         <div className="flex gap-2 pt-3 border-t border-slate-100">
-          <button type="button" onClick={onClose} className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-lg transition">Hủy</button>
-          <button type="submit" className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg transition shadow-xs">Lưu Sản Phẩm</button>
+          <button type="button" disabled={isBusy} onClick={onClose} className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 font-semibold text-xs rounded-lg transition">Hủy</button>
+          <button
+            type="submit"
+            disabled={isBusy}
+            className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs rounded-lg transition shadow-xs flex items-center justify-center gap-1.5"
+          >
+            {isBusy && <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+            {isBusy ? 'Đang lưu...' : 'Lưu Sản Phẩm'}
+          </button>
         </div>
       </form>
     </div>
