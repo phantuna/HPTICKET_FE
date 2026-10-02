@@ -28,9 +28,11 @@ interface POSInvoiceFormProps {
   phoneNumber: string; setPhoneNumber: (v: string) => void;
   usageDate: string; setUsageDate: (v: string) => void;
   dayContext?: any;
+  currentBooking?: any;
+  isCheckingBooking?: boolean;
 }
 
-export const POSInvoiceForm: React.FC<POSInvoiceFormProps> = ({
+export const POSInvoiceForm: React.FC<POSInvoiceFormProps> = React.memo(({
   searchBookingCode, setSearchBookingCode, handleCheckBookingCode,
   selectedCounterId, setSelectedCounterId, counters,
   invoiceCode, setInvoiceCode, selectedGroupCode, setSelectedGroupCode, customerGroups,
@@ -40,7 +42,7 @@ export const POSInvoiceForm: React.FC<POSInvoiceFormProps> = ({
   companyName, setCompanyName, companyTaxCode, setCompanyTaxCode,
   companyAddress, setCompanyAddress, companyEmail, setCompanyEmail,
   email, setEmail, phoneNumber, setPhoneNumber, usageDate, setUsageDate,
-  dayContext
+  dayContext, currentBooking, isCheckingBooking
 }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
   
@@ -57,26 +59,38 @@ export const POSInvoiceForm: React.FC<POSInvoiceFormProps> = ({
     {/* Summary / Search Bar (Always visible) */}
     <div className="p-3 sm:p-4 flex flex-wrap items-center justify-between gap-3 bg-slate-50 border-b border-slate-200">
       <div className="flex items-center gap-2 flex-1 min-w-[280px]">
-        <span className="text-xs sm:text-sm font-bold text-slate-900 whitespace-nowrap">Mã đặt :</span>
+        <span className="text-xs sm:text-sm font-bold text-slate-900 whitespace-nowrap">Mã đặt / SĐT:</span>
         <input
           type="text"
           value={searchBookingCode}
           onChange={(e) => setSearchBookingCode(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleCheckBookingCode()}
-          placeholder="Nhập mã đặt..."
-          className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-500 font-mono shadow-xs max-w-[200px]"
+          placeholder="Mã (BK829104) hoặc SĐT..."
+          className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-500 font-mono shadow-xs max-w-[220px]"
         />
         <button
           onClick={handleCheckBookingCode}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition shadow-xs"
+          disabled={isCheckingBooking}
+          className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition shadow-xs"
         >
-          <CheckCircle2 className="w-4 h-4" /> Kiểm tra
+          <CheckCircle2 className="w-4 h-4" /> {isCheckingBooking ? 'Đang kiểm tra...' : 'Kiểm tra'}
         </button>
         
-        <div className="hidden sm:flex items-center gap-2 ml-4 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-600">
-          <User className="w-4 h-4 text-slate-400" />
-          <span className="truncate max-w-[300px]">{summaryText}</span>
-        </div>
+        {currentBooking ? (
+          <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 border border-emerald-300 rounded-lg text-xs text-emerald-900 shadow-xs">
+            <span className="font-bold font-mono bg-emerald-600 text-white px-1.5 py-0.5 rounded text-[11px]">
+              {currentBooking.booking_code}
+            </span>
+            <span className="font-semibold text-slate-800">{currentBooking.company_name || currentBooking.customer_name}</span>
+            <span className="text-slate-500">• Cọc: <b className="text-emerald-700">{Number(currentBooking.deposit_amount || 0).toLocaleString('vi-VN')} đ</b></span>
+            <span className="text-slate-500">• Còn thu: <b className="text-rose-600">{Number(currentBooking.remaining_amount || 0).toLocaleString('vi-VN')} đ</b></span>
+          </div>
+        ) : (
+          <div className="hidden sm:flex items-center gap-2 ml-4 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-600">
+            <User className="w-4 h-4 text-slate-400" />
+            <span className="truncate max-w-[300px]">{summaryText}</span>
+          </div>
+        )}
       </div>
       
       <div className="flex items-center gap-3">
@@ -336,4 +350,5 @@ export const POSInvoiceForm: React.FC<POSInvoiceFormProps> = ({
     )}
   </div>
   );
-};
+});
+

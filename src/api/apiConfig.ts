@@ -15,6 +15,7 @@ export const API_BASE_URL = (typeof import.meta !== 'undefined' && (import.meta 
 export interface RequestConfig extends RequestInit {
   params?: Record<string, string | number | boolean>;
   bypassCache?: boolean;
+  silent?: boolean;
 }
 
 // In-memory cache cho GET dropdown / master data
@@ -148,6 +149,16 @@ export const API_ENDPOINTS = {
     RENEW_TICKET: (id: string) => `/sales/issued-tickets/${id}/renew`,
     STOCK_MOVEMENTS: '/sales/stock-movements',
     STOCK_MOVEMENTS_EXPORT_CHUNK: '/sales/stock-movements/export/chunk',
+    BOOKINGS: '/sales/bookings',
+    BOOKING_PUBLIC_TEMPLATES: '/sales/bookings/public/templates',
+    BOOKING_PUBLIC_CREATE: '/sales/bookings/public',
+    BOOKING_PUBLIC_LOOKUP: (code: string) => `/sales/bookings/public/lookup/${code}`,
+    BOOKING_LOOKUP: (code: string) => `/sales/bookings/lookup/${code}`,
+    BOOKING_LOOKUP_ALL: (code: string) => `/sales/bookings/lookup-all/${code}`,
+    BOOKING_DETAIL: (id: string) => `/sales/bookings/${id}`,
+    BOOKING_CHECKOUT: (id: string) => `/sales/bookings/${id}/checkout`,
+    BOOKING_CANCEL: (id: string) => `/sales/bookings/${id}/cancel`,
+    BOOKING_CONFIRM: (id: string) => `/sales/bookings/${id}/confirm`,
   },
 
 
@@ -388,7 +399,7 @@ export const apiClient = {
           const errorMessage = errorData.message || `API Error: ${response.status} ${response.statusText}`;
 
           // Hỗ trợ Developer điều tra lỗi: In chi tiết Trace ID và devMessage ra Console F12
-          if (errorData.traceId || errorData.devMessage) {
+          if (!config?.silent && (errorData.traceId || errorData.devMessage)) {
             console.error(`[API Exception | ${errorData.traceId || 'NO-TRACE'}]`, {
               message: errorMessage,
               devDetail: errorData.devMessage,
@@ -397,7 +408,9 @@ export const apiClient = {
             });
           }
 
-          window.dispatchEvent(new CustomEvent('api_error', { detail: { message: errorMessage } }));
+          if (!config?.silent) {
+            window.dispatchEvent(new CustomEvent('api_error', { detail: { message: errorMessage } }));
+          }
           throw new Error(errorMessage);
         }
 

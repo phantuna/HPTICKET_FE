@@ -89,8 +89,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const posMenu = [
     { label: 'Đặt vé / Bán vé thu ngân', module: 'pos', icon: ShoppingCart, badge: 'POS', requirePermission: 'CREATE_ORDER' },
+    { label: 'Quản lý đặt trước (Booking)', module: 'bookings', icon: CalendarClock, badge: 'Mới', requirePermission: 'VIEW_ORDER' },
     { label: 'Danh sách hóa đơn vé', module: 'orders', icon: Receipt, requirePermission: 'VIEW_ORDER' },
     { label: 'Kiểm tra vé / Soát cổng', module: 'gate', icon: QrCode, requirePermission: 'SCAN_TICKET' },
+    { label: 'Cổng đặt vé online (Khách)', module: 'dat-ve', icon: Ticket, requirePermission: 'CREATE_ORDER' },
   ];
 
   const reportsMenu = [

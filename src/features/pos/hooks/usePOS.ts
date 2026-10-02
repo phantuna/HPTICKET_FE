@@ -4,7 +4,7 @@ import { iamService } from '../../../api/iamService';
 import { marketingService } from '../../../api/marketingService';
 import { apiClient, API_ENDPOINTS, API_BASE_URL } from '../../../api/apiConfig';
 import { authState } from '../../../api/authState';
-import { PaymentMethod, ItemType, Order, IssuedTicket, BusinessDayContext } from '../../../shared/types/hpticket';
+import { PaymentMethod, ItemType, Order, IssuedTicket, BusinessDayContext, Booking } from '../../../shared/types/hpticket';
 import { dbStore } from '../../../shared/data/mockDatabase';
 import { toast } from '../../../shared/utils/toast';
 import QRCode from 'qrcode';
@@ -53,6 +53,10 @@ export const usePOS = () => {
   const [searchBookingCode, setSearchBookingCode] = useState<string>('');
   const [invoiceCode, setInvoiceCode] = useState<string>(`2026_${Math.floor(1000000000 + Math.random() * 9000000000)}`);
   const [bookingCode, setBookingCode] = useState<string>('');
+  const [currentBooking, setCurrentBooking] = useState<Booking | null>(null);
+  const [isCheckingBooking, setIsCheckingBooking] = useState<boolean>(false);
+  const [matchingBookings, setMatchingBookings] = useState<any[]>([]);
+  const [isBookingSelectionOpen, setIsBookingSelectionOpen] = useState<boolean>(false);
   const [customerMode, setCustomerMode] = useState<'RETAIL' | 'GROUP'>('RETAIL');
   const [customerName, setCustomerName] = useState<string>('Khách lẻ không lấy hóa đơn');
   const [phoneNumber, setPhoneNumber] = useState<string>('');
@@ -101,6 +105,95 @@ export const usePOS = () => {
       localStorage.setItem('hpticket_pos_selected_counter', selectedCounterId);
     }
   }, [selectedCounterId]);
+
+  // Tự động nạp mã Booking nếu được chuyển từ trang Quản lý Đặt trước
+  useEffect(() => {
+    const pendingCode = localStorage.getItem('hpticket_pending_pos_booking');
+    if (pendingCode) {
+      localStorage.removeItem('hpticket_pending_pos_booking');
+      setSearchBookingCode(pendingCode);
+      const timer = setTimeout(() => {
+        salesService.lookupBooking(pendingCode).then((res: any) => {
+          const b = res?.data;
+          if (b) {
+            if (b.status === 'FULFILLED') {
+              toast.error(`Mã đặt chỗ [${b.booking_code}] đã được xuất vé hoàn tất trước đó, không thể tái sử dụng!`);
+              setSearchBookingCode('');
+              return;
+            }
+            if (b.status === 'CANCELLED') {
+              toast.error(`Mã đặt chỗ [${b.booking_code}] đã bị hủy, không thể sử dụng!`);
+              setSearchBookingCode('');
+              return;
+            }
+            if (b.status === 'EXPIRED') {
+              toast.error(`Mã đặt chỗ [${b.booking_code}] đã hết hạn sử dụng!`);
+              setSearchBookingCode('');
+              return;
+            }
+            setCurrentBooking(b);
+            setBookingCode(b.booking_code);
+            if (b.customer_name) setCustomerName(b.customer_name);
+            if (b.customer_phone) setPhoneNumber(b.customer_phone);
+            if (b.customer_email) setEmail(b.customer_email);
+            if (b.company_name) setCompanyName(b.company_name);
+            if (b.visit_date) setUsageDate(b.visit_date);
+            if (b.deposit_amount !== undefined) setDepositAmount(Number(b.deposit_amount) || 0);
+            if (b.discount_amount !== undefined && Number(b.discount_amount) > 0) {
+              setExtraDiscount(Number(b.discount_amount));
+            }
+
+            if (b.items && b.items.length > 0) {
+              const items: TicketLineItem[] = b.items.map((item: any) => {
+                const rawQty = Number(item.quantity) || 1;
+                const rawPasses = Number(item.allowed_passes) || 1;
+                const totalPeople = (rawPasses > 1) ? (rawPasses * rawQty) : rawQty;
+                // Chuẩn hóa theo quy tắc: nếu > 1 người của cùng loại vé hoặc có cờ đoàn/công ty thì gom thành Vé đoàn (1 vé N lượt)
+                const isGroup = Boolean(
+                  item.is_group_ticket ||
+                  b.is_group_ticket ||
+                  rawPasses > 1 ||
+                  rawQty > 1 ||
+                  totalPeople > 1 ||
+                  Boolean(b.company_name && b.company_name.trim().length > 0)
+                );
+                const passes = isGroup ? totalPeople : 1;
+                const qty = isGroup ? 1 : rawQty;
+                const basePrice = Number(item.unit_price) || 0;
+
+                return {
+                  item_id: item.ticket_type_id,
+                  item_type: ItemType.TICKET,
+                  name: item.ticket_name || 'Vé tham quan',
+                  code: item.ticket_type_code || 'TKT',
+                  quantity: qty,
+                  unit_price: isGroup ? basePrice * passes : basePrice,
+                  tax_percent: item.tax_percent || 0,
+                  discount_percent: 0,
+                  discount_amount: Number(item.discount_amount) || 0,
+                  allowed_passes_per_unit: passes,
+                  is_group_ticket: isGroup,
+                  base_price_per_pass: basePrice,
+                };
+              });
+              setLineItems(items);
+
+              const hasGroupBooking = items.some(it => it.is_group_ticket || (Number(it.allowed_passes_per_unit) || 1) > 1) || Boolean(b.company_name);
+              if (hasGroupBooking) {
+                setCustomerMode('GROUP');
+                const doanGroup = findDoanGroup(customerGroups);
+                if (doanGroup) {
+                  setSelectedGroupCode(doanGroup.code);
+                }
+              }
+            }
+            toast.success(`✓ Đã nạp tự động mã đặt trước [${b.booking_code}]`);
+          }
+        }).catch(() => {});
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   const isItemActive = (item: any) => {
     const val = item?.is_active ?? item?.isActive ?? item?.active ?? item?.status;
@@ -436,9 +529,10 @@ export const usePOS = () => {
       return;
     }
 
-    const hasMultiPass = ticketItems.some(i => (Number(i.allowed_passes_per_unit) || 1) > 1);
+    const hasMultiPass = ticketItems.some(i => i.is_group_ticket || (Number(i.allowed_passes_per_unit) || 1) > 1);
+    const isBookingGroup = Boolean(currentBooking && (currentBooking.company_name || (currentBooking as any).is_group_ticket));
 
-    if (hasMultiPass) {
+    if (hasMultiPass || isBookingGroup) {
       const doanGroup = findDoanGroup(customerGroups);
       if (doanGroup && selectedGroupCode !== doanGroup.code) {
         setSelectedGroupCode(doanGroup.code);
@@ -727,40 +821,110 @@ export const usePOS = () => {
     );
   };
 
-  const handleCheckBookingCode = () => {
-    if (!searchBookingCode.trim()) return;
-    setBookingCode(searchBookingCode.trim().toUpperCase());
-    setCustomerName('Đoàn Khách Lữ Hành Á Châu');
-    setPhoneNumber('0905111222');
-    setEmail('booking@achautravel.com');
-    setSelectedGroupCode('doan_lu_hanh');
-    setLineItems([
-      {
-        item_id: 'tpl-1',
-        item_type: ItemType.TICKET,
-        name: 'Vé thăm quan người lớn (Trong tuần)',
-        code: 'VTQ-NL-NT',
-        quantity: 10,
-        unit_price: 50000,
-        tax_percent: 8,
-        discount_percent: 20,
-      },
-      {
-        item_id: 'tpl-3',
-        item_type: ItemType.TICKET,
-        name: 'Vé Zipline người lớn (Trong tuần)',
-        code: 'VZIP-NL-NT',
-        quantity: 5,
-        unit_price: 150000,
-        tax_percent: 8,
-        discount_percent: 20,
-      },
-    ]);
+  const applyBookingToPOS = (b: any) => {
+    if (b.status === 'FULFILLED') {
+      toast.error(`Mã đặt chỗ [${b.booking_code}] đã được xuất vé hoàn tất trước đó, không thể tái sử dụng!`);
+      return;
+    }
+    if (b.status === 'CANCELLED') {
+      toast.error(`Mã đặt chỗ [${b.booking_code}] đã bị hủy, không thể sử dụng!`);
+      return;
+    }
+    if (b.status === 'EXPIRED') {
+      toast.error(`Mã đặt chỗ [${b.booking_code}] đã hết hạn sử dụng!`);
+      return;
+    }
+    setCurrentBooking(b);
+    setBookingCode(b.booking_code);
+    if (b.customer_name) setCustomerName(b.customer_name);
+    if (b.customer_phone) setPhoneNumber(b.customer_phone);
+    if (b.customer_email) setEmail(b.customer_email);
+    if (b.company_name) setCompanyName(b.company_name);
+    if (b.visit_date) setUsageDate(b.visit_date);
+    if (b.deposit_amount !== undefined) setDepositAmount(Number(b.deposit_amount) || 0);
+    if (b.discount_amount !== undefined && Number(b.discount_amount) > 0) {
+      setExtraDiscount(Number(b.discount_amount));
+    }
+
+    if (b.items && b.items.length > 0) {
+      const items: TicketLineItem[] = b.items.map((item: any) => {
+        const rawQty = Number(item.quantity) || 1;
+        const rawPasses = Number(item.allowed_passes) || 1;
+        const totalPeople = (rawPasses > 1) ? (rawPasses * rawQty) : rawQty;
+        const isGroup = Boolean(
+          item.is_group_ticket ||
+          b.is_group_ticket ||
+          rawPasses > 1 ||
+          rawQty > 1 ||
+          totalPeople > 1 ||
+          Boolean(b.company_name && b.company_name.trim().length > 0)
+        );
+        const passes = isGroup ? totalPeople : 1;
+        const qty = isGroup ? 1 : rawQty;
+        const basePrice = Number(item.unit_price) || 0;
+
+        return {
+          item_id: item.ticket_type_id,
+          item_type: ItemType.TICKET,
+          name: item.ticket_name_snapshot || item.ticket_name || 'Vé tham quan',
+          code: item.ticket_type_code_snapshot || item.ticket_type_code || 'TKT',
+          quantity: qty,
+          unit_price: isGroup ? basePrice * passes : basePrice,
+          tax_percent: item.tax_percent || 0,
+          discount_percent: 0,
+          discount_amount: Number(item.discount_amount) || 0,
+          allowed_passes_per_unit: passes,
+          is_group_ticket: isGroup,
+          base_price_per_pass: basePrice,
+        };
+      });
+      setLineItems(items);
+
+      const hasGroupBooking = items.some(it => it.is_group_ticket || (Number(it.allowed_passes_per_unit) || 1) > 1) || Boolean(b.company_name);
+      if (hasGroupBooking) {
+        setCustomerMode('GROUP');
+        const doanGroup = findDoanGroup(customerGroups);
+        if (doanGroup) {
+          setSelectedGroupCode(doanGroup.code);
+        }
+      }
+    }
+
+    const remaining = Number(b.remaining_amount !== undefined ? b.remaining_amount : b.total_amount) || 0;
+    toast.success(`✓ Đã nạp thành công mã đặt trước [${b.booking_code}] - Còn phải thu: ${remaining.toLocaleString('vi-VN')} đ`);
+    setIsBookingSelectionOpen(false);
+  };
+
+  const handleCheckBookingCode = async () => {
+    const code = searchBookingCode.trim();
+    if (!code) return;
+    setIsCheckingBooking(true);
+    try {
+      const res = await salesService.lookupAllBookings(code);
+      const list = res.data || [];
+      if (list.length === 0) {
+        toast.error('Không tìm thấy đơn đặt chỗ nào còn hiệu lực với mã hoặc SĐT: ' + code);
+        return;
+      }
+      if (list.length === 1) {
+        applyBookingToPOS(list[0]);
+      } else {
+        // Có từ 2 đơn trở lên khớp SĐT/mã: mở modal lựa chọn
+        setMatchingBookings(list);
+        setIsBookingSelectionOpen(true);
+      }
+    } catch (err: any) {
+      console.warn('Tra cứu Booking từ backend thất bại:', err);
+      toast.error('Không tìm thấy mã đặt hoặc SĐT: ' + code + (err.message ? ` (${err.message})` : ''));
+    } finally {
+      setIsCheckingBooking(false);
+    }
   };
 
   const handleResetForm = () => {
     setInvoiceCode(`2026_${Math.floor(1000000000 + Math.random() * 9000000000)}`);
     setBookingCode('');
+    setCurrentBooking(null);
     setSearchBookingCode('');
     setCustomerMode('RETAIL');
     setCustomerName('Khách lẻ không lấy hóa đơn');
@@ -1151,6 +1315,8 @@ export const usePOS = () => {
     holidays,
     dayContext,
     toastMessage, showToast, closeToast,
+    currentBooking, isCheckingBooking,
+    matchingBookings, isBookingSelectionOpen, setIsBookingSelectionOpen, applyBookingToPOS,
     handleToggleItem, updateLineItem, handleCheckBookingCode, handleResetForm, handleCheckout
   };
 };

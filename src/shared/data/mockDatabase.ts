@@ -34,6 +34,8 @@ import {
   TicketStatus,
   ScanStatusResult,
   LicenseConfig,
+  Booking,
+  BookingStatus,
 } from '../types/hpticket';
 import { apiClient, API_ENDPOINTS} from '../../api/apiConfig';
 import { hasPermission } from '../utils/permissionGuard';
@@ -42,6 +44,7 @@ import { hasPermission } from '../utils/permissionGuard';
 const STORAGE_KEY = 'hpticket_db_v3_real_backend_only';
 const STOCK_LOGS_KEY = 'hpticket_stock_movement_logs_v1';
 const SYSTEM_LOGS_KEY = 'hpticket_system_logs_v1';
+const BOOKINGS_KEY = 'hpticket_bookings_store_v1';
 
 const now = new Date().toISOString();
 const todayDate = new Date().toISOString().split('T')[0];
@@ -71,6 +74,7 @@ export class MockDatabaseStore {
   public issuedTickets: IssuedTicket[] = [];
   public gateAccessLogs: GateAccessLog[] = [];
   public systemLogs: SystemLog[] = [];
+  public bookings: Booking[] = [];
 
   public licenseConfig: LicenseConfig = {
     license_key: 'HPT-PRO-30DAYS-TRIAL',
@@ -88,6 +92,7 @@ export class MockDatabaseStore {
     this.loadFromStorage();
     this.loadStockLogs();
     this.loadSystemLogs();
+    this.loadBookings();
   }
 
   public loadStockLogs(): StockMovementLog[] {
@@ -154,6 +159,32 @@ export class MockDatabaseStore {
       localStorage.setItem(SYSTEM_LOGS_KEY, JSON.stringify(trimmed));
     } catch (e) {
       console.error('Failed to save system logs:', e);
+    }
+  }
+
+  public loadBookings(): Booking[] {
+    try {
+      const raw = localStorage.getItem(BOOKINGS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          this.bookings = parsed;
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load bookings from storage:', e);
+    }
+    return this.bookings;
+  }
+
+  public saveBookings(bookings?: Booking[]) {
+    try {
+      if (bookings) this.bookings = bookings;
+      localStorage.setItem(BOOKINGS_KEY, JSON.stringify(this.bookings));
+      window.dispatchEvent(new CustomEvent('hpticket_bookings_updated', { detail: this.bookings }));
+    } catch (e) {
+      console.error('Failed to save bookings to storage:', e);
     }
   }
 

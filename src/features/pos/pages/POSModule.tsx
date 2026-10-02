@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { usePOS } from '../hooks/usePOS';
 import { ReceiptPrintModal } from '../components/ReceiptPrintModal';
 import { CounterSelectionModal } from '../components/CounterSelectionModal';
+import { BookingSelectionModal } from '../components/BookingSelectionModal';
 import { POSInvoiceForm } from '../components/POSInvoiceForm';
 import { POSCartTable } from '../components/POSCartTable';
 import { POSCatalog } from '../components/POSCatalog';
@@ -35,19 +36,25 @@ export const POSModule: React.FC = () => {
     ticketTemplates, ticketZones, products, customerGroups, customerSources, promotions, selectedPromotionId, setSelectedPromotionId, counters,
     dayContext,
     toastMessage, showToast, closeToast,
+    currentBooking, isCheckingBooking,
+    matchingBookings, isBookingSelectionOpen, setIsBookingSelectionOpen, applyBookingToPOS,
     handleToggleItem, updateLineItem, handleCheckBookingCode, handleResetForm, handleCheckout
   } = usePOS();
 
-  const totalSubtotalBeforeDiscount = lineItems.reduce(
-    (acc, item) => acc + item.unit_price * (Number(item.quantity) || 0), 0
-  );
+  const totalSubtotalBeforeDiscount = useMemo(() => {
+    return lineItems.reduce(
+      (acc, item) => acc + item.unit_price * (Number(item.quantity) || 0), 0
+    );
+  }, [lineItems]);
 
   // Tiền sau khi áp dụng giảm giá nhóm KH trên từng dòng vé
-  const subtotalAfterLineDiscounts = lineItems.reduce((acc, item) => {
-    const qty = Number(item.quantity) || 0;
-    const lineTotal = Math.round(item.unit_price * qty * (1 - (item.discount_percent || 0) / 100));
-    return acc + lineTotal;
-  }, 0);
+  const subtotalAfterLineDiscounts = useMemo(() => {
+    return lineItems.reduce((acc, item) => {
+      const qty = Number(item.quantity) || 0;
+      const lineTotal = Math.round(item.unit_price * qty * (1 - (item.discount_percent || 0) / 100));
+      return acc + lineTotal;
+    }, 0);
+  }, [lineItems]);
 
   // Tổng tiền giảm của nhóm KH (chỉ để hiển thị)
   const systemDiscountAmount = totalSubtotalBeforeDiscount - subtotalAfterLineDiscounts;
@@ -92,6 +99,16 @@ export const POSModule: React.FC = () => {
         <CounterSelectionModal counters={counters} setSelectedCounterId={setSelectedCounterId} />
       )}
 
+      {isBookingSelectionOpen && (
+        <BookingSelectionModal
+          isOpen={isBookingSelectionOpen}
+          onClose={() => setIsBookingSelectionOpen(false)}
+          searchQuery={searchBookingCode}
+          bookings={matchingBookings}
+          onSelectBooking={applyBookingToPOS}
+        />
+      )}
+
       <div className="no-print flex-1 flex flex-col min-h-0 gap-4">
         <POSInvoiceForm
           searchBookingCode={searchBookingCode} setSearchBookingCode={setSearchBookingCode} handleCheckBookingCode={handleCheckBookingCode}
@@ -109,6 +126,8 @@ export const POSModule: React.FC = () => {
           email={email} setEmail={setEmail}
           phoneNumber={phoneNumber} setPhoneNumber={setPhoneNumber} usageDate={usageDate} setUsageDate={setUsageDate}
           dayContext={dayContext}
+          currentBooking={currentBooking}
+          isCheckingBooking={isCheckingBooking}
           invoiceStatus={invoiceStatus} setInvoiceStatus={setInvoiceStatus}
           setLineItems={setLineItems}
         />
@@ -138,10 +157,12 @@ export const POSModule: React.FC = () => {
           </div>
         </div>
 
-        <POSActionBar
-          handleResetForm={handleResetForm} handleCheckout={handleCheckout}
-          effectiveExtraDiscount={effectiveExtraDiscount} lineItemsCount={lineItems.length} isProcessing={isProcessing}
-        />
+        {!isBookingSelectionOpen && (
+          <POSActionBar
+            handleResetForm={handleResetForm} handleCheckout={handleCheckout}
+            effectiveExtraDiscount={effectiveExtraDiscount} lineItemsCount={lineItems.length} isProcessing={isProcessing}
+          />
+        )}
       </div>
 
       {completedOrder && (

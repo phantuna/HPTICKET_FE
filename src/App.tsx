@@ -15,6 +15,8 @@ const ReportsModule = lazy(() => import('./features/reports/pages/ReportsModule'
 const SystemModule = lazy(() => import('./features/system/pages/SystemModule').then(m => ({ default: m.SystemModule })));
 const SystemLockScreen = lazy(() => import('./features/auth/pages/SystemLockScreen').then(m => ({ default: m.SystemLockScreen })));
 const LoginScreen = lazy(() => import('./features/auth/pages/LoginScreen').then(m => ({ default: m.LoginScreen })));
+const BookingsModule = lazy(() => import('./features/bookings/pages/BookingsModule').then(m => ({ default: m.BookingsModule })));
+const PublicBookingPortal = lazy(() => import('./features/bookings/pages/PublicBookingPortal').then(m => ({ default: m.PublicBookingPortal })));
 import { SessionLoginModal } from './shared/components/SessionLoginModal';
 import { RateLimitCountdownToast } from './shared/components/RateLimitCountdownToast';
 import { dbStore } from './shared/data/mockDatabase';
@@ -302,6 +304,54 @@ export default function App() {
     );
   }
 
+  // Render trang Đặt Vé Online công khai cho khách / Tour Agency
+  if (activeTab === 'dat-ve' || activeTab === 'booking-portal') {
+    return (
+      <>
+        {toastInfo && (
+          <div className={`fixed top-8 right-8 z-[9999] p-4 rounded-xl shadow-xl flex items-start gap-3 min-w-[340px] max-w-md transform transition-all duration-300 ease-out border-l-4 bg-white ${
+            toastInfo.type === 'error' ? 'border-rose-500 text-slate-800' :
+            toastInfo.type === 'warning' ? 'border-amber-500 text-slate-800' :
+            toastInfo.type === 'info' ? 'border-blue-500 text-slate-800' :
+            'border-emerald-500 text-slate-800'
+          }`}>
+            <div className={`mt-0.5 shrink-0 ${
+              toastInfo.type === 'error' ? 'text-rose-500' :
+              toastInfo.type === 'warning' ? 'text-amber-500' :
+              toastInfo.type === 'info' ? 'text-blue-500' :
+              'text-emerald-500'
+            }`}>
+              {toastInfo.type === 'error' ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+              ) : toastInfo.type === 'warning' ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+              ) : toastInfo.type === 'info' ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-sm font-bold text-slate-900">{toastInfo.title}</h4>
+              <p className="text-xs mt-1 text-slate-600 leading-relaxed break-words">{toastInfo.message}</p>
+            </div>
+            <button onClick={() => setToastInfo(null)} className="text-slate-400 hover:text-slate-600 transition-colors p-1 -mr-1" title="Đóng">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+          </div>
+        )}
+        <RateLimitCountdownToast />
+        <Suspense fallback={
+          <div className="flex items-center justify-center min-h-screen bg-slate-50 text-slate-600">
+            <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        }>
+          <PublicBookingPortal onBackToApp={() => window.location.hash = '/bookings'} />
+        </Suspense>
+      </>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800 font-sans antialiased selection:bg-emerald-600 selection:text-white flex flex-col">
       {toastInfo && (
@@ -377,6 +427,14 @@ export default function App() {
             </div>
           }>
             {activeTab === 'pos' && <POSModule />}
+            {activeTab === 'bookings' && (
+              <BookingsModule
+                onOpenPOSWithBooking={(code) => {
+                  localStorage.setItem('hpticket_pending_pos_booking', code);
+                  window.location.hash = '/pos';
+                }}
+              />
+            )}
             {activeTab === 'gate' && <GateScannerModule />}
             {activeTab === 'orders' && <OrdersModule />}
             {activeTab === 'location' && <LocationModule subTab={activeSubTab} onSelectSubTab={setActiveSubTab} />}

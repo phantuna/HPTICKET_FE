@@ -159,6 +159,7 @@ export interface TicketTemplate extends BaseEntity {
   code: string;
   control_zone_ids: string[]; // Points to multiple ControlZones
   name: string; // Display name derived from TicketZone
+  ticket_name?: string; // Alias for name
   price: number; // Stored in absolute decimal / bigint precision (VND)
   tax_percent?: number;
   audience_type_id: string;
@@ -378,3 +379,60 @@ export interface SystemLog extends BaseEntity {
   old_data?: Record<string, any> | string | null;
   new_data?: Record<string, any> | string | null;
 }
+
+// ----------------------------------------------------
+// 6. PRE-SALE & BOOKING INTERFACES
+// ----------------------------------------------------
+
+export enum BookingStatus {
+  DRAFT = 'DRAFT',
+  RESERVED = 'RESERVED',
+  PARTIALLY_PAID = 'PARTIALLY_PAID',
+  CONFIRMED = 'CONFIRMED',
+  FULFILLED = 'FULFILLED',
+  CANCELLED = 'CANCELLED',
+  EXPIRED = 'EXPIRED'
+}
+
+export interface BookingItem {
+  id: string;
+  booking_id?: string;
+  ticket_type_id: string;
+  ticket_type_code?: string;
+  ticket_name?: string;
+  quantity: number;
+  unit_price: number;
+  allowed_passes: number;
+  tax_percent?: number;
+  discount_amount?: number;
+  subtotal: number;
+  is_group_ticket?: boolean;
+}
+
+export interface Booking extends BaseEntity {
+  booking_code: string;
+  order_id?: string | null;
+  customer_name: string;
+  customer_phone?: string;
+  customer_email?: string;
+  company_name?: string;
+  contact_name?: string;
+  note?: string;
+  visit_date?: string;
+  status: BookingStatus;
+  items: BookingItem[];
+  subtotal: number;
+  discount_percent?: number;
+  discount_amount: number;
+  total_amount: number;
+  deposit_amount: number;
+  paid_amount: number;
+  remaining_amount: number;
+  payment_required: boolean;
+  can_checkout: boolean;
+  is_group_ticket?: boolean;
+  expires_at?: string;
+  confirmed_at?: string;
+  fulfilled_at?: string;
+}
+

@@ -12,7 +12,7 @@ interface POSCatalogProps {
   selectedCounter?: any;
 }
 
-export const POSCatalog: React.FC<POSCatalogProps> = ({
+export const POSCatalog: React.FC<POSCatalogProps> = React.memo(({
   activeListTab, setActiveListTab, ticketTemplates, ticketZones, products, lineItems, handleToggleItem, selectedCounter
 }) => {
   const supportedTypes = selectedCounter?.supportedTypes || [];
@@ -27,6 +27,16 @@ export const POSCatalog: React.FC<POSCatalogProps> = ({
       setActiveListTab('TICKETS');
     }
   }, [selectedCounter?.id, canSellTicket, canSellDrink, activeListTab, setActiveListTab]);
+
+  const groupedTpls = React.useMemo(() => {
+    const map: Record<string, any[]> = {};
+    ticketTemplates.forEach((tpl) => {
+      const zId = tpl.ticket_zone_id || tpl.ticket_name_id || 'uncategorized';
+      if (!map[zId]) map[zId] = [];
+      map[zId].push(tpl);
+    });
+    return map;
+  }, [ticketTemplates]);
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-xs flex flex-col h-full overflow-hidden">
@@ -48,17 +58,9 @@ export const POSCatalog: React.FC<POSCatalogProps> = ({
           ticketTemplates.length === 0 ? (
             <div className="p-4 text-center text-slate-500 bg-slate-50 rounded-xl border border-dashed border-slate-300">Chưa có mẫu vé nào đang kích hoạt.</div>
           ) : (
-            (() => {
-              const groupedTpls: Record<string, any[]> = {};
-              ticketTemplates.forEach((tpl) => {
-                const zId = tpl.ticket_zone_id || tpl.ticket_name_id || 'uncategorized';
-                if (!groupedTpls[zId]) groupedTpls[zId] = [];
-                groupedTpls[zId].push(tpl);
-              });
-
-              return Object.entries(groupedTpls).map(([zId, tpls]) => {
-                const zone = ticketZones.find((z) => z.id === zId);
-                const zoneName = zone ? zone.name : 'Vé Khác (Chưa phân nhóm)';
+            (Object.entries(groupedTpls) as [string, any[]][]).map(([zId, tpls]) => {
+              const zone = ticketZones.find((z) => z.id === zId);
+              const zoneName = zone ? zone.name : 'Vé Khác (Chưa phân nhóm)';
 
                 return (
                   <div key={zId} className="mb-4 last:mb-0">
@@ -66,7 +68,7 @@ export const POSCatalog: React.FC<POSCatalogProps> = ({
                       <Layers className="w-3.5 h-3.5" /> {zoneName}
                     </div>
                     <div className="space-y-2">
-                      {tpls.map((tpl) => {
+                      {tpls.map((tpl: any) => {
                         const selectedItem = lineItems.find((item) => item.item_id === tpl.id);
                         const isSelected = Boolean(selectedItem);
                         return (
@@ -88,8 +90,7 @@ export const POSCatalog: React.FC<POSCatalogProps> = ({
                     </div>
                   </div>
                 );
-              });
-            })()
+              })
           )
         ) : (
           products.length === 0 ? (
@@ -119,4 +120,5 @@ export const POSCatalog: React.FC<POSCatalogProps> = ({
       </div>
     </div>
   );
-};
+});
+

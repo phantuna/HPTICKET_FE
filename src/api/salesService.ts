@@ -20,9 +20,14 @@ import {
   SalesCounter,
   Product,
   StockMovementLog,
+  Booking,
+  BookingItem,
+  BookingStatus,
+  TicketTemplate,
 } from '../shared/types/hpticket';
 
-export type { IssuedTicket };
+export type { IssuedTicket, Booking, BookingItem };
+
 
 import { apiClient, API_ENDPOINTS, API_BASE_URL } from './apiConfig';
 import { inventoryService } from './inventoryService';
@@ -958,4 +963,135 @@ export const salesService = {
       data: newOrder,
     };
   },
+
+  // ==========================================
+  // PRE-SALE / BOOKING METHODS (Trực tiếp CSDL qua Backend API)
+  // ==========================================
+  async lookupBooking(bookingCode: string): Promise<ApiResponse<Booking>> {
+    return apiClient.get<ApiResponse<Booking>>(
+      API_ENDPOINTS.SALES.BOOKING_LOOKUP(encodeURIComponent(bookingCode.trim()))
+    );
+  },
+
+  async lookupAllBookings(code: string): Promise<ApiResponse<Booking[]>> {
+    try {
+      const res = await apiClient.get<ApiResponse<Booking[]>>(
+        API_ENDPOINTS.SALES.BOOKING_LOOKUP_ALL(encodeURIComponent(code.trim()))
+      );
+      if (res?.data && Array.isArray(res.data)) {
+        return res;
+      }
+      return { code: 200, message: 'OK', data: [] };
+    } catch {
+      // Fallback nếu backend chưa reload endpoint mới: dùng lookup đơn
+      const single = await this.lookupBooking(code);
+      return {
+        code: 200,
+        message: 'OK',
+        data: single.data ? [single.data] : []
+      };
+    }
+  },
+
+  async lookupPublicBooking(bookingCode: string): Promise<ApiResponse<Booking>> {
+    return apiClient.get<ApiResponse<Booking>>(
+      API_ENDPOINTS.SALES.BOOKING_PUBLIC_LOOKUP(encodeURIComponent(bookingCode.trim()))
+    );
+  },
+
+  async getPublicTicketTemplates(): Promise<ApiResponse<TicketTemplate[]>> {
+    return apiClient.get<ApiResponse<TicketTemplate[]>>(
+      API_ENDPOINTS.SALES.BOOKING_PUBLIC_TEMPLATES
+    );
+  },
+
+  async checkoutBooking(bookingId: string, payload: {
+    sales_counter_id: string;
+    payment_method: PaymentMethod;
+    amount?: number;
+    note?: string;
+    item_adjustments?: { booking_item_id: string; actual_quantity: number }[];
+  }): Promise<ApiResponse<Order>> {
+    return apiClient.post<ApiResponse<Order>>(
+      API_ENDPOINTS.SALES.BOOKING_CHECKOUT(bookingId),
+      payload
+    );
+  },
+
+  async createBooking(payload: any): Promise<ApiResponse<Booking>> {
+    return apiClient.post<ApiResponse<Booking>>(
+      API_ENDPOINTS.SALES.BOOKINGS,
+      payload
+    );
+  },
+
+  async createPublicBooking(payload: any): Promise<ApiResponse<Booking>> {
+    return apiClient.post<ApiResponse<Booking>>(
+      API_ENDPOINTS.SALES.BOOKING_PUBLIC_CREATE,
+      payload
+    );
+  },
+
+  async getBookings(params?: Record<string, string | number | boolean>): Promise<ApiResponse<any>> {
+    return apiClient.get<ApiResponse<any>>(
+      API_ENDPOINTS.SALES.BOOKINGS,
+      params
+    );
+  },
+
+  async getBookingById(id: string): Promise<ApiResponse<Booking>> {
+    return apiClient.get<ApiResponse<Booking>>(
+      API_ENDPOINTS.SALES.BOOKING_DETAIL(id)
+    );
+  },
+
+  async cancelBooking(id: string, reason?: string): Promise<ApiResponse<Booking>> {
+    return apiClient.post<ApiResponse<Booking>>(
+      API_ENDPOINTS.SALES.BOOKING_CANCEL(id),
+      { reason }
+    );
+  },
+
+  async confirmBooking(id: string): Promise<ApiResponse<Booking>> {
+    return apiClient.post<ApiResponse<Booking>>(
+      API_ENDPOINTS.SALES.BOOKING_CONFIRM(id),
+      {}
+    );
+  },
+
+  async getMasterData(): Promise<ApiResponse<{ customerGroups: any[]; promotions: any[] }>> {
+    try {
+      const [grpsRes, promsRes] = await Promise.allSettled([
+        apiClient.get<any>(API_ENDPOINTS.MARKETING.CUSTOMER_GROUPS),
+        apiClient.get<any>(API_ENDPOINTS.MARKETING.PROMOTIONS)
+      ]);
+
+      const customerGroups = grpsRes.status === 'fulfilled'
+        ? (Array.isArray(grpsRes.value?.data) ? grpsRes.value.data : (grpsRes.value?.data?.content || grpsRes.value || []))
+        : [];
+
+      const promotions = promsRes.status === 'fulfilled'
+        ? (Array.isArray(promsRes.value?.data) ? promsRes.value.data : (promsRes.value?.data?.content || promsRes.value || []))
+        : [];
+
+      return {
+        code: 200,
+        message: 'Lấy dữ liệu master data thành công',
+        data: {
+          customerGroups,
+          promotions
+        }
+      };
+    } catch {
+      return {
+        code: 200,
+        message: 'Lấy dữ liệu master data',
+        data: {
+          customerGroups: [],
+          promotions: []
+        }
+      };
+    }
+  },
 };
+
