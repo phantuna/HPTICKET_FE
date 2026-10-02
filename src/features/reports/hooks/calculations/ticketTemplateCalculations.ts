@@ -7,12 +7,14 @@ export interface TicketTemplateCalcParams {
 export const calculateTicketTemplateStats = (orders: any[], params: TicketTemplateCalcParams): any[] => {
   if (params.ticketRevenueStats.length > 0) {
     return params.ticketRevenueStats.map((t: any) => {
-      const template = params.ticketTemplates.find((temp: any) => temp.id === t.itemCode);
+      const template = params.ticketTemplates.find((temp: any) => 
+        temp.id === t.itemId || temp.id === t.itemCode || temp.code === t.itemCode
+      );
       return {
-        id: t.itemCode,
+        id: t.itemId || t.itemCode,
         name: t.itemName,
         full_name: t.itemName,
-        code: template ? template.code : t.itemCode,
+        code: template ? template.code : (t.itemCode || t.itemId),
         soldQty: t.quantity,
         grossRevenue: t.grossRevenue != null ? t.grossRevenue : t.revenue,
         revenue: t.revenue

@@ -20,12 +20,24 @@ export const useIAM = (initialTab: string) => {
   const [badgeQrMode, setBadgeQrMode] = useState<'text' | 'vcard' | 'code'>('text');
   const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
 
+  const refreshUsers = async () => {
+    try {
+      const res = await iamService.fetchUsers();
+      if (res.data) {
+        setUsers(res.data);
+        globalIamCache.users = res.data;
+      }
+    } catch (err) {
+      console.error('[useIAM] Error refreshing users:', err);
+    }
+  };
+
   useEffect(() => {
     if (activeSubTab === 'KhaiBaoPhanQuyen') {
       iamService.fetchRoles().then(res => { setRoles(res.data || []); globalIamCache.roles = res.data; });
       iamService.fetchPermissions().then(res => { setPermissions(res.data || []); globalIamCache.perms = res.data; });
     } else if (activeSubTab === 'KhaibaoDangNhap' || activeSubTab === 'KhaiBaoThe_NV') {
-      iamService.fetchUsers().then(res => { setUsers(res.data || []); globalIamCache.users = res.data; });
+      refreshUsers();
       iamService.fetchRoles().then(res => { setRoles(res.data || []); globalIamCache.roles = res.data; });
     }
   }, [activeSubTab]);
@@ -283,6 +295,7 @@ export const useIAM = (initialTab: string) => {
     handleToggleUserActive,
     openNewUserModal,
     openEditUserModal,
+    refreshUsers,
     
     // Role management
     showRoleModal, setShowRoleModal,

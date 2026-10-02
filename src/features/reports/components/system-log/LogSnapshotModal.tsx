@@ -53,6 +53,7 @@ export const LogSnapshotModal: React.FC<LogSnapshotModalProps> = ({ selectedLog,
   const formatValueSafe = (val: any): string => {
     if (val === null || val === undefined) return 'trống';
     if (typeof val === 'boolean') return val ? 'Bật (Hoạt động)' : 'Tắt (Tạm ngưng)';
+    if (Array.isArray(val)) return val.length > 0 ? val.join(', ') : 'trống (không có)';
     if (typeof val === 'object') return JSON.stringify(val);
     return String(val);
   };
@@ -79,14 +80,22 @@ export const LogSnapshotModal: React.FC<LogSnapshotModalProps> = ({ selectedLog,
     });
   }
 
-  // Fallback: Nếu changes rỗng nhưng có oldData hoặc newData
+  // Fallback: Nếu changes rỗng nhưng có old_data hoặc new_data
   if (diffEntries.length === 0) {
-    const oData = parseJsonSafe(selectedLog.oldData);
-    const nData = parseJsonSafe(selectedLog.newData);
+    const oData = parseJsonSafe((selectedLog as any).old_data || (selectedLog as any).oldData);
+    const nData = parseJsonSafe((selectedLog as any).new_data || (selectedLog as any).newData);
     if (oData && nData && typeof oData === 'object' && typeof nData === 'object') {
+      // Chuẩn hóa đồng bộ giữa active (DB) và isActive (DTO) tránh sinh 2 dòng đối lập
+      if ('active' in oData && !('isActive' in oData)) oData.isActive = oData.active;
+      if ('isActive' in oData && !('active' in oData)) oData.active = oData.isActive;
+      if ('active' in nData && !('isActive' in nData)) nData.isActive = nData.active;
+      if ('isActive' in nData && !('active' in nData)) nData.active = nData.isActive;
+
       const allKeys = new Set([...Object.keys(oData), ...Object.keys(nData)]);
       allKeys.forEach((k) => {
         if (IGNORED_DIFF_KEYS.has(k) || IGNORED_DIFF_KEYS.has(k.toLowerCase())) return;
+        if (k === 'active' && allKeys.has('isActive')) return; // Ưu tiên hiển thị isActive có nhãn
+
         const oVal = oData[k];
         const nVal = nData[k];
         if (JSON.stringify(oVal) !== JSON.stringify(nVal)) {
@@ -111,10 +120,10 @@ export const LogSnapshotModal: React.FC<LogSnapshotModalProps> = ({ selectedLog,
 
   return (
     <div 
-      className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-white border border-slate-200 rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl text-slate-900 overflow-hidden">
+      <div className="bg-white border border-slate-200 rounded-2xl max-w-4xl w-full max-h-[88vh] flex flex-col shadow-2xl text-slate-900 overflow-hidden">
         
         {/* Header */}
         <div className="p-5 border-b border-slate-100 flex items-start justify-between bg-slate-50/70">
@@ -232,15 +241,15 @@ export const LogSnapshotModal: React.FC<LogSnapshotModalProps> = ({ selectedLog,
                 <FileText className="w-4 h-4 text-indigo-600" />
                 {hasOldValues ? `Bảng so sánh thay đổi dữ liệu (${diffEntries.length} trường)` : `Chi tiết thông tin dữ liệu (${diffEntries.length} trường)`}
               </span>
-              <div className="border border-slate-200 rounded-xl overflow-hidden shadow-xs">
-                <table className="w-full text-left text-xs">
+              <div className="border border-slate-200 rounded-xl overflow-x-auto shadow-xs">
+                <table className="w-full text-left text-xs table-fixed min-w-[580px]">
                   <thead className="bg-slate-50 border-b border-slate-200 text-slate-700 font-semibold">
                     <tr>
-                      <th className="py-2.5 px-3.5 w-1/3">Thuộc tính</th>
+                      <th className="py-2.5 px-3.5 w-[26%] sm:w-[22%]">Thuộc tính</th>
                       {hasOldValues && (
-                        <th className="py-2.5 px-3.5 w-1/3 text-rose-700">Trước khi sửa</th>
+                        <th className="py-2.5 px-3.5 w-[37%] sm:w-[39%] text-rose-700">Trước khi sửa</th>
                       )}
-                      <th className={`py-2.5 px-3.5 ${hasOldValues ? 'w-1/3' : 'w-2/3'} text-emerald-700`}>
+                      <th className={`py-2.5 px-3.5 ${hasOldValues ? 'w-[37%] sm:w-[39%]' : 'w-[74%] sm:w-[78%]'} text-emerald-700`}>
                         {hasOldValues ? 'Sau khi sửa' : 'Giá trị thiết lập'}
                       </th>
                     </tr>
@@ -252,14 +261,14 @@ export const LogSnapshotModal: React.FC<LogSnapshotModalProps> = ({ selectedLog,
 
                       return (
                         <tr key={key} className="hover:bg-slate-50/80 transition">
-                          <td className="py-2.5 px-3.5 font-semibold text-slate-800">
+                          <td className="py-2.5 px-3.5 font-semibold text-slate-800 break-words align-top">
                             <div>{label}</div>
                             <div className="text-[10px] font-mono text-slate-400 font-normal">{key}</div>
                           </td>
                           {hasOldValues && (
-                            <td className="py-2.5 px-3.5">
+                            <td className="py-2.5 px-3.5 align-top">
                               {oldVal !== null && oldVal !== undefined ? (
-                                <span className="inline-block px-2 py-0.5 rounded text-[11px] font-medium bg-rose-50 text-rose-700 border border-rose-100 line-through">
+                                <span className="inline-block max-w-full px-2 py-0.5 rounded text-[11px] font-medium bg-rose-50 text-rose-700 border border-rose-100 line-through break-all whitespace-normal">
                                   {oldStr}
                                 </span>
                               ) : (
@@ -267,9 +276,9 @@ export const LogSnapshotModal: React.FC<LogSnapshotModalProps> = ({ selectedLog,
                               )}
                             </td>
                           )}
-                          <td className="py-2.5 px-3.5">
+                          <td className="py-2.5 px-3.5 align-top">
                             {newVal !== null && newVal !== undefined ? (
-                              <span className="inline-block px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                              <span className="inline-block max-w-full px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 break-all whitespace-normal">
                                 {newStr}
                               </span>
                             ) : (

@@ -50,7 +50,7 @@ export const POSInvoiceForm: React.FC<POSInvoiceFormProps> = React.memo(({
   const selectedSource = customerSources.find(s => s.id === selectedSourceId);
   const summaryText = [
     customerName !== 'Khách lẻ không lấy hóa đơn' && customerName ? customerName : 'Khách lẻ',
-    selectedSource ? `Nguồn: ${selectedSource.company_name}` : null,
+    selectedSource ? `Nguồn: ${selectedSource.company_name || selectedSource.name || selectedSource.code}` : null,
     selectedGroup ? `Nhóm: ${selectedGroup.name}` : null
   ].filter(Boolean).join(' | ');
 
@@ -296,7 +296,7 @@ export const POSInvoiceForm: React.FC<POSInvoiceFormProps> = React.memo(({
             >
               <option value="">Không chọn</option>
               {customerSources.map((s) => (
-                <option key={s.id} value={s.id}>{s.company_name}</option>
+                <option key={s.id} value={s.id}>{s.company_name || s.name || s.code}</option>
               ))}
             </select>
           </div>

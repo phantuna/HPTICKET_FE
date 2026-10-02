@@ -10,12 +10,14 @@ import { toast } from '../../../shared/utils/toast';
 import { ConfirmModal } from '../../../shared/components/ConfirmModal';
 import { CreateBookingModal } from '../components/CreateBookingModal';
 import { BookingTicketPassModal } from '../components/BookingTicketPassModal';
+import { usePermission } from '../../../shared/hooks/usePermission';
 
 interface BookingsModuleProps {
   onOpenPOSWithBooking?: (bookingCode: string) => void;
 }
 
 export const BookingsModule: React.FC<BookingsModuleProps> = ({ onOpenPOSWithBooking }) => {
+  const { can } = usePermission();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -124,12 +126,14 @@ export const BookingsModule: React.FC<BookingsModuleProps> = ({ onOpenPOSWithBoo
             <ExternalLink className="w-4 h-4" /> Mở Trang Đặt Vé Online
           </button>
 
-          <button
-            onClick={() => setIsCreateOpen(true)}
-            className="px-5 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl flex items-center gap-2 transition shadow-md shadow-emerald-600/20"
-          >
-            <Plus className="w-4 h-4" /> Tạo Đặt Chỗ Mới
-          </button>
+          {can('CREATE_BOOKING') && (
+            <button
+              onClick={() => setIsCreateOpen(true)}
+              className="px-5 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl flex items-center gap-2 transition shadow-md shadow-emerald-600/20"
+            >
+              <Plus className="w-4 h-4" /> Tạo Đặt Chỗ Mới
+            </button>
+          )}
         </div>
       </div>
 
@@ -337,7 +341,7 @@ export const BookingsModule: React.FC<BookingsModuleProps> = ({ onOpenPOSWithBoo
                             <QrCode className="w-3.5 h-3.5" /> Phiếu
                           </button>
 
-                          {!isFulfilled && !isCancelled && (
+                          {!isFulfilled && !isCancelled && can('FULFILL_BOOKING') && (
                             <button
                               type="button"
                               onClick={() => handleSellInPOS(b.booking_code)}
@@ -348,7 +352,7 @@ export const BookingsModule: React.FC<BookingsModuleProps> = ({ onOpenPOSWithBoo
                             </button>
                           )}
 
-                          {!isFulfilled && !isCancelled && (
+                          {!isFulfilled && !isCancelled && can('CANCEL_BOOKING') && (
                             <button
                               type="button"
                               onClick={() => setCancelTarget(b)}

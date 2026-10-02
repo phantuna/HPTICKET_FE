@@ -84,15 +84,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { label: 'Khai báo thẻ nhân viên / QR', module: 'iam', subTab: 'KhaiBaoThe_NV', icon: QrCode, requirePermission: 'VIEW_USER' },
     { label: 'Khai báo các ngày lễ', module: 'marketing', subTab: 'Hoiday', icon: Calendar, requirePermission: 'VIEW_HOLIDAY' },
     { label: 'Khai báo chương trình khuyến mại', module: 'marketing', subTab: 'KhaiBaoKhuyenMai', icon: Gift, requirePermission: 'VIEW_PROMOTION' },
-    { label: 'Quản lý kho & Sản phẩm', module: 'inventory', icon: Package, requirePermission: 'VIEW_PRODUCT' },
+    { label: 'Quản lý kho & Sản phẩm', module: 'inventory', icon: Package, requirePermission: ['VIEW_PRODUCT', 'INVENTORY_VIEW'] },
   ];
 
   const posMenu = [
-    { label: 'Đặt vé / Bán vé thu ngân', module: 'pos', icon: ShoppingCart, badge: 'POS', requirePermission: 'CREATE_ORDER' },
-    { label: 'Quản lý đặt trước (Booking)', module: 'bookings', icon: CalendarClock, badge: 'Mới', requirePermission: 'VIEW_ORDER' },
+    { label: 'Đặt vé / Bán vé thu ngân', module: 'pos', icon: ShoppingCart, badge: 'POS', requirePermission: ['CREATE_ORDER', 'VIEW_ORDER'] },
+    { label: 'Quản lý đặt trước (Booking)', module: 'bookings', icon: CalendarClock, badge: 'Mới', requirePermission: 'VIEW_BOOKING' },
     { label: 'Danh sách hóa đơn vé', module: 'orders', icon: Receipt, requirePermission: 'VIEW_ORDER' },
     { label: 'Kiểm tra vé / Soát cổng', module: 'gate', icon: QrCode, requirePermission: 'SCAN_TICKET' },
-    { label: 'Cổng đặt vé online (Khách)', module: 'dat-ve', icon: Ticket, requirePermission: 'CREATE_ORDER' },
+    { label: 'Cổng đặt vé online (Khách)', module: 'dat-ve', icon: Ticket, requirePermission: ['CREATE_ORDER', 'VIEW_BOOKING', 'CREATE_BOOKING'] },
   ];
 
   const reportsMenu = [
@@ -119,24 +119,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
   // Xác định quyền bằng cách đọc JWT token — động, không fix cứng role
   const { can, isAdmin } = usePermission();
 
+  // Helper kiểm tra quyền hỗ trợ 1 quyền hoặc mảng quyền (chỉ cần có 1 trong các quyền là được phép)
+  const hasMenuPermission = (requirePerm?: string | string[]) => {
+    if (!requirePerm) return true;
+    if (Array.isArray(requirePerm)) {
+      return requirePerm.some(p => can(p));
+    }
+    return can(requirePerm);
+  };
+
   // Lọc menu dựa trên quyền (RBAC)
-  const filteredDeclarationMenu = declarationMenu.filter(item => !item.requirePermission || can(item.requirePermission));
-  const filteredPosMenu = posMenu.filter(item => !item.requirePermission || can(item.requirePermission));
+  const filteredDeclarationMenu = declarationMenu.filter(item => hasMenuPermission(item.requirePermission));
+  const filteredPosMenu = posMenu.filter(item => hasMenuPermission(item.requirePermission));
   const filteredReportsMenu = reportsMenu.map(item => {
     if (item.children) {
       return {
         ...item,
-        children: item.children.filter(child => !child.requirePermission || can(child.requirePermission))
+        children: item.children.filter(child => hasMenuPermission(child.requirePermission))
       };
     }
     return item;
   }).filter(item => {
-    if (item.requirePermission && !can(item.requirePermission)) return false;
+    if (item.requirePermission && !hasMenuPermission(item.requirePermission)) return false;
     if (item.children && item.children.length === 0) return false;
     return true;
   });
 
-  const filteredSystemMenu = systemMenu.filter(item => isAdmin);
+  const filteredSystemMenu = systemMenu.filter(item => isAdmin || hasMenuPermission(item.requirePermission));
 
   const isRouteActive = (module: string, subTab?: string) => {
     if (activeTab !== module) return false;

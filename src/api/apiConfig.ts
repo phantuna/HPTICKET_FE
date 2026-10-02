@@ -83,6 +83,8 @@ export const API_ENDPOINTS = {
     USERS_ACTIVE: '/iam/users/active',
     USER_DETAIL: (id: string) => `/iam/users/${id}`,
     USER_STATUS: (id: string) => `/iam/users/${id}/status`,
+    USER_IMPORT: '/iam/users/import',
+    USER_TEMPLATE: '/iam/users/template',
     ROLES: '/iam/roles',
     ROLE_DETAIL: (id: string) => `/iam/roles/${id}`,
     ROLE_STATUS: (id: string) => `/iam/roles/${id}/status`,
@@ -155,6 +157,7 @@ export const API_ENDPOINTS = {
     BOOKING_PUBLIC_LOOKUP: (code: string) => `/sales/bookings/public/lookup/${code}`,
     BOOKING_LOOKUP: (code: string) => `/sales/bookings/lookup/${code}`,
     BOOKING_LOOKUP_ALL: (code: string) => `/sales/bookings/lookup-all/${code}`,
+    BOOKING_POS_SEARCH: '/sales/bookings/pos/search',
     BOOKING_DETAIL: (id: string) => `/sales/bookings/${id}`,
     BOOKING_CHECKOUT: (id: string) => `/sales/bookings/${id}/checkout`,
     BOOKING_CANCEL: (id: string) => `/sales/bookings/${id}/cancel`,
@@ -229,11 +232,14 @@ export const apiClient = {
     const { params, headers, bypassCache, ...customConfig } = config;
     const fullUrl = this.buildUrl(endpoint, params);
 
+    const isFormData = typeof FormData !== 'undefined' && customConfig.body instanceof FormData;
     const defaultHeaders: Record<string, string> = {
-      'Content-Type': 'application/json',
       'Accept': 'application/json',
       'X-Client-Version': '2.4.0',
     };
+    if (!isFormData) {
+      defaultHeaders['Content-Type'] = 'application/json';
+    }
 
     const token = authState.getToken();
     if (token) {
@@ -462,10 +468,11 @@ export const apiClient = {
   },
 
   post<T>(endpoint: string, body?: any, config?: RequestConfig): Promise<T> {
+    const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
     return apiClient.request<T>(endpoint, {
       ...config,
       method: 'POST',
-      body: body ? JSON.stringify(body) : undefined,
+      body: isFormData ? body : (body ? JSON.stringify(body) : undefined),
     });
   },
 

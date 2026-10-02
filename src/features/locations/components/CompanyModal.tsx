@@ -1,5 +1,5 @@
 import React from 'react';
-import { Building2 } from 'lucide-react';
+import { Building2, X } from 'lucide-react';
 
 import { systemService } from '../../../api/systemService';
 import { API_BASE_URL } from '../../../api/apiConfig';
@@ -30,15 +30,28 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
   onSubmit, onClose
 }) => (
   <div
-    className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4"
+    className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150"
+    onClick={(e) => {
+      if (e.target === e.currentTarget) onClose();
+    }}
     onKeyDown={(e) => {
       if (e.key === 'Escape') onClose();
     }}
   >
-    <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }} className="bg-white border border-slate-200 rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl text-slate-900">
-      <h3 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
-        <Building2 className="w-5 h-5 text-emerald-600" /> Sửa Thông Tin Công Ty
-      </h3>
+    <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }} className="bg-white border border-slate-200 rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl text-slate-900 animate-in zoom-in-95 duration-150">
+      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+          <Building2 className="w-5 h-5 text-emerald-600" /> Sửa Thông Tin Công Ty
+        </h3>
+        <button
+          type="button"
+          onClick={onClose}
+          className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-1.5 rounded-lg transition"
+          aria-label="Đóng"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
       <div className="grid grid-cols-2 gap-4 text-xs">
         <div>
           <label className="block text-slate-700 font-semibold mb-1">Mã Công Ty:</label>

@@ -62,24 +62,37 @@ export function hasPermission(perm: string): boolean {
   // 1. Kiểm tra chính xác
   if (permissions.includes(perm)) return true;
 
-  // 2. Kiểm tra kế thừa từ các quyền MANAGE_*
-  if (permissions.includes('MANAGE_IAM') && (perm.endsWith('_USER') || perm.endsWith('_ROLE') || perm.endsWith('_PERMISSION') || perm.endsWith('_SYSTEM_LOG'))) {
+  // 2. Kiểm tra kế thừa từ các quyền MANAGE_* (Trưởng phân hệ)
+  if (permissions.includes('MANAGE_IAM') && (
+    perm.includes('USER') || perm.includes('ROLE') || perm.includes('PERMISSION') || perm.includes('SYSTEM_LOG') || perm.includes('IAM')
+  )) {
     return true;
   }
   
-  if (permissions.includes('MANAGE_SALES') && (perm.endsWith('_ORDER') || perm.endsWith('_PRODUCT') || perm.endsWith('_ISSUED_TICKET') || perm.endsWith('_REPORT') || perm.endsWith('_SALES_LOCATION') || perm.endsWith('_SALES_COUNTER'))) {
+  // Quản lý Bán hàng & Quản lý Vé liên thông: cả hai đều bao hàm nghiệp vụ vé, POS, hóa đơn, đặt chỗ, mẫu vé, soát cổng
+  if (permissions.includes('MANAGE_SALES') || permissions.includes('MANAGE_TICKETING')) {
+    if (
+      perm.includes('ORDER') || perm.includes('PRODUCT') || perm.includes('TICKET') || 
+      perm.includes('REPORT') || perm.includes('SALES_') || perm.includes('BOOKING') || 
+      perm.startsWith('INVENTORY_') || perm.includes('SALE') || perm.includes('AUDIENCE') || 
+      perm.includes('CONTROL') || perm === 'SCAN_TICKET' || perm.includes('TICKETING') ||
+      perm.startsWith('VIEW_')
+    ) {
+      return true;
+    }
+  }
+  
+  if (permissions.includes('MANAGE_MARKETING') && (
+    perm.includes('COMPANY') || perm.includes('CUSTOMER_') || perm.includes('PROMOTION') || 
+    perm.includes('HOLIDAY') || perm.includes('EMAIL') || perm.includes('MARKETING') ||
+    perm === 'VIEW_TICKET_TEMPLATE'
+  )) {
     return true;
   }
   
-  if (permissions.includes('MANAGE_TICKETING') && (perm.endsWith('_TICKET_TEMPLATE') || perm.endsWith('_AUDIENCE_TYPE') || perm.endsWith('_CONTROL_ZONE') || perm.endsWith('_CONTROL_GATE') || perm.endsWith('_TICKET_ZONE') || perm === 'SCAN_TICKET')) {
-    return true;
-  }
-  
-  if (permissions.includes('MANAGE_MARKETING') && (perm.endsWith('_COMPANY') || perm.endsWith('_CUSTOMER_GROUP') || perm.endsWith('_CUSTOMER_SOURCE') || perm.endsWith('_PROMOTION') || perm.endsWith('_HOLIDAY'))) {
-    return true;
-  }
-  
-  if (permissions.includes('MANAGE_VINVOICE') && perm.endsWith('_INVOICE')) {
+  if (permissions.includes('MANAGE_VINVOICE') && (
+    perm.includes('INVOICE') || perm.includes('VINVOICE') || perm === 'VIEW_ORDER' || perm === 'VIEW_COMPANY'
+  )) {
     return true;
   }
 

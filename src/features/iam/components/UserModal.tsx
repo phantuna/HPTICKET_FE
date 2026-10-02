@@ -1,5 +1,7 @@
 import React from 'react';
+import { Save, UserCheck, X, CreditCard } from 'lucide-react';
 import { apiClient, API_ENDPOINTS } from '../../../api/apiConfig';
+import { Button } from '../../../shared/components/ui';
 
 const UnregisteredCardPicker: React.FC<{ onSelect: (code: string) => void }> = ({ onSelect }) => {
   const [show, setShow] = React.useState(false);
@@ -28,7 +30,8 @@ const UnregisteredCardPicker: React.FC<{ onSelect: (code: string) => void }> = (
         onClick={fetchCards}
         className="px-3 py-1 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 flex items-center gap-1.5 transition whitespace-nowrap"
       >
-        💳 Lấy thẻ vừa quét
+        <CreditCard className="w-3.5 h-3.5 text-slate-500" />
+        Lấy thẻ vừa quét
       </button>
 
       {show && (
@@ -53,7 +56,6 @@ const UnregisteredCardPicker: React.FC<{ onSelect: (code: string) => void }> = (
                   }}
                   className="w-full text-left px-3 py-2 hover:bg-emerald-50 rounded-lg transition group flex items-center gap-2"
                 >
-                  <span className="text-lg"></span>
                   <div>
                     <div className="text-sm font-mono font-bold text-emerald-700 group-hover:text-emerald-800">{code}</div>
                     <div className="text-[10px] text-slate-400">Vừa quét ở cổng</div>
@@ -102,15 +104,43 @@ export const UserModal: React.FC<UserModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
       onKeyDown={(e) => {
         if (e.key === 'Escape') onClose();
       }}
     >
       <form
         onSubmit={onSubmit}
-        className="bg-white border border-slate-200 rounded-2xl max-w-lg w-full p-8 shadow-2xl text-slate-900"
+        className="bg-white border border-slate-200 rounded-2xl max-w-lg w-full p-6 sm:p-7 shadow-2xl text-slate-900 animate-in zoom-in-95 duration-150"
       >
+        {/* Modal Header */}
+        <div className="flex items-center justify-between pb-4 mb-6 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+              <UserCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-slate-800">
+                {editingUserId ? 'Cập nhật tài khoản nhân sự' : 'Khai báo tài khoản nhân viên'}
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {editingUserId ? 'Chỉnh sửa thông tin, thẻ định danh và quầy phân công' : 'Tạo mới tài khoản và phân quyền truy cập hệ thống'}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-xl transition"
+            aria-label="Đóng"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
         <div className="space-y-6 text-sm">
           <div className="flex items-center gap-4">
             <label className="w-32 shrink-0 text-slate-700 font-medium">
@@ -245,29 +275,27 @@ export const UserModal: React.FC<UserModalProps> = ({
           </div>
         </div>
 
-        <div className="flex justify-center gap-4 mt-8">
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition shadow-xs flex items-center gap-1.5 text-sm"
-          >
-            {isSubmitting ? (
-              <>
-                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block mr-1" />
-                Đang lưu...
-              </>
-            ) : (
-              'Lưu 💾'
-            )}
-          </button>
-          <button
+        {/* Action Buttons using shared Button component */}
+        <div className="flex items-center justify-end gap-3 mt-8 pt-4 border-t border-slate-100">
+          <Button
             type="button"
+            variant="secondary"
+            size="md"
             onClick={onClose}
             disabled={isSubmitting}
-            className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 font-semibold rounded-xl transition text-sm"
           >
             Hủy
-          </button>
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            size="md"
+            isLoading={isSubmitting}
+            loadingText="Đang lưu..."
+            icon={<Save className="w-4 h-4" />}
+          >
+            Lưu
+          </Button>
         </div>
       </form>
     </div>

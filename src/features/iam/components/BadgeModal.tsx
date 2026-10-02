@@ -15,7 +15,10 @@ export const BadgeModal: React.FC<BadgeModalProps> = ({
   selectedBadgeUser, roles, badgeQrMode, setBadgeQrMode, onClose
 }) => (
   <div
-    className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4"
+    className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150"
+    onClick={(e) => {
+      if (e.target === e.currentTarget) onClose();
+    }}
     onKeyDown={(e) => {
       if (e.key === 'Escape' || e.key === 'Enter') onClose();
     }}

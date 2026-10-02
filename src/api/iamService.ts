@@ -5,7 +5,7 @@
 
 import { dbStore } from '../shared/data/mockDatabase';
 import { User, Role, Permission, ApiResponse } from '../shared/types/hpticket';
-import { apiClient, API_ENDPOINTS } from './apiConfig';
+import { apiClient, API_ENDPOINTS, API_BASE_URL } from './apiConfig';
 import { hasPermission } from '../shared/utils/permissionGuard';
 import { tokenRefreshService } from './tokenRefreshService';
 
@@ -318,6 +318,55 @@ export const iamService = {
     dbStore.users = dbStore.users.filter((u) => u.id !== id);
     dbStore.saveToStorage();
     return { code: 200, message: 'Xóa người dùng thành công', data: undefined };
+  },
+
+  /**
+   * Tải file mẫu Excel chuẩn để nhập hàng loạt nhân sự
+   */
+  async downloadUserTemplate(): Promise<void> {
+    const { authState } = await import('./authState');
+    const token = authState.getToken();
+    const url = `${API_BASE_URL}${API_ENDPOINTS.IAM.USER_TEMPLATE}`;
+    const headers: HeadersInit = {
+      'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers,
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      throw new Error('Không thể tải file mẫu từ máy chủ');
+    }
+
+    const blob = await response.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.setAttribute('download', 'Mau_Nhap_Nhan_Su.xlsx');
+    document.body.appendChild(link);
+    link.click();
+    link.parentNode?.removeChild(link);
+    window.URL.revokeObjectURL(blobUrl);
+  },
+
+  /**
+   * Nhập hàng loạt tài khoản nhân sự từ file Excel
+   */
+  async importUsersFromExcel(file: File): Promise<ApiResponse<{
+    totalRows: number;
+    successCount: number;
+    failedCount: number;
+    errors: Array<{ rowNumber: number; username: string; reason: string }>;
+  }>> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return await apiClient.post<ApiResponse<any>>(API_ENDPOINTS.IAM.USER_IMPORT, formData);
   },
 
   async createRole(roleDto: Omit<Role, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'updated_by'>): Promise<ApiResponse<Role>> {

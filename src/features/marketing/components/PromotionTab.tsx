@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Gift } from 'lucide-react';
+import { Gift, X } from 'lucide-react';
 import { AdminConfigCard } from '../../iam/components/AdminConfigCard';
 import { Promotion, HolidayPolicy, Holiday } from '../../../shared/types/hpticket';
 import { marketingService } from '../../../api/marketingService';
@@ -207,7 +207,10 @@ export const PromotionTab: React.FC<PromotionTabProps> = ({ promotions, setPromo
 
       {showModal && (
         <div
-          className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowModal(false);
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Escape') setShowModal(false);
           }}
@@ -217,11 +220,21 @@ export const PromotionTab: React.FC<PromotionTabProps> = ({ promotions, setPromo
               e.preventDefault();
               handleSave();
             }}
-            className="bg-white border border-slate-200 rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl text-slate-900"
+            className="bg-white border border-slate-200 rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl text-slate-900 animate-in zoom-in-95 duration-150"
           >
-            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
-              <Gift className="w-5 h-5 text-emerald-600" /> {editingPromoId ? 'Sửa Khuyến Mại' : 'Thêm Chương Trình Khuyến Mại'}
-            </h3>
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Gift className="w-5 h-5 text-emerald-600" /> {editingPromoId ? 'Sửa Khuyến Mại' : 'Thêm Chương Trình Khuyến Mại'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowModal(false)}
+                className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-1.5 rounded-lg transition"
+                aria-label="Đóng"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
             <div className="space-y-4 text-sm text-slate-800">
               <div className="flex items-center gap-4">
                 <label className="w-32 shrink-0 font-medium text-slate-700">

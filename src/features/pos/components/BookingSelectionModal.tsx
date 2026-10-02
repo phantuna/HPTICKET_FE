@@ -1,14 +1,14 @@
 import React from 'react';
-import { CalendarClock, Calendar, User, Phone, ArrowRight, Building2, Ticket, Users } from 'lucide-react';
-import { Booking } from '../../../shared/types/hpticket';
+import { CalendarClock, Calendar, User, Phone, ArrowRight, Ticket, Users } from 'lucide-react';
+import { BookingPosSearchItem } from '../../../shared/types/hpticket';
 import { Modal, Button } from '../../../shared/components/ui';
 
 interface BookingSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
   searchQuery: string;
-  bookings: Booking[];
-  onSelectBooking: (booking: Booking) => void;
+  bookings: BookingPosSearchItem[];
+  onSelectBooking: (booking: BookingPosSearchItem) => void;
 }
 
 export const BookingSelectionModal: React.FC<BookingSelectionModalProps> = ({
@@ -38,20 +38,9 @@ export const BookingSelectionModal: React.FC<BookingSelectionModalProps> = ({
 
         <div className="space-y-3">
           {bookings.map((b, idx) => {
-            const totalPasses = b.items?.reduce((acc, it) => {
-              const passes = Number(it.allowed_passes) || 1;
-              const qty = Number(it.quantity) || 1;
-              const isGroup = Boolean(it.is_group_ticket || passes > 1);
-              return acc + (isGroup ? passes : (qty * passes));
-            }, 0) || 0;
-            const isGroup = b.items?.some(it => Boolean(it.is_group_ticket || (Number(it.allowed_passes) || 1) > 1));
-            const total = Number(b.total_amount || 0);
-            const remaining = Number(b.remaining_amount !== undefined ? b.remaining_amount : total);
-            const deposit = Number(b.deposit_amount || 0);
-
             return (
               <div
-                key={b.id || idx}
+                key={b.booking_code || idx}
                 className="bg-white border-2 border-slate-200 hover:border-emerald-500 rounded-xl p-3.5 sm:p-4 transition-all shadow-2xs hover:shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 group"
               >
                 <div className="space-y-2 flex-1 min-w-0">
@@ -64,20 +53,22 @@ export const BookingSelectionModal: React.FC<BookingSelectionModalProps> = ({
                       <Calendar className="w-3 h-3 text-slate-500" />
                       Ngày đến: <b className="text-slate-800 font-semibold">{b.visit_date}</b>
                     </span>
-                    <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md border flex items-center gap-1 ${
-                      isGroup 
-                        ? 'bg-purple-50 text-purple-800 border-purple-200' 
-                        : 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                    }`}>
-                      {isGroup ? (
+                    <span
+                      className={`text-[11px] font-bold px-2 py-0.5 rounded-md border flex items-center gap-1 ${
+                        b.group
+                          ? 'bg-purple-50 text-purple-800 border-purple-200'
+                          : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                      }`}
+                    >
+                      {b.group ? (
                         <>
                           <Users className="w-3 h-3 text-purple-600" />
-                          <span>Vé đoàn ({totalPasses} lượt)</span>
+                          <span>Vé đoàn</span>
                         </>
                       ) : (
                         <>
                           <Ticket className="w-3 h-3 text-emerald-600" />
-                          <span>{totalPasses} vé lẻ</span>
+                          <span>Vé lẻ</span>
                         </>
                       )}
                     </span>
@@ -89,56 +80,21 @@ export const BookingSelectionModal: React.FC<BookingSelectionModalProps> = ({
                       <User className="w-3.5 h-3.5 text-slate-400" />
                       {b.customer_name || 'Khách vãng lai'}
                     </span>
-                    {b.customer_phone && (
+                    {b.phone_masked && (
                       <span className="font-mono text-slate-500 flex items-center gap-1">
                         <Phone className="w-3 h-3 text-slate-400" />
-                        {b.customer_phone}
-                      </span>
-                    )}
-                    {b.company_name && (
-                      <span className="text-slate-600 flex items-center gap-1 truncate max-w-[200px]" title={b.company_name}>
-                        <Building2 className="w-3 h-3 text-slate-400 shrink-0" />
-                        {b.company_name}
+                        {b.phone_masked}
                       </span>
                     )}
                   </div>
 
-                  {/* Item breakdown */}
-                  <div className="space-y-1.5 pt-2 border-t border-slate-100">
-                    {b.items?.map((it, itemIdx) => {
-                      const ticketTitle = it.ticket_name || (it as any).ticket_name_snapshot || (it as any).template_name || it.ticket_type_code || 'Vé tham quan';
-                      const isGroupItem = Boolean(it.is_group_ticket || (it.allowed_passes && it.allowed_passes > 1));
-                      const unitPrice = Number(it.unit_price || 0);
-
-                      return (
-                        <div key={itemIdx} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-3 text-xs bg-slate-50/90 px-3 py-2 rounded-lg border border-slate-200/80">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                            <span className="font-bold text-slate-900 leading-snug">
-                              {ticketTitle}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2.5 shrink-0 self-end sm:self-auto pl-4 sm:pl-0">
-                            {unitPrice > 0 && (
-                              <span className="text-slate-500 font-mono text-[11px]">
-                                {unitPrice.toLocaleString('vi-VN')} đ/vé
-                              </span>
-                            )}
-                            <span className="font-mono font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded text-[11px] whitespace-nowrap">
-                              {isGroupItem ? `1 vé (${it.allowed_passes} lượt)` : `x${it.quantity} vé`}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
+                  {/* Ticket Summary formatted directly by backend */}
+                  <div className="pt-2 border-t border-slate-100 flex items-center gap-2 text-xs bg-slate-50/90 px-3 py-2 rounded-lg border border-slate-200/80">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                    <span className="font-bold text-slate-800 leading-snug">
+                      {b.ticket_summary}
+                    </span>
                   </div>
-
-                  {/* Note if present */}
-                  {b.note && (
-                    <p className="text-[11px] text-amber-800 bg-amber-50/70 border border-amber-200/80 px-2 py-0.5 rounded italic">
-                      Ghi chú: {b.note}
-                    </p>
-                  )}
                 </div>
 
                 {/* Price & Action Button */}
@@ -146,19 +102,15 @@ export const BookingSelectionModal: React.FC<BookingSelectionModalProps> = ({
                   <div className="text-right">
                     <span className="text-[11px] text-slate-400 block font-medium">Cần thanh toán</span>
                     <span className="text-base sm:text-lg font-black font-mono text-emerald-700">
-                      {remaining.toLocaleString('vi-VN')} đ
+                      {Number(b.amount_due || 0).toLocaleString('vi-VN')} đ
                     </span>
-                    {deposit > 0 && (
-                      <span className="text-[10px] text-slate-500 block">
-                        (Đã cọc: {deposit.toLocaleString('vi-VN')} đ)
-                      </span>
-                    )}
                   </div>
 
                   <Button
                     type="button"
                     variant="primary"
                     size="sm"
+                    disabled={!b.can_checkout}
                     onClick={() => onSelectBooking(b)}
                     className="shadow-md shadow-emerald-600/20"
                     icon={<ArrowRight className="w-3.5 h-3.5" />}

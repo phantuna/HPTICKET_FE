@@ -100,10 +100,10 @@ export const CreateBookingModal: React.FC<CreateBookingModalProps> = ({ isOpen, 
             }
           } catch {
             try {
-              const grpRes = await apiClient.get<any>(API_ENDPOINTS.MARKETING.CUSTOMER_GROUPS);
+              const grpRes = await apiClient.get<any>(API_ENDPOINTS.MARKETING.CUSTOMER_GROUPS_ACTIVE || API_ENDPOINTS.MARKETING.CUSTOMER_GROUPS, { silent: true });
               const grpList = Array.isArray(grpRes) ? grpRes : (grpRes?.data?.content || grpRes?.data || []);
               setCustomerGroups(grpList);
-              const pRes = await apiClient.get<any>(API_ENDPOINTS.MARKETING.PROMOTIONS);
+              const pRes = await apiClient.get<any>(API_ENDPOINTS.MARKETING.PROMOTIONS_ACTIVE || API_ENDPOINTS.MARKETING.PROMOTIONS, { silent: true });
               const pList = Array.isArray(pRes) ? pRes : (pRes?.data?.content || pRes?.data || []);
               setPromotions(pList.filter((p: any) => p.is_active !== false && !p.deleted_at));
             } catch (e) {

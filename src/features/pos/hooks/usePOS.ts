@@ -4,7 +4,7 @@ import { iamService } from '../../../api/iamService';
 import { marketingService } from '../../../api/marketingService';
 import { apiClient, API_ENDPOINTS, API_BASE_URL } from '../../../api/apiConfig';
 import { authState } from '../../../api/authState';
-import { PaymentMethod, ItemType, Order, IssuedTicket, BusinessDayContext, Booking } from '../../../shared/types/hpticket';
+import { PaymentMethod, ItemType, Order, IssuedTicket, BusinessDayContext, Booking, BookingPosSearchItem } from '../../../shared/types/hpticket';
 import { dbStore } from '../../../shared/data/mockDatabase';
 import { toast } from '../../../shared/utils/toast';
 import QRCode from 'qrcode';
@@ -55,7 +55,7 @@ export const usePOS = () => {
   const [bookingCode, setBookingCode] = useState<string>('');
   const [currentBooking, setCurrentBooking] = useState<Booking | null>(null);
   const [isCheckingBooking, setIsCheckingBooking] = useState<boolean>(false);
-  const [matchingBookings, setMatchingBookings] = useState<any[]>([]);
+  const [matchingBookings, setMatchingBookings] = useState<BookingPosSearchItem[]>([]);
   const [isBookingSelectionOpen, setIsBookingSelectionOpen] = useState<boolean>(false);
   const [customerMode, setCustomerMode] = useState<'RETAIL' | 'GROUP'>('RETAIL');
   const [customerName, setCustomerName] = useState<string>('Khách lẻ không lấy hóa đơn');
@@ -226,31 +226,38 @@ export const usePOS = () => {
           const activeList = list.filter(isItemActive);
           let allowedCounters = activeList;
 
-          const isAdmin = currentUser?.role_id?.toLowerCase().includes('admin') || (currentUser as any)?.roles?.some((r: any) => r.code === 'ADMIN');
+          const roleStr = (currentUser?.roleName || currentUser?.role_name || currentUser?.roleCode || currentUser?.role_id || currentUser?.role || currentUser?.username || '').toLowerCase();
+          const isAdmin = roleStr.includes('admin') || (currentUser as any)?.roles?.some((r: any) => (r.code || r.name || '').toUpperCase().includes('ADMIN'));
           if (!isAdmin) {
-            if (currentUser?.assigned_counters && currentUser.assigned_counters.length > 0) {
-              const assignedIds = currentUser.assigned_counters.map((c: any) => c.id);
-              allowedCounters = activeList.filter((c: any) => assignedIds.includes(c.id));
-            } else {
-              allowedCounters = [];
+            const userCounters = currentUser?.assigned_counters || currentUser?.assignedCounters || [];
+            if (userCounters.length > 0) {
+              const assignedIds = userCounters.map((c: any) => c.id || c.sales_counter_id || c.counter_id).filter(Boolean);
+              const filtered = activeList.filter((c: any) => assignedIds.includes(c.id));
+              if (filtered.length > 0) {
+                allowedCounters = filtered;
+              }
             }
           }
 
           if (allowedCounters.length > 0) {
             setCounters(allowedCounters);
             setSelectedCounterId(prev => {
-              if (prev && !allowedCounters.some((c: any) => c.id === prev)) {
-                localStorage.removeItem('hpticket_pos_selected_counter');
-                if (allowedCounters.length === 1) return allowedCounters[0].id;
-                return '';
+              const saved = localStorage.getItem('hpticket_pos_selected_counter');
+              if (saved && allowedCounters.some((c: any) => c.id === saved)) {
+                return saved;
               }
-              if (!prev && allowedCounters.length === 1) return allowedCounters[0].id;
-              return prev;
+              if (prev && allowedCounters.some((c: any) => c.id === prev)) {
+                return prev;
+              }
+              const firstId = allowedCounters[0]?.id || '';
+              if (firstId) localStorage.setItem('hpticket_pos_selected_counter', firstId);
+              return firstId;
             });
           } else {
-            setCounters([]);
-            setSelectedCounterId('');
-            localStorage.removeItem('hpticket_pos_selected_counter');
+            setCounters(activeList);
+            const fallbackId = activeList[0]?.id || '';
+            setSelectedCounterId(fallbackId);
+            if (fallbackId) localStorage.setItem('hpticket_pos_selected_counter', fallbackId);
           }
         };
 
@@ -821,7 +828,22 @@ export const usePOS = () => {
     );
   };
 
-  const applyBookingToPOS = (b: any) => {
+  const applyBookingToPOS = async (bookingOrSummary: any) => {
+    let b: any = bookingOrSummary;
+    if (!bookingOrSummary.items || !Array.isArray(bookingOrSummary.items) || bookingOrSummary.items.length === 0) {
+      try {
+        const res = await salesService.lookupBooking(bookingOrSummary.booking_code);
+        if (!res.data) {
+          toast.error('Không tìm thấy chi tiết cho mã đặt chỗ: ' + bookingOrSummary.booking_code);
+          return;
+        }
+        b = res.data;
+      } catch (err: any) {
+        toast.error('Không thể tải chi tiết đặt chỗ: ' + (err.message || 'Lỗi kết nối'));
+        return;
+      }
+    }
+
     if (b.status === 'FULFILLED') {
       toast.error(`Mã đặt chỗ [${b.booking_code}] đã được xuất vé hoàn tất trước đó, không thể tái sử dụng!`);
       return;
@@ -900,7 +922,7 @@ export const usePOS = () => {
     if (!code) return;
     setIsCheckingBooking(true);
     try {
-      const res = await salesService.lookupAllBookings(code);
+      const res = await salesService.posSearchBookings(code);
       const list = res.data || [];
       if (list.length === 0) {
         toast.error('Không tìm thấy đơn đặt chỗ nào còn hiệu lực với mã hoặc SĐT: ' + code);

@@ -24,9 +24,10 @@ import {
   BookingItem,
   BookingStatus,
   TicketTemplate,
+  BookingPosSearchItem,
 } from '../shared/types/hpticket';
 
-export type { IssuedTicket, Booking, BookingItem };
+export type { IssuedTicket, Booking, BookingItem, BookingPosSearchItem };
 
 
 import { apiClient, API_ENDPOINTS, API_BASE_URL } from './apiConfig';
@@ -786,7 +787,20 @@ export const salesService = {
         company_email: payload.company_email || null,
         invoice_recipient_email: payload.invoice_recipient_email || null,
       };
-      const res = await apiClient.post<ApiResponse<Order>>(API_ENDPOINTS.SALES.ORDERS, orderRequest);
+
+      const idempotencyKey = typeof crypto !== 'undefined' && crypto.randomUUID 
+        ? crypto.randomUUID() 
+        : `pos_order_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
+      const res = await apiClient.post<ApiResponse<Order>>(
+        API_ENDPOINTS.SALES.ORDERS, 
+        orderRequest,
+        {
+          headers: {
+            'Idempotency-Key': idempotencyKey,
+          },
+        }
+      );
       if (res && res.data) {
         const dataAny = res.data as any;
         const orderId = dataAny.id || dataAny.order_id;
@@ -993,6 +1007,26 @@ export const salesService = {
     }
   },
 
+  /**
+   * POS Booking Search (Tối giản, bảo mật, DTO gọn nhẹ, POST body chống lộ PII)
+   */
+  async posSearchBookings(keyword: string): Promise<ApiResponse<BookingPosSearchItem[]>> {
+    try {
+      const res = await apiClient.post<ApiResponse<BookingPosSearchItem[]>>(
+        API_ENDPOINTS.SALES.BOOKING_POS_SEARCH,
+        { keyword: keyword.trim() }
+      );
+      if (res?.data && Array.isArray(res.data)) {
+        return res;
+      }
+      return { code: 200, message: 'OK', data: [] };
+    } catch (err) {
+      console.warn('posSearchBookings error, fallback lookupAllBookings:', err);
+      // Fallback tạm thời nếu backend chưa reload
+      return this.lookupAllBookings(keyword) as any;
+    }
+  },
+
   async lookupPublicBooking(bookingCode: string): Promise<ApiResponse<Booking>> {
     return apiClient.get<ApiResponse<Booking>>(
       API_ENDPOINTS.SALES.BOOKING_PUBLIC_LOOKUP(encodeURIComponent(bookingCode.trim()))
@@ -1011,10 +1045,16 @@ export const salesService = {
     amount?: number;
     note?: string;
     item_adjustments?: { booking_item_id: string; actual_quantity: number }[];
-  }): Promise<ApiResponse<Order>> {
+  }, idempotencyKey?: string): Promise<ApiResponse<Order>> {
+    const key = idempotencyKey || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `pos_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`);
     return apiClient.post<ApiResponse<Order>>(
       API_ENDPOINTS.SALES.BOOKING_CHECKOUT(bookingId),
-      payload
+      payload,
+      {
+        headers: {
+          'Idempotency-Key': key,
+        },
+      }
     );
   },
 
@@ -1061,9 +1101,25 @@ export const salesService = {
 
   async getMasterData(): Promise<ApiResponse<{ customerGroups: any[]; promotions: any[] }>> {
     try {
+      // 1. Thử lấy từ endpoint tập trung Master Data của hệ thống (nhanh, cache, không yêu cầu quyền module)
+      const res = await apiClient.get<any>(API_ENDPOINTS.SYSTEM.MASTER_DATA, { silent: true });
+      if (res?.data) {
+        return {
+          code: 200,
+          message: 'Lấy dữ liệu master data thành công',
+          data: {
+            customerGroups: res.data.customerGroups || [],
+            promotions: res.data.promotions || []
+          }
+        };
+      }
+
+      // 2. Dự phòng gọi riêng lẻ từng danh mục với cờ silent (không quăng toast lỗi quyền ra UI)
       const [grpsRes, promsRes] = await Promise.allSettled([
-        apiClient.get<any>(API_ENDPOINTS.MARKETING.CUSTOMER_GROUPS),
-        apiClient.get<any>(API_ENDPOINTS.MARKETING.PROMOTIONS)
+        apiClient.get<any>(API_ENDPOINTS.MARKETING.CUSTOMER_GROUPS_ACTIVE, { silent: true })
+          .catch(() => apiClient.get<any>(API_ENDPOINTS.MARKETING.CUSTOMER_GROUPS, { silent: true })),
+        apiClient.get<any>(API_ENDPOINTS.MARKETING.PROMOTIONS_ACTIVE, { silent: true })
+          .catch(() => apiClient.get<any>(API_ENDPOINTS.MARKETING.PROMOTIONS, { silent: true }))
       ]);
 
       const customerGroups = grpsRes.status === 'fulfilled'

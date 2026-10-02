@@ -24,16 +24,27 @@ import { physicalBackupService } from './api/physicalBackupService';
 import { hasPermission } from './shared/utils/permissionGuard';
 
 export default function App() {
+  const getDefaultRoute = () => {
+    if (hasPermission('VIEW_REPORT')) return { tab: 'reports', subTab: 'BaoCaoDoanhThu' };
+    if (hasPermission('VIEW_BOOKING')) return { tab: 'bookings', subTab: '' };
+    if (hasPermission('CREATE_ORDER')) return { tab: 'pos', subTab: '' };
+    if (hasPermission('VIEW_ORDER')) return { tab: 'orders', subTab: '' };
+    if (hasPermission('SCAN_TICKET')) return { tab: 'gate', subTab: '' };
+    if (hasPermission('VIEW_PRODUCT')) return { tab: 'inventory', subTab: '' };
+    if (hasPermission('VIEW_USER') || hasPermission('VIEW_ROLE')) return { tab: 'iam', subTab: 'KhaibaoDangNhap' };
+    return { tab: 'bookings', subTab: '' };
+  };
+
   const getInitialTab = () => {
     const hash = window.location.hash.replace('#/', '');
-    if (!hash) return 'reports';
-    return hash.split('/')[0] || 'reports';
+    if (!hash) return getDefaultRoute().tab;
+    return hash.split('/')[0] || getDefaultRoute().tab;
   };
 
   const getInitialSubTab = () => {
     const hash = window.location.hash.replace('#/', '');
-    if (!hash) return 'BaoCaoDoanhThu';
-    return hash.split('/')[1] || 'BaoCaoDoanhThu';
+    if (!hash) return getDefaultRoute().subTab;
+    return hash.split('/')[1] || getDefaultRoute().subTab;
   };
 
   const [activeTab, setActiveTab] = useState<string>(getInitialTab);
@@ -107,8 +118,14 @@ export default function App() {
   // Hash-based routing
   useEffect(() => {
     const handleHashChange = () => {
-      const hash = window.location.hash.replace('#/', '') || 'reports/BaoCaoDoanhThu';
-      const [module, subTab] = hash.split('/');
+      const rawHash = window.location.hash.replace('#/', '');
+      if (!rawHash) {
+        const target = getDefaultRoute();
+        setActiveTab(target.tab);
+        if (target.subTab) setActiveSubTab(target.subTab);
+        return;
+      }
+      const [module, subTab] = rawHash.split('/');
       setActiveTab(module);
       if (subTab) setActiveSubTab(subTab);
     };
@@ -298,7 +315,10 @@ export default function App() {
         )}
         <RateLimitCountdownToast />
         <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-slate-100"><div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div></div>}>
-          <LoginScreen onLoginSuccess={() => window.location.hash = '/reports/BaoCaoDoanhThu'} />
+          <LoginScreen onLoginSuccess={() => {
+            const target = getDefaultRoute();
+            window.location.hash = `/${target.tab}${target.subTab ? `/${target.subTab}` : ''}`;
+          }} />
         </Suspense>
       </>
     );

@@ -354,6 +354,7 @@ export interface IssuedTicket extends BaseEntity {
   ticket_template_code?: string;
   customer_name?: string;
   customer_phone?: string;
+  customer_phone_masked?: string;
   customer_email?: string;
   unit_price?: number;
 }
@@ -434,5 +435,16 @@ export interface Booking extends BaseEntity {
   expires_at?: string;
   confirmed_at?: string;
   fulfilled_at?: string;
+}
+
+export interface BookingPosSearchItem {
+  booking_code: string;
+  customer_name: string;
+  phone_masked: string;     // server đã mask
+  visit_date: string;
+  ticket_summary: string;   // server đã format: "Vé tham quan (20 lượt)"
+  group: boolean;           // server đã quyết định
+  amount_due: number;
+  can_checkout: boolean;
 }
 

@@ -49,7 +49,7 @@ export const Modal: React.FC<ModalProps> = ({
   isConfirmDisabled = false,
   onConfirm,
   footer,
-  closeOnBackdropClick = false,
+  closeOnBackdropClick = true,
 }) => {
   // Handle ESC key to close modal
   useEffect(() => {

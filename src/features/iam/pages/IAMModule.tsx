@@ -1,14 +1,17 @@
 import React from 'react';
-import { QrCode } from 'lucide-react';
+import { QrCode, FileSpreadsheet, Download, RefreshCw } from 'lucide-react';
 import { AdminConfigCard } from '../components/AdminConfigCard';
 import { CameraQRScannerModal } from '../../ticketing/components/CameraQRScannerModal';
 import { useIAM } from '../hooks/useIAM';
 import { UserModal } from '../components/UserModal';
 import { RoleModal } from '../components/RoleModal';
 import { BadgeModal } from '../components/BadgeModal';
+import { UserImportModal } from '../components/UserImportModal';
 import { DetailsModal } from '../../../shared/components/DetailsModal';
 import { toast } from '../../../shared/utils/toast';
 import { usePermission } from '../../../shared/hooks/usePermission';
+import { iamService } from '../../../api/iamService';
+import { RolePermissionsCell } from '../components/RolePermissionsCell';
 
 interface IAMModuleProps {
   subTab?: string;
@@ -43,6 +46,7 @@ export const IAMModule: React.FC<IAMModuleProps> = ({ subTab = 'KhaiBaoPhanQuyen
     handleToggleUserActive,
     openNewUserModal,
     openEditUserModal,
+    refreshUsers,
     showRoleModal, setShowRoleModal,
     editingRoleId,
     roleCode, setRoleCode,
@@ -55,6 +59,9 @@ export const IAMModule: React.FC<IAMModuleProps> = ({ subTab = 'KhaiBaoPhanQuyen
     openEditRoleModal,
     isSubmitting
   } = useIAM(subTab);
+
+  const [isImportModalOpen, setIsImportModalOpen] = React.useState(false);
+  const [isDownloadingTemplate, setIsDownloadingTemplate] = React.useState(false);
 
   const currentTab = onSelectSubTab ? subTab : activeSubTab;
 
@@ -90,16 +97,11 @@ export const IAMModule: React.FC<IAMModuleProps> = ({ subTab = 'KhaiBaoPhanQuyen
             {
               header: 'Danh mục quyền gán',
               accessor: (row: any) => (
-                <div className="flex flex-wrap gap-1">
-                  {(row.permissions || []).map((p: string) => (
-                    <span
-                      key={p}
-                      className="text-[10px] font-mono bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded"
-                    >
-                      {p}
-                    </span>
-                  ))}
-                </div>
+                <RolePermissionsCell
+                  permissions={row.permissions || []}
+                  roleName={row.name}
+                  roleCode={row.code}
+                />
               ),
               className: 'py-2',
             },
@@ -159,6 +161,45 @@ export const IAMModule: React.FC<IAMModuleProps> = ({ subTab = 'KhaiBaoPhanQuyen
           onToggleActive={can('UPDATE_USER') ? handleToggleUserActive : undefined}
           hideAddButton={!can('CREATE_USER')}
           hideDeleteButton={!can('DELETE_USER')}
+          toolbarRight={
+            can('CREATE_USER') ? (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsImportModalOpen(true)}
+                  className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-semibold text-xs sm:text-sm px-3.5 py-2 rounded-md flex items-center gap-1.5 transition shadow-sm"
+                  title="Nhập hàng loạt nhân viên từ file Excel"
+                >
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                  Nhập từ Excel
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      setIsDownloadingTemplate(true);
+                      await iamService.downloadUserTemplate();
+                      toast.success('Đã tải xuống file mẫu Excel!');
+                    } catch (e) {
+                      toast.error('Lỗi khi tải file mẫu');
+                    } finally {
+                      setIsDownloadingTemplate(false);
+                    }
+                  }}
+                  disabled={isDownloadingTemplate}
+                  className="bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-300 font-semibold text-xs sm:text-sm px-3.5 py-2 rounded-md flex items-center gap-1.5 transition shadow-sm disabled:opacity-50"
+                  title="Tải file mẫu Excel chuẩn"
+                >
+                  {isDownloadingTemplate ? (
+                    <RefreshCw className="w-4 h-4 animate-spin text-slate-500" />
+                  ) : (
+                    <Download className="w-4 h-4 text-slate-600" />
+                  )}
+                  Tải file mẫu
+                </button>
+              </div>
+            ) : undefined
+          }
         />
       )}
 
@@ -207,6 +248,45 @@ export const IAMModule: React.FC<IAMModuleProps> = ({ subTab = 'KhaiBaoPhanQuyen
           onViewDetails={(item: any) => setSelectedUserForDetails(item)}
           hideAddButton={!can('CREATE_USER')}
           hideDeleteButton={!can('DELETE_USER')}
+          toolbarRight={
+            can('CREATE_USER') ? (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsImportModalOpen(true)}
+                  className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-semibold text-xs sm:text-sm px-3.5 py-2 rounded-md flex items-center gap-1.5 transition shadow-sm"
+                  title="Nhập hàng loạt nhân viên từ file Excel"
+                >
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                  Nhập từ Excel
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      setIsDownloadingTemplate(true);
+                      await iamService.downloadUserTemplate();
+                      toast.success('Đã tải xuống file mẫu Excel!');
+                    } catch (e) {
+                      toast.error('Lỗi khi tải file mẫu');
+                    } finally {
+                      setIsDownloadingTemplate(false);
+                    }
+                  }}
+                  disabled={isDownloadingTemplate}
+                  className="bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-300 font-semibold text-xs sm:text-sm px-3.5 py-2 rounded-md flex items-center gap-1.5 transition shadow-sm disabled:opacity-50"
+                  title="Tải file mẫu Excel chuẩn"
+                >
+                  {isDownloadingTemplate ? (
+                    <RefreshCw className="w-4 h-4 animate-spin text-slate-500" />
+                  ) : (
+                    <Download className="w-4 h-4 text-slate-600" />
+                  )}
+                  Tải file mẫu
+                </button>
+              </div>
+            ) : undefined
+          }
         />
       )}
 
@@ -284,6 +364,12 @@ export const IAMModule: React.FC<IAMModuleProps> = ({ subTab = 'KhaiBaoPhanQuyen
           onSubmit={handleCreateOrUpdateRole}
         />
       )}
+
+      <UserImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onSuccess={() => refreshUsers()}
+      />
     </div>
   );
 };

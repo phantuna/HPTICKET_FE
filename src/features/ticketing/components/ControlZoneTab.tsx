@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck, X } from 'lucide-react';
 import { AdminConfigCard } from '../../iam/components/AdminConfigCard';
 import { ControlZone } from '../../../shared/types/hpticket';
 import { ticketingService } from '../../../api/ticketingService';
@@ -88,7 +88,10 @@ export const ControlZoneTab: React.FC<ControlZoneTabProps> = ({ controlZones, se
 
       {showModal && (
         <div
-          className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowModal(false);
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Escape') setShowModal(false);
           }}
@@ -98,11 +101,21 @@ export const ControlZoneTab: React.FC<ControlZoneTabProps> = ({ controlZones, se
               e.preventDefault();
               handleSave();
             }}
-            className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl text-slate-900"
+            className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl text-slate-900 animate-in zoom-in-95 duration-150"
           >
-            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
-              <ShieldCheck className="w-5 h-5 text-emerald-600" /> {editingControlZone ? 'Sửa Khu Kiểm Soát' : 'Thêm Khu Kiểm Soát'}
-            </h3>
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-emerald-600" /> {editingControlZone ? 'Sửa Khu Kiểm Soát' : 'Thêm Khu Kiểm Soát'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowModal(false)}
+                className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-1.5 rounded-lg transition"
+                aria-label="Đóng"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
             <div className="space-y-3 text-xs">
               <div>
                 <label className="block text-slate-700 font-semibold mb-1">Mã Khu Kiểm Soát:</label>

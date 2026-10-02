@@ -2,18 +2,39 @@ import React, { useState, useEffect } from 'react';
 import {
   Ticket, Calendar, User, Phone, Mail, Building2, CheckCircle2,
   ArrowLeft, Plus, Minus, Copy, Check,
-  Sparkles, Compass, ShieldCheck, Users, AlertCircle, Tag
+  Sparkles, Compass, ShieldCheck, Users, AlertCircle, Tag, Clock
 } from 'lucide-react';
 import { salesService } from '../../../api/salesService';
 import { apiClient, API_ENDPOINTS } from '../../../api/apiConfig';
 import { Booking } from '../../../shared/types/hpticket';
 import { toast } from '../../../shared/utils/toast';
+import { VNDateInput } from '../../../shared/components/ui';
+
+// Helper hiển thị ngày chuẩn Việt Nam: DD/MM/YYYY cho người dùng xem
+const formatVnDate = (isoStr?: string | null): string => {
+  if (!isoStr) return '';
+  const clean = String(isoStr).split('T')[0];
+  const parts = clean.split('-');
+  if (parts.length === 3) {
+    const [y, m, d] = parts;
+    return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
+  }
+  return isoStr;
+};
 
 interface PublicBookingPortalProps {
   onBackToApp?: () => void;
+  title?: string;
+  destinationName?: string;
+  portalCode?: string;
 }
 
-export const PublicBookingPortal: React.FC<PublicBookingPortalProps> = ({ onBackToApp }) => {
+export const PublicBookingPortal: React.FC<PublicBookingPortalProps> = ({
+  onBackToApp,
+  title = 'Đặt Vé Trực Tuyến',
+  destinationName = 'Kỳ Co - Eo Gió Quy Nhơn',
+  portalCode = 'HPTICKET PORTAL'
+}) => {
   // Step State (1: Booking Form, 2: Success Confirmation)
   const [step, setStep] = useState<'FORM' | 'SUCCESS'>('FORM');
   const [createdBooking, setCreatedBooking] = useState<Booking | null>(null);
@@ -100,10 +121,30 @@ export const PublicBookingPortal: React.FC<PublicBookingPortalProps> = ({ onBack
           const grps = Array.isArray(rawGrps) ? rawGrps : (rawGrps?.content || []);
           setCustomerGroups(grps);
         }
-        if (res.data?.promotions) {
+        if (res.data?.promotions && Array.isArray(res.data.promotions) && res.data.promotions.length > 0) {
           const rawProms: any = res.data.promotions;
           const proms = Array.isArray(rawProms) ? rawProms : (rawProms?.content || []);
           setPromotions(proms.filter((p: any) => p.is_active !== false && !p.deleted_at));
+        }
+      })
+      .catch(() => {});
+
+    // Gọi trực tiếp API Khuyến mãi từ module Marketing để không bị dính cache cũ của Backend master-data
+    apiClient.get<any>(API_ENDPOINTS.MARKETING.PROMOTIONS_ACTIVE, { silent: true })
+      .catch(() => apiClient.get<any>(API_ENDPOINTS.MARKETING.PROMOTIONS, { silent: true }))
+      .then((res: any) => {
+        const rawList = res?.data?.content || res?.data || res || [];
+        const list = Array.isArray(rawList) ? rawList : [];
+        if (list.length > 0) {
+          setPromotions(prev => {
+            const activeNew = list.filter((p: any) => p.is_active !== false && !p.deleted_at);
+            // Hợp nhất dữ liệu khuyến mãi
+            const map = new Map();
+            [...prev, ...activeNew].forEach((item: any) => {
+              if (item?.id || item?.code) map.set(item.id || item.code, item);
+            });
+            return Array.from(map.values());
+          });
         }
       })
       .catch(() => {});
@@ -164,7 +205,7 @@ export const PublicBookingPortal: React.FC<PublicBookingPortalProps> = ({ onBack
         : null;
 
       if ((startStr && targetDateStr < startStr) || (endStr && targetDateStr > endStr)) {
-        toast.warning(`Mã [${appliedPromo.code}] không áp dụng cho ngày tham quan ${targetDateStr} nên đã được hủy.`);
+        toast.warning(`Mã [${appliedPromo.code}] không áp dụng cho ngày tham quan ${formatVnDate(targetDateStr)} nên đã được hủy.`);
         setAppliedPromo(null);
         setSelectedPromotionId('');
       }
@@ -195,7 +236,7 @@ export const PublicBookingPortal: React.FC<PublicBookingPortalProps> = ({ onBack
         ? found.start_date.substring(0, 10)
         : new Date(found.start_date).toISOString().split('T')[0];
       if (targetDateStr < startStr) {
-        toast.error(`Mã khuyến mãi chỉ áp dụng từ ngày ${startStr} (Ngày tham quan của bạn: ${targetDateStr})`);
+        toast.error(`Mã khuyến mãi chỉ áp dụng từ ngày ${formatVnDate(startStr)} (Ngày tham quan của bạn: ${formatVnDate(targetDateStr)})`);
         return;
       }
     }
@@ -205,7 +246,7 @@ export const PublicBookingPortal: React.FC<PublicBookingPortalProps> = ({ onBack
         ? found.end_date.substring(0, 10)
         : new Date(found.end_date).toISOString().split('T')[0];
       if (targetDateStr > endStr) {
-        toast.error(`Mã khuyến mãi đã hết hạn sử dụng vào ngày ${endStr} (Ngày tham quan của bạn: ${targetDateStr})`);
+        toast.error(`Mã khuyến mãi đã hết hạn sử dụng vào ngày ${formatVnDate(endStr)} (Ngày tham quan của bạn: ${formatVnDate(targetDateStr)})`);
         return;
       }
     }
@@ -298,327 +339,391 @@ export const PublicBookingPortal: React.FC<PublicBookingPortalProps> = ({ onBack
     }
   };
 
-  return (
-    <div className="min-h-screen bg-slate-100/80 text-slate-800 flex flex-col font-sans selection:bg-emerald-600 selection:text-white">
-      {/* Top Banner Navigation */}
-      <header className="bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-0 z-40 shadow-xs">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center shadow-md shadow-emerald-600/20 text-white">
-              <Compass className="w-5 h-5 font-bold" />
-            </div>
-            <div>
-              <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-widest block leading-tight">
-                HPTICKET PORTAL
-              </span>
-              <h1 className="text-base font-black text-slate-900 leading-tight">
-                Đặt Vé Trực Tuyến • Kỳ Co - Eo Gió Quy Nhơn
-              </h1>
-            </div>
-          </div>
+  // Helper date shortcuts
+  const handleSetQuickDate = (offsetDays: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + offsetDays);
+    setVisitDate(d.toISOString().split('T')[0]);
+  };
 
-          <div className="flex items-center gap-2">
-            {onBackToApp && (
-              <button
-                type="button"
-                onClick={onBackToApp}
-                className="px-3.5 py-1.5 text-xs font-bold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50 rounded-xl border border-slate-200 flex items-center gap-1.5 transition shadow-2xs"
-              >
-                <ArrowLeft className="w-4 h-4" /> Về trang quản trị
-              </button>
-            )}
+  return (
+    <div className="min-h-screen lg:h-screen lg:overflow-hidden bg-slate-100 flex flex-col font-sans selection:bg-emerald-600 selection:text-white">
+      {/* Top Banner Navigation (Compact, no wasted height) */}
+      <header className="h-14 sm:h-16 bg-white/95 backdrop-blur-md border-b border-slate-200/90 px-4 sm:px-6 flex items-center justify-between shrink-0 z-40 shadow-xs">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center shadow-md shadow-emerald-600/20 text-white shrink-0">
+            <Compass className="w-5 h-5 font-bold" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-extrabold text-emerald-600 uppercase tracking-widest leading-none">
+                {portalCode}
+              </span>
+              <span className="hidden sm:inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span className="hidden sm:inline-block text-[11px] text-slate-500 font-medium">
+                {destinationName}
+              </span>
+            </div>
+            <h1 className="text-sm sm:text-base font-black text-slate-900 leading-tight">
+              {title}
+            </h1>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {onBackToApp && (
             <button
               type="button"
-              onClick={() => window.location.hash = '/pos'}
-              className="px-3.5 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-sm"
+              onClick={onBackToApp}
+              className="px-3 py-1.5 text-xs font-bold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 rounded-xl border border-slate-200 flex items-center gap-1.5 transition shadow-2xs cursor-pointer"
             >
-              Mở quầy POS
+              <ArrowLeft className="w-3.5 h-3.5" /> <span className="hidden md:inline">Về trang quản trị</span>
             </button>
-          </div>
+          )}
+          <button
+            type="button"
+            onClick={() => window.location.hash = '/pos'}
+            className="px-3.5 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-sm cursor-pointer"
+          >
+            Mở quầy POS
+          </button>
         </div>
       </header>
 
-      {/* Main Container */}
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 py-6">
+      {/* Main Single-Viewport Layout: Full-height, balanced 2 columns, ZERO main scrolling on desktop */}
+      <main className="flex-1 max-w-[1440px] w-full mx-auto p-3 sm:p-4 lg:overflow-hidden flex flex-col min-h-0">
         {step === 'FORM' ? (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* Left 8 cols: Ticket Selection & Customer Info */}
-            <form onSubmit={handleSubmit} className="lg:col-span-8 space-y-5">
-              {/* Hero Callout Banner */}
-              <div className="p-6 rounded-2xl bg-gradient-to-r from-emerald-600 via-emerald-700 to-teal-800 text-white shadow-md shadow-emerald-900/10">
-                <div className="flex items-center gap-1.5 text-emerald-200 text-xs font-bold uppercase tracking-wider mb-1.5">
-                  <Sparkles className="w-4 h-4" /> Đặt chỗ trước • Nhận mã ưu tiên tại cổng
-                </div>
-                <h2 className="text-xl sm:text-2xl font-black text-white">
-                  Đăng ký đặt vé đoàn & tour du lịch
-                </h2>
-                <p className="text-xs sm:text-sm text-emerald-50 mt-1 leading-relaxed">
-                  Nhận ngay mã Booking Code có mã QR. Khi đến điểm tham quan, chỉ cần xuất trình mã tại quầy POS để nhận vé vào cổng nhanh chóng mà không cần xếp hàng mua vé lại từ đầu.
-                </p>
-              </div>
-
-              {/* Step 1: Chọn ngày đến */}
-              <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-2.5 shadow-xs">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-emerald-600" /> 1. Chọn ngày đến tham quan
-                </h3>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                  <input
-                    type="date"
-                    required
-                    min={new Date().toISOString().split('T')[0]}
-                    value={visitDate}
-                    onChange={e => setVisitDate(e.target.value)}
-                    className="px-4 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm font-bold text-slate-800 focus:outline-none focus:border-emerald-500 focus:bg-white transition"
-                  />
-                  <span className="text-xs text-slate-500">
-                    Mã đặt chỗ sẽ có hiệu lực trong ngày này tại tất cả cổng soát vé.
+          <form onSubmit={handleSubmit} className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3.5 lg:overflow-hidden min-h-0">
+            {/* CỘT TRÁI (7 cols): Chọn ngày & Danh sách vé (chiều cao toàn diện, cuộn nội bộ nếu danh sách dài) */}
+            <div className="lg:col-span-7 flex flex-col bg-white rounded-2xl border border-slate-200/90 shadow-sm p-4 sm:p-5 lg:overflow-hidden min-h-0 space-y-3.5">
+              {/* Header của Cột Trái: Chọn ngày tham quan inline */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-slate-100 shrink-0">
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-black shrink-0">
+                    1
                   </span>
-                </div>
-              </div>
-
-              {/* Step 2: Chọn danh sách vé */}
-              <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-3.5 shadow-xs">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                    <Ticket className="w-4 h-4 text-emerald-600" /> 2. Chọn loại vé & số lượng
-                  </h3>
-                  <span className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full font-bold">
-                    Đã chọn: {totalTickets} vé
-                  </span>
-                </div>
-
-                <div className="space-y-2.5">
-                  {isLoadingTemplates ? (
-                    <div className="py-6 text-center text-slate-400 text-xs">Đang tải danh sách vé...</div>
-                  ) : (
-                    templates.map((tpl) => {
-                      const qty = ticketQuantities[tpl.id] || 0;
-                      return (
-                        <div
-                          key={tpl.id}
-                          className={`p-3.5 sm:p-4 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-                            qty > 0
-                              ? 'bg-emerald-50/70 border-emerald-500 shadow-xs'
-                              : 'bg-slate-50/60 border-slate-200 hover:border-slate-300'
-                          }`}
-                        >
-                          <div className="flex-1 min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <h4 className="font-bold text-sm text-slate-900">{tpl.name || tpl.ticket_name}</h4>
-                              <span className="px-2 py-0.5 bg-slate-200 text-slate-700 text-[10px] font-mono rounded">
-                                {tpl.code}
-                              </span>
-                              {qty === 1 && (
-                                <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded-full">
-                                  Vé lẻ (1 lượt)
-                                </span>
-                              )}
-                              {qty > 1 && (
-                                <span className="px-2 py-0.5 bg-purple-100 text-purple-800 border border-purple-200 text-[10px] font-bold rounded-full flex items-center gap-1 shadow-2xs">
-                                  <Users className="w-3 h-3" /> Vé đoàn (1 vé • {qty} lượt)
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">
-                              {tpl.description || 'Vé tham quan chính thức theo quy định ban quản lý.'}
-                            </p>
-                            <span className="text-sm font-bold font-mono text-emerald-700 mt-1 block">
-                              {Number(tpl.price).toLocaleString('vi-VN')} đ
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-3 self-end sm:self-center shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => handleQuantityChange(tpl.id, -1)}
-                              disabled={qty === 0}
-                              className="w-8 h-8 rounded-lg bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed border border-slate-300 flex items-center justify-center text-slate-700 transition shadow-2xs"
-                            >
-                              <Minus className="w-3.5 h-3.5" />
-                            </button>
-                            <span className="w-8 text-center font-bold font-mono text-base text-slate-900">
-                              {qty}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => handleQuantityChange(tpl.id, 1)}
-                              className="w-8 h-8 rounded-lg bg-emerald-600 hover:bg-emerald-700 border border-emerald-600 flex items-center justify-center text-white transition shadow-xs"
-                            >
-                              <Plus className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-
-                {/* Thông báo chuẩn nghiệp vụ POS: 1 vé là vé lẻ, > 1 vé cùng loại tự động gom thành vé đoàn */}
-                <div className="mt-3.5 p-3 bg-purple-50/70 border border-purple-200 rounded-xl text-xs text-purple-950 flex items-start gap-2.5 shadow-2xs">
-                  <Users className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
-                  <div className="space-y-0.5">
-                    <p className="font-bold text-purple-900">Quy chuẩn phát hành vé tại quầy POS:</p>
-                    <p className="text-[11px] text-purple-800 leading-relaxed">
-                      • Mua <b>1 vé</b>: Phát hành <b>Vé lẻ</b> (1 vé giấy - 1 lượt vào cổng).<br />
-                      • Mua <b>từ 2 vé cùng loại trở lên</b>: Tự động chuyển thành <b>Vé đoàn</b> (in đúng <b>1 vé giấy duy nhất</b> chứa toàn bộ số lượt) để cả đoàn quét tuần tự qua cổng mà không in nhiều tờ giấy.
+                  <div>
+                    <h2 className="text-xs sm:text-sm font-black text-slate-900 leading-tight">
+                      Ngày Tham Quan
+                    </h2>
+                    <p className="text-[11px] text-slate-500 leading-tight">
+                      Mã đặt chỗ áp dụng cho ngày này
                     </p>
                   </div>
                 </div>
-              </div>
 
-              {/* Step 3: Thông tin người đặt / Công ty */}
-              <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-3.5 shadow-xs">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <User className="w-4 h-4 text-emerald-600" /> 3. Thông tin người đặt & Đơn vị lữ hành
-                </h3>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
-                  <div>
-                    <label className="block text-slate-700 font-semibold mb-1">
-                      Họ và tên người đặt / Trưởng đoàn <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={customerName}
-                      onChange={e => setCustomerName(e.target.value)}
-                      placeholder="Nguyễn Văn A"
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-emerald-500 focus:bg-white transition font-medium"
-                    />
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => handleSetQuickDate(0)}
+                      className="px-2 py-1 text-[11px] font-bold text-slate-600 hover:text-emerald-700 bg-slate-100 hover:bg-emerald-50 rounded-lg transition"
+                    >
+                      Hôm nay
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSetQuickDate(1)}
+                      className="px-2 py-1 text-[11px] font-bold text-slate-600 hover:text-emerald-700 bg-slate-100 hover:bg-emerald-50 rounded-lg transition"
+                    >
+                      Ngày mai
+                    </button>
                   </div>
-
-                  <div>
-                    <label className="block text-slate-700 font-semibold mb-1">
-                      Số điện thoại nhận mã Booking <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="tel"
-                      required
-                      value={customerPhone}
-                      onChange={e => setCustomerPhone(e.target.value)}
-                      placeholder="0912345678"
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-emerald-500 focus:bg-white transition font-medium font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-slate-700 font-semibold mb-1">
-                      Công ty lữ hành / Tour Agency <span className="text-slate-400 font-normal">(nếu có)</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={companyName}
-                      onChange={e => setCompanyName(e.target.value)}
-                      placeholder="VD: Du Lịch Miền Trung"
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-emerald-500 focus:bg-white transition font-medium"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-slate-700 font-semibold mb-1">
-                      Email nhận phiếu xác nhận <span className="text-slate-400 font-normal">(tùy chọn)</span>
-                    </label>
-                    <input
-                      type="email"
-                      value={customerEmail}
-                      onChange={e => setCustomerEmail(e.target.value)}
-                      placeholder="tour@travel.com"
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-emerald-500 focus:bg-white transition font-medium"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-slate-700 font-semibold mb-1 text-xs">
-                    Ghi chú thêm cho ban quản lý
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={note}
-                    onChange={e => setNote(e.target.value)}
-                    placeholder="Yêu cầu hỗ trợ xe điện, hướng dẫn viên đoàn..."
-                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-emerald-500 focus:bg-white transition"
+                  <VNDateInput
+                    id="visit-date-input"
+                    value={visitDate}
+                    onChange={(val) => setVisitDate(val)}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="px-2.5 py-1 text-xs font-bold text-slate-900 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-500 font-mono w-[130px]"
                   />
                 </div>
               </div>
 
-              {/* Submit CTA button (Mobile only) */}
-              <div className="lg:hidden">
-                <button
-                  type="submit"
-                  disabled={isSubmitting || totalTickets === 0}
-                  className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-xl text-sm transition shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2"
-                >
-                  <CheckCircle2 className="w-5 h-5" />
-                  {isSubmitting ? 'Đang tạo mã đặt chỗ...' : `Xác Nhận Đặt Vé (${totalAmount.toLocaleString('vi-VN')} đ)`}
-                </button>
+              {/* Danh sách vé: Tiêu đề + Huy hiệu số lượng */}
+              <div className="flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-black shrink-0">
+                    2
+                  </span>
+                  <h3 className="text-xs sm:text-sm font-black text-slate-900">
+                    Chọn Loại Vé & Số Lượng
+                  </h3>
+                </div>
+                <span className="text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full font-bold">
+                  Đã chọn: {totalTickets} vé
+                </span>
               </div>
-            </form>
 
-            {/* Right 4 cols: Sticky Order Summary & Submit */}
-            <div className="lg:col-span-4 sticky top-20 space-y-4">
-              <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-4 shadow-sm">
-                <h3 className="font-bold text-sm text-slate-900 pb-3 border-b border-slate-100">
-                  Tóm Tắt Đơn Đặt Trước
-                </h3>
-
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between text-slate-500">
-                    <span>Ngày tham quan:</span>
-                    <span className="font-semibold text-slate-900">{visitDate}</span>
+              {/* Danh sách thẻ vé: Scrollable nội bộ - KHÔNG BAO GIỜ đẩy form đi xuống */}
+              <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 min-h-[160px] custom-scrollbar">
+                {isLoadingTemplates ? (
+                  <div className="py-12 text-center text-slate-400 text-xs font-medium">
+                    Đang tải danh sách vé từ hệ thống...
                   </div>
-                  <div className="flex justify-between text-slate-500">
-                    <span>Tổng số vé:</span>
-                    <span className="font-bold text-emerald-700">{totalTickets} vé</span>
+                ) : templates.length === 0 ? (
+                  <div className="py-12 text-center text-slate-400 text-xs font-medium">
+                    Hiện chưa có bảng giá vé tham quan trực tuyến.
                   </div>
-                </div>
+                ) : (
+                  templates.map((tpl) => {
+                    const qty = ticketQuantities[tpl.id] || 0;
+                    const priceNum = Number(tpl.price) || 0;
+                    const isFree = priceNum === 0;
 
-                <div className="pt-3 border-t border-slate-100 space-y-1.5">
-                  {templates
-                    .filter(t => (ticketQuantities[t.id] || 0) > 0)
-                    .map(t => {
-                      const qty = ticketQuantities[t.id];
-                      return (
-                        <div key={t.id} className="flex justify-between text-xs text-slate-600">
-                          <span className="truncate max-w-[170px]">{t.name || t.ticket_name} x{qty}</span>
-                          <span className="font-mono text-slate-900 font-semibold">{(t.price * qty).toLocaleString('vi-VN')} đ</span>
+                    return (
+                      <div
+                        key={tpl.id}
+                        className={`p-3 sm:p-3.5 rounded-xl border transition-all flex items-center justify-between gap-3 ${
+                          qty > 0
+                            ? 'bg-emerald-50/60 border-emerald-500 shadow-2xs ring-1 ring-emerald-500/20'
+                            : 'bg-slate-50/70 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                        }`}
+                      >
+                        {/* Thông tin vé */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <h4 className="font-bold text-xs sm:text-sm text-slate-900 truncate">
+                              {tpl.name || tpl.ticket_name}
+                            </h4>
+                            <span className="px-1.5 py-0.5 bg-slate-200/90 text-slate-600 text-[10px] font-mono rounded">
+                              {tpl.code}
+                            </span>
+                            {qty === 1 && (
+                              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded-full">
+                                Vé lẻ (1 lượt)
+                              </span>
+                            )}
+                            {qty > 1 && (
+                              <span className="px-2 py-0.5 bg-purple-100 text-purple-800 border border-purple-200 text-[10px] font-bold rounded-full flex items-center gap-1 shadow-2xs">
+                                <Users className="w-3 h-3" /> Đoàn ({qty} lượt)
+                              </span>
+                            )}
+                          </div>
+
+                          {tpl.description && (
+                            <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-1">
+                              {tpl.description}
+                            </p>
+                          )}
+
+                          <div className="mt-1 flex items-baseline gap-2">
+                            {isFree ? (
+                              <span className="text-xs font-black text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-md">
+                                Miễn phí (0 đ)
+                              </span>
+                            ) : (
+                              <span className="text-xs sm:text-sm font-black font-mono text-emerald-700">
+                                {priceNum.toLocaleString('vi-VN')} đ
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      );
-                    })}
+
+                        {/* Nút cộng trừ số lượng */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            type="button"
+                            aria-label={`Giảm số lượng vé ${tpl.name || tpl.code}`}
+                            onClick={() => handleQuantityChange(tpl.id, -1)}
+                            disabled={qty === 0}
+                            className="w-8 h-8 rounded-lg bg-white hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed border border-slate-300 flex items-center justify-center text-slate-700 transition shadow-2xs cursor-pointer"
+                          >
+                            <Minus className="w-3.5 h-3.5" />
+                          </button>
+                          <span className="w-7 text-center font-bold font-mono text-sm text-slate-900 select-none">
+                            {qty}
+                          </span>
+                          <button
+                            type="button"
+                            aria-label={`Tăng số lượng vé ${tpl.name || tpl.code}`}
+                            onClick={() => handleQuantityChange(tpl.id, 1)}
+                            className="w-8 h-8 rounded-lg bg-emerald-600 hover:bg-emerald-700 border border-emerald-600 flex items-center justify-center text-white transition shadow-xs cursor-pointer"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Ghi chú POS tinh gọn, không chiếm diện tích */}
+              <div className="p-2.5 bg-purple-50/80 border border-purple-200/90 rounded-xl text-[11px] text-purple-900 flex items-center gap-2 shrink-0">
+                <Users className="w-4 h-4 text-purple-600 shrink-0" />
+                <span className="leading-tight">
+                  <b>Quy chuẩn POS:</b> Mua từ 2 vé cùng loại trở lên tự động gom thành <b>1 Vé đoàn duy nhất</b> chứa đủ số lượt để quét tuần tự qua cổng.
+                </span>
+              </div>
+            </div>
+
+            {/* CỘT PHẢI (5 cols): THÔNG TIN NGƯỜI ĐẶT ĐẶT NGAY TRÊN ĐẦU + TÓM TẮT & XÁC NHẬN */}
+            <div className="lg:col-span-5 flex flex-col bg-white rounded-2xl border border-slate-200/90 shadow-sm p-4 sm:p-5 lg:overflow-hidden min-h-0 space-y-3.5 justify-between">
+              <div className="space-y-3.5 overflow-y-auto pr-0.5 custom-scrollbar">
+                {/* Bước 3: Thông tin người đặt - ĐẶT NGAY ĐÂY, KHÔNG CẦN CUỘN */}
+                <div>
+                  <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100">
+                    <span className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-black shrink-0">
+                      3
+                    </span>
+                    <h3 className="text-xs sm:text-sm font-black text-slate-900">
+                      Thông Tin Người Đặt / Tour
+                    </h3>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                    <div>
+                      <label htmlFor="customer-name" className="block text-slate-700 font-bold mb-1 text-[11px]">
+                        Họ tên người đặt <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        id="customer-name"
+                        type="text"
+                        required
+                        value={customerName}
+                        onChange={e => setCustomerName(e.target.value)}
+                        placeholder="Nguyễn Văn A"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-emerald-500 focus:bg-white transition font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="customer-phone" className="block text-slate-700 font-bold mb-1 text-[11px]">
+                        Số điện thoại nhận mã <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        id="customer-phone"
+                        type="tel"
+                        required
+                        value={customerPhone}
+                        onChange={e => setCustomerPhone(e.target.value)}
+                        placeholder="0912345678"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-emerald-500 focus:bg-white transition font-medium font-mono"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="company-name" className="block text-slate-700 font-bold mb-1 text-[11px]">
+                        Công ty lữ hành / Tour <span className="text-slate-400 font-normal">(nếu có)</span>
+                      </label>
+                      <input
+                        id="company-name"
+                        type="text"
+                        value={companyName}
+                        onChange={e => setCompanyName(e.target.value)}
+                        placeholder="VD: Du Lịch Miền Trung"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-emerald-500 focus:bg-white transition font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="customer-email" className="block text-slate-700 font-bold mb-1 text-[11px]">
+                        Email xác nhận <span className="text-slate-400 font-normal">(tùy chọn)</span>
+                      </label>
+                      <input
+                        id="customer-email"
+                        type="email"
+                        value={customerEmail}
+                        onChange={e => setCustomerEmail(e.target.value)}
+                        placeholder="tour@travel.com"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-emerald-500 focus:bg-white transition font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-2.5">
+                    <label htmlFor="booking-note" className="block text-slate-700 font-bold mb-1 text-[11px]">
+                      Ghi chú thêm <span className="text-slate-400 font-normal">(tùy chọn)</span>
+                    </label>
+                    <input
+                      id="booking-note"
+                      type="text"
+                      value={note}
+                      onChange={e => setNote(e.target.value)}
+                      placeholder="Yêu cầu hỗ trợ xe điện, HDV..."
+                      className="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-emerald-500 focus:bg-white transition"
+                    />
+                  </div>
                 </div>
 
-                {/* Mã khuyến mãi / Voucher từ DB */}
-                <div className="pt-3 border-t border-slate-100 space-y-2">
-                  <label className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
-                    <Tag className="w-3.5 h-3.5 text-emerald-600" />
-                    Mã khuyến mãi / Voucher
-                  </label>
-                  <div className="flex gap-1.5">
-                    <input
-                      type="text"
-                      value={promoCodeInput}
-                      onChange={(e) => setPromoCodeInput(e.target.value.toUpperCase())}
-                      placeholder="Nhập mã KM (VD: TET2026)"
-                      className="flex-1 px-2.5 py-1.5 text-xs font-mono uppercase bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500"
-                    />
+                {/* Khung Mã Khuyến Mãi / Voucher từ DB */}
+                <div className="pt-2 border-t border-slate-100 space-y-2">
+                  {promotions.length > 0 && (
+                    <div>
+                      <label htmlFor="promo-select" className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center gap-1">
+                        <Tag className="w-3 h-3 text-emerald-600" />
+                        Chương trình khuyến mãi từ hệ thống:
+                      </label>
+                      <select
+                        id="promo-select"
+                        value={selectedPromotionId}
+                        onChange={(e) => {
+                          const id = e.target.value;
+                          setSelectedPromotionId(id);
+                          if (!id) {
+                            setAppliedPromo(null);
+                            setPromoCodeInput('');
+                            return;
+                          }
+                          const found = promotions.find(p => p.id === id);
+                          if (found) {
+                            // Kiểm tra hạn ngày tham quan
+                            const targetDateStr = visitDate || new Date().toISOString().split('T')[0];
+                            if (found.start_date) {
+                              const startStr = typeof found.start_date === 'string' ? found.start_date.substring(0, 10) : new Date(found.start_date).toISOString().split('T')[0];
+                              if (targetDateStr < startStr) {
+                                toast.warning(`Chương trình [${found.name || found.code}] áp dụng từ ngày ${formatVnDate(startStr)} (Ngày tham quan của bạn: ${formatVnDate(targetDateStr)})`);
+                              }
+                            }
+                            if (found.end_date) {
+                              const endStr = typeof found.end_date === 'string' ? found.end_date.substring(0, 10) : new Date(found.end_date).toISOString().split('T')[0];
+                              if (targetDateStr > endStr) {
+                                toast.warning(`Chương trình [${found.name || found.code}] hết hạn vào ngày ${formatVnDate(endStr)} (Ngày tham quan của bạn: ${formatVnDate(targetDateStr)})`);
+                              }
+                            }
+                            setAppliedPromo(found);
+                            setPromoCodeInput(found.code || '');
+                            toast.success(`Đã áp dụng: ${found.name || found.code} (${found.discount_percent ? `Giảm ${found.discount_percent}%` : `-${Number(found.discount_value).toLocaleString('vi-VN')} đ`})`);
+                          }
+                        }}
+                        className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-500 font-medium"
+                      >
+                        <option value="">-- Hoặc chọn chương trình KM đang chạy ({promotions.length}) --</option>
+                        {promotions.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name || p.code} ({p.discount_percent ? `Giảm ${p.discount_percent}%` : `-${Number(p.discount_value).toLocaleString('vi-VN')} đ`})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Tag className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                      <input
+                        type="text"
+                        value={promoCodeInput}
+                        onChange={(e) => setPromoCodeInput(e.target.value.toUpperCase())}
+                        placeholder="NHẬP MÃ VOUCHER..."
+                        className="w-full pl-8 pr-2.5 py-1.5 text-xs font-mono uppercase bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-500"
+                        aria-label="Nhập mã voucher giảm giá"
+                      />
+                    </div>
                     <button
                       type="button"
                       onClick={handleApplyPromoCode}
-                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg transition shadow-2xs"
+                      className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl transition cursor-pointer shrink-0"
                     >
                       Áp dụng
                     </button>
                   </div>
 
                   {appliedPromo && (
-                    <div className="flex items-center justify-between bg-emerald-50/90 border border-emerald-300 rounded-lg px-2.5 py-1.5 text-xs text-emerald-800">
-                      <div className="flex items-center gap-1.5 truncate">
-                        <Tag className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                        <span className="truncate">
-                          Mã áp dụng: <b className="font-mono font-bold text-emerald-900">{appliedPromo.code}</b> ({appliedPromo.discount_percent ? `Giảm ${appliedPromo.discount_percent}%` : `-${Number(appliedPromo.discount_value).toLocaleString('vi-VN')} đ`})
-                        </span>
-                      </div>
+                    <div className="mt-2 flex items-center justify-between bg-emerald-50 border border-emerald-300 rounded-xl px-2.5 py-1.5 text-xs text-emerald-800">
+                      <span className="truncate">
+                        Mã: <b className="font-mono text-emerald-900">{appliedPromo.code}</b> ({appliedPromo.discount_percent ? `-${appliedPromo.discount_percent}%` : `-${Number(appliedPromo.discount_value).toLocaleString('vi-VN')} đ`})
+                      </span>
                       <button
                         type="button"
                         onClick={() => {
@@ -627,161 +732,133 @@ export const PublicBookingPortal: React.FC<PublicBookingPortalProps> = ({ onBack
                           setPromoCodeInput('');
                           toast.info('Đã hủy áp dụng mã khuyến mãi');
                         }}
-                        className="text-slate-400 hover:text-rose-600 font-bold text-[11px] ml-2 shrink-0 cursor-pointer transition"
+                        className="text-slate-400 hover:text-rose-600 font-bold text-[11px] ml-2 shrink-0 cursor-pointer"
                       >
-                        Gỡ bỏ
+                        Gỡ
                       </button>
                     </div>
                   )}
                 </div>
 
-                {/* Chi tiết giảm giá lấy từ DB (Quy tắc MAX chống thất thoát) */}
+                {/* Chi tiết giảm giá lấy từ DB (nếu có) */}
                 {effectiveDiscount > 0 && (
-                  <div className="pt-2 border-t border-slate-100 space-y-1.5 bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-2.5">
-                    <div className="flex justify-between items-center text-xs font-semibold text-emerald-800">
-                      <span className="flex items-center gap-1">
-                        <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                        {isPromoHigher ? (
-                          <>Khuyến mãi [{activePromo?.code}]</>
-                        ) : (
-                          <>Ưu đãi {matchedCustomerGroup?.name || (isGroup ? 'Khách đoàn' : 'Khách lẻ')}</>
-                        )}
-                        {effectiveDiscountPercent > 0 ? ` (${effectiveDiscountPercent}%)` : ''}:
-                      </span>
-                      <span className="font-mono font-bold text-emerald-700">
-                        -{effectiveDiscount.toLocaleString('vi-VN')} đ
-                      </span>
-                    </div>
-
-                    {isGroup && activePromo && (
-                      <p className="text-[10px] text-slate-500 italic">
-                        * Tự động áp dụng mức ưu đãi cao nhất giữa Khách đoàn ({groupDiscountPercent}%) và Voucher ({promoDiscountPercent || `${activePromo.discount_value?.toLocaleString()}đ`}).
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                <div className="pt-3 border-t border-slate-100 space-y-1">
-                  <div className="flex justify-between items-baseline">
-                    <span className="text-xs text-slate-500 font-semibold">Tổng chi phí dự kiến:</span>
-                    <span className="text-xl font-black font-mono text-emerald-700">
-                      {totalAmount.toLocaleString('vi-VN')} đ
+                  <div className="bg-emerald-50/80 border border-emerald-200 rounded-xl p-2.5 text-xs text-emerald-900 flex justify-between items-center">
+                    <span className="flex items-center gap-1.5 font-bold">
+                      <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                      {isPromoHigher ? (
+                        <>Voucher [{activePromo?.code}]</>
+                      ) : (
+                        <>{matchedCustomerGroup?.name || (isGroup ? 'Ưu đãi đoàn' : 'Ưu đãi lẻ')}</>
+                      )}
+                      {effectiveDiscountPercent > 0 ? ` (${effectiveDiscountPercent}%)` : ''}:
+                    </span>
+                    <span className="font-mono font-black text-emerald-700">
+                      -{effectiveDiscount.toLocaleString('vi-VN')} đ
                     </span>
                   </div>
-                  {effectiveDiscount > 0 && (
-                    <div className="text-[11px] text-slate-400 line-through text-right font-mono">
-                      Gốc: {rawSubtotal.toLocaleString('vi-VN')} đ
-                    </div>
-                  )}
-                  <p className="text-[11px] text-slate-400 leading-tight">
-                    * Thanh toán tại quầy POS khi xuất trình mã Booking hoặc thanh toán trước qua chuyển khoản.
-                  </p>
+                )}
+              </div>
+
+              {/* Phần Tóm Tắt & Nút Đặt Chỗ (Cố định ở đáy panel bên phải) */}
+              <div className="pt-3 border-t border-slate-100 space-y-2 shrink-0">
+                <div className="flex justify-between items-baseline">
+                  <div>
+                    <span className="text-[11px] text-slate-500 font-medium block">
+                      Tổng tiền dự kiến ({totalTickets} vé)
+                    </span>
+                    {effectiveDiscount > 0 && (
+                      <span className="text-[11px] text-slate-400 line-through font-mono">
+                        Gốc: {rawSubtotal.toLocaleString('vi-VN')} đ
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xl sm:text-2xl font-black font-mono text-emerald-700">
+                    {totalAmount.toLocaleString('vi-VN')} đ
+                  </span>
                 </div>
 
                 <button
-                  type="button"
-                  onClick={handleSubmit}
+                  type="submit"
                   disabled={isSubmitting || totalTickets === 0}
-                  className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <CheckCircle2 className="w-5 h-5" />
                   {isSubmitting ? 'Đang tạo mã đặt chỗ...' : 'Xác Nhận Đặt Chỗ Ngay'}
                 </button>
 
-                <div className="pt-2 text-[11px] text-slate-500 space-y-1.5 border-t border-slate-100">
-                  <div className="flex items-center gap-1.5">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Bảo lưu giá vé snapshot không bị tăng giá</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Lối ưu tiên quét mã QR nhận vé tại cổng</span>
-                  </div>
+                <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1">
+                  <span className="flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Bảo lưu snapshot giá
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5 text-emerald-600" /> Nhận vé ưu tiên tại quầy
+                  </span>
                 </div>
               </div>
             </div>
-          </div>
+          </form>
         ) : (
-          /* STEP 2: SUCCESS CONFIRMATION SCREEN */
-          <div className="max-w-xl mx-auto py-2">
-            <div className="bg-white rounded-3xl border border-emerald-200 p-6 sm:p-8 shadow-xl text-center space-y-5 animate-in fade-in zoom-in-95 duration-200">
-              <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto border border-emerald-200 shadow-xs">
-                <CheckCircle2 className="w-9 h-9" />
+          /* STEP 2: SUCCESS CONFIRMATION SCREEN (Tối ưu gọn gàng 1 màn hình) */
+          <div className="max-w-lg w-full mx-auto my-auto py-2">
+            <div className="bg-white rounded-3xl border border-emerald-200 p-6 sm:p-7 shadow-xl text-center space-y-4 animate-in fade-in zoom-in-95 duration-200">
+              <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto border border-emerald-200 shadow-xs">
+                <CheckCircle2 className="w-8 h-8" />
               </div>
 
               <div>
-                <span className="text-xs font-bold text-emerald-700 uppercase tracking-widest block mb-1">
+                <span className="text-xs font-black text-emerald-700 uppercase tracking-widest block mb-0.5">
                   ĐẶT CHỖ THÀNH CÔNG
                 </span>
-                <h2 className="text-2xl font-black text-slate-900">Mã Đặt Chỗ Của Bạn</h2>
-                <p className="text-xs text-slate-500 mt-1">
-                  Vui lòng lưu lại mã này hoặc đọc số điện thoại khi đến quầy vé
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900">Mã Đặt Chỗ Của Bạn</h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Đọc mã này hoặc SĐT tại quầy POS để nhận vé vào cổng
                 </p>
               </div>
 
-              {/* Big Booking Voucher Box (Không tạo mã QR để tránh khách tưởng nhầm quét vào cổng) */}
-              <div className="p-6 bg-gradient-to-b from-emerald-50/90 to-slate-50 rounded-2xl border-2 border-emerald-300 flex flex-col items-center shadow-xs">
-                <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider mb-1">
+              {/* Digital Pass Voucher Card */}
+              <div className="p-4 bg-gradient-to-b from-emerald-50/90 to-slate-50/50 rounded-2xl border-2 border-dashed border-emerald-300 flex flex-col items-center shadow-xs">
+                <span className="text-[10px] font-black text-emerald-800 uppercase tracking-wider mb-1">
                   MÃ ĐẶT CHỖ (BOOKING CODE)
                 </span>
 
-                <div className="mt-2 flex items-center gap-3 bg-white px-6 py-3.5 rounded-2xl border-2 border-emerald-400 shadow-sm">
-                  <span className="font-mono text-3xl sm:text-4xl font-black text-emerald-800 tracking-wider">
+                <div className="mt-1 flex items-center gap-3 bg-white px-5 py-2.5 rounded-xl border-2 border-emerald-400 shadow-sm">
+                  <span className="font-mono text-2xl sm:text-3xl font-black text-emerald-800 tracking-wider">
                     {createdBooking?.booking_code}
                   </span>
                   <button
                     type="button"
                     onClick={handleCopyCode}
-                    className="p-2 text-slate-500 hover:text-emerald-700 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+                    className="p-1.5 text-slate-500 hover:text-emerald-700 hover:bg-slate-100 rounded-lg transition cursor-pointer"
+                    aria-label="Sao chép mã đặt chỗ"
                     title="Sao chép mã"
                   >
-                    {copied ? <Check className="w-6 h-6 text-emerald-600" /> : <Copy className="w-6 h-6" />}
+                    {copied ? <Check className="w-5 h-5 text-emerald-600" /> : <Copy className="w-5 h-5" />}
                   </button>
                 </div>
 
                 <div className="text-xs text-slate-600 mt-3 space-y-0.5">
                   <p>Khách hàng: <b className="text-slate-900">{createdBooking?.customer_name}</b></p>
-                  <p>Ngày tham quan: <b className="text-emerald-800 font-semibold">{createdBooking?.visit_date}</b></p>
+                  <p>Ngày tham quan: <b className="text-emerald-800 font-bold">{formatVnDate(createdBooking?.visit_date)}</b></p>
                 </div>
 
                 {/* Important notice badge */}
-                <div className="mt-4 p-3 bg-amber-50 border border-amber-300 rounded-xl text-left text-xs text-amber-950 flex items-start gap-2 shadow-2xs">
+                <div className="mt-3 p-2.5 bg-amber-50 border border-amber-300 rounded-xl text-left text-[11px] text-amber-950 flex items-start gap-2 shadow-2xs">
                   <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                  <p className="text-[11px] leading-relaxed">
-                    <b>Lưu ý quan trọng:</b> Đây là <b>Mã Đặt Chỗ</b> nhận vé tại quầy, <b>chưa phải vé quét vào cổng</b>. Khi đến Khu Du Lịch, quý khách vui lòng đọc mã này hoặc Số điện thoại tại bất kỳ <b>Quầy Thu Ngân / POS</b> nào để nhận vé vào cổng.
+                  <p className="leading-relaxed">
+                    <b>Lưu ý:</b> Đây là <b>Mã Đặt Chỗ</b>, <b>chưa phải vé quét vào cổng</b>. Khi đến Khu Du Lịch, vui lòng đọc mã này hoặc SĐT tại quầy POS để nhận vé in.
                   </p>
                 </div>
               </div>
 
-              {/* Summary Details */}
-              <div className="bg-slate-50 rounded-xl p-4 text-xs text-left space-y-2 border border-slate-200">
-                <div className="flex justify-between text-slate-600">
-                  <span>Tổng tiền dự kiến:</span>
-                  <span className="font-mono font-bold text-slate-900">{Number(createdBooking?.total_amount || 0).toLocaleString('vi-VN')} đ</span>
-                </div>
-                <div className="flex justify-between text-slate-600">
-                  <span>Trạng thái:</span>
-                  <span className="font-bold text-emerald-700 uppercase">{createdBooking?.status}</span>
-                </div>
-              </div>
-
-              {/* Instructions */}
-              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-left text-xs text-emerald-950 space-y-1">
-                <p className="font-bold text-emerald-900">📌 Hướng dẫn nhận vé tại quầy:</p>
-                <p>1. Đến bất kỳ quầy thu ngân POS nào tại Khu Du Lịch.</p>
-                <p>2. Đọc mã <b className="text-emerald-900 font-mono">{createdBooking?.booking_code}</b> hoặc Số điện thoại <b className="text-emerald-900 font-mono">{createdBooking?.customer_phone}</b> cho thu ngân.</p>
-                <p>3. Thu ngân sẽ xuất vé vào cổng ngay lập tức mà không cần nhập lại thông tin.</p>
-              </div>
-
               {/* Action buttons */}
-              <div className="flex items-center gap-3 pt-2">
+              <div className="flex items-center gap-2.5 pt-1">
                 <button
                   type="button"
                   onClick={() => {
                     setStep('FORM');
                     setCreatedBooking(null);
                   }}
-                  className="flex-1 py-3 text-xs font-bold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50 rounded-xl border border-slate-200 transition shadow-2xs"
+                  className="flex-1 py-2.5 text-xs font-bold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 rounded-xl border border-slate-200 transition shadow-2xs cursor-pointer"
                 >
                   Đặt vé khác
                 </button>
@@ -794,7 +871,7 @@ export const PublicBookingPortal: React.FC<PublicBookingPortalProps> = ({ onBack
                     }
                     window.location.hash = '/pos';
                   }}
-                  className="flex-1 py-3 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-md shadow-emerald-600/20"
+                  className="flex-1 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-md shadow-emerald-600/20 cursor-pointer"
                 >
                   Mở bán tại POS
                 </button>
@@ -803,11 +880,6 @@ export const PublicBookingPortal: React.FC<PublicBookingPortalProps> = ({ onBack
           </div>
         )}
       </main>
-
-      {/* Footer */}
-      <footer className="border-t border-slate-200 py-6 text-center text-xs text-slate-500 bg-white">
-        <p>© 2026 HPTicket System • Phân hệ Pre-sale & Đặt vé đoàn trực tuyến</p>
-      </footer>
     </div>
   );
 };
