@@ -68,11 +68,13 @@ export const AudienceTab: React.FC<AudienceTabProps> = ({ audienceTypes, setAudi
     setAudienceTypes(prev => prev.filter(a => !ids.includes(a.id)));
   };
 
+  const validAudienceTypes = audienceTypes.filter(a => !a.deleted_at && !a.code?.includes('_DEL_'));
+
   return (
     <>
       <AdminConfigCard
         title="KHAI BÁO ĐỐI TƯỢNG"
-        data={audienceTypes}
+        data={validAudienceTypes}
         columns={[
           { header: 'ID', accessor: (row, idx) => idx + 1, className: 'w-16 font-mono text-center' },
           { header: 'Mã đối tượng', accessor: 'code', className: 'font-mono font-bold text-slate-800' },

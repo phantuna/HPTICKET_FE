@@ -11,8 +11,8 @@ RUN npm install
 # Copy the rest of the application
 COPY . .
 
-# Build argument for API base URL (Vite embeds this at build time)
-ARG VITE_API_URL=https://api.vnscout.io.vn/api/v1
+# Build argument for API base URL (Vite embeds this at build time, /api/v1 for Nginx reverse proxy)
+ARG VITE_API_URL=/api/v1
 ENV VITE_API_URL=$VITE_API_URL
 
 # Build the application

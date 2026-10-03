@@ -16,7 +16,11 @@ export const useTicketing = (currentTab?: string) => {
     if (!currentTab || currentTab === 'KhaiBaoDoiTuong' || currentTab === 'KhaibaoVe') {
       promises.push(
         ticketingService.fetchAudienceTypes()
-          .then(res => { if (res.data) setAudienceTypes(res.data); })
+          .then(res => {
+            if (res.data) {
+              setAudienceTypes(res.data.filter((item: AudienceType) => !item.deleted_at && !item.code?.includes('_DEL_')));
+            }
+          })
           .catch(() => { })
       );
     }

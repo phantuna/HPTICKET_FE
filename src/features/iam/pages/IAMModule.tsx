@@ -47,6 +47,7 @@ export const IAMModule: React.FC<IAMModuleProps> = ({ subTab = 'KhaiBaoPhanQuyen
     openNewUserModal,
     openEditUserModal,
     refreshUsers,
+    activeStaffList,
     showRoleModal, setShowRoleModal,
     editingRoleId,
     roleCode, setRoleCode,
@@ -124,7 +125,7 @@ export const IAMModule: React.FC<IAMModuleProps> = ({ subTab = 'KhaiBaoPhanQuyen
       {currentTab === 'KhaibaoDangNhap' && (
         <AdminConfigCard
           title="KHAI BÁO ĐĂNG NHẬP"
-          data={users}
+          data={users.filter((u: any) => !u.deleted_at)}
           columns={[
             {
               header: 'ID',
@@ -207,7 +208,7 @@ export const IAMModule: React.FC<IAMModuleProps> = ({ subTab = 'KhaiBaoPhanQuyen
       {currentTab === 'KhaiBaoThe_NV' && (
         <AdminConfigCard
           title="Khai báo thẻ nhân viên / QR"
-          data={users}
+          data={activeStaffList}
           columns={[
             {
               header: 'STT',

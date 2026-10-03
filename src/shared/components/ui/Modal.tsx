@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { X } from 'lucide-react';
 import { Button, ButtonVariant } from './Button';
+import { useFormShortcuts } from '../../hooks';
 
 export interface ModalProps {
   isOpen: boolean;
@@ -8,7 +9,7 @@ export interface ModalProps {
   title: React.ReactNode;
   icon?: React.ReactNode;
   subtitle?: string;
-  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';
+  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl';
   onSubmit?: (e: React.FormEvent) => void;
   children: React.ReactNode;
   showFooter?: boolean;
@@ -20,6 +21,7 @@ export interface ModalProps {
   onConfirm?: () => void;
   footer?: React.ReactNode;
   closeOnBackdropClick?: boolean;
+  submitOnEnter?: boolean;
 }
 
 const maxWidthMap: Record<string, string> = {
@@ -30,6 +32,8 @@ const maxWidthMap: Record<string, string> = {
   '2xl': 'max-w-2xl',
   '3xl': 'max-w-3xl',
   '4xl': 'max-w-4xl',
+  '5xl': 'max-w-5xl',
+  '6xl': 'max-w-6xl',
 };
 
 export const Modal: React.FC<ModalProps> = ({
@@ -50,18 +54,19 @@ export const Modal: React.FC<ModalProps> = ({
   onConfirm,
   footer,
   closeOnBackdropClick = true,
+  submitOnEnter = true,
 }) => {
-  // Handle ESC key to close modal
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  // Xử lý phím tắt toàn cục cho toàn bộ cửa sổ khai báo:
+  // - Enter : Tự động Lưu / Xác nhận form
+  // - Escape: Đóng cửa sổ modal
+  useFormShortcuts({
+    isOpen,
+    onClose,
+    onSubmit: onSubmit ? (e) => onSubmit(e as any) : onConfirm,
+    isSubmitting,
+    disabled: isConfirmDisabled,
+    enableEnterSubmit: submitOnEnter,
+  });
 
   if (!isOpen) return null;
 

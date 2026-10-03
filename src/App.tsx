@@ -136,7 +136,7 @@ export default function App() {
   }, []);
 
   // Lắng nghe sự kiện hết hạn token JWT (401) từ apiConfig
-  const [toastInfo, setToastInfo] = useState<{message: string, title: string, type: 'error' | 'success'} | null>(null);
+  const [toastInfo, setToastInfo] = useState<{message: string, title: string, type: 'error' | 'success' | 'warning' | 'info'} | null>(null);
   useEffect(() => {
     const handleSessionExpired = (e: any) => {
       setToastInfo({ message: e.detail?.message || 'Phiên đăng nhập đã hết hạn!', title: 'Hết hạn đăng nhập', type: 'error' });
@@ -159,7 +159,7 @@ export default function App() {
   const lastToastRef = useRef<{ message: string; time: number }>({ message: '', time: 0 });
   const toastTimerRef = useRef<any>(null);
 
-  const triggerToast = useCallback((info: { message: string; title: string; type: 'success' | 'error' | 'warning' | 'info' }) => {
+  const triggerToast = useCallback((info: { message: string; title: string; type: 'success' | 'error' | 'warning' | 'info'; duration?: number }) => {
     const now = Date.now();
     // Bỏ qua toast trùng lặp nội dung trong vòng 1.5s
     if (lastToastRef.current.message === info.message && now - lastToastRef.current.time < 1500) {
@@ -168,8 +168,26 @@ export default function App() {
     lastToastRef.current = { message: info.message, time: now };
     setToastInfo(info);
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    toastTimerRef.current = setTimeout(() => setToastInfo(null), 4000);
+    toastTimerRef.current = setTimeout(() => setToastInfo(null), info.duration || 5000);
   }, []);
+
+  // Tự động hiển thị cảnh báo bản quyền sắp hết hạn sau khi đăng nhập thành công
+  useEffect(() => {
+    if (activeTab !== 'login') {
+      const warning = sessionStorage.getItem('hpticket_license_warning');
+      if (warning) {
+        sessionStorage.removeItem('hpticket_license_warning');
+        setTimeout(() => {
+          triggerToast({
+            title: '⚠️ CẢNH BÁO BẢN QUYỀN SẮP HẾT HẠN',
+            message: warning,
+            type: 'warning',
+            duration: 10000
+          });
+        }, 500);
+      }
+    }
+  }, [activeTab, triggerToast]);
 
   // Lắng nghe các lỗi nghiệp vụ từ API (Business Exceptions)
   useEffect(() => {

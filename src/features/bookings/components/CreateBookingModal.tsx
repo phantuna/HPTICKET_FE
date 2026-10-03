@@ -297,7 +297,7 @@ export const CreateBookingModal: React.FC<CreateBookingModalProps> = ({ isOpen, 
       title="Tạo Đặt Chỗ Mới (Booking / Pre-sale)"
       subtitle="Dành cho khách đoàn, Tour Agency hoặc khách đặt vé trước"
       icon={<Ticket className="w-5 h-5 text-emerald-600" />}
-      maxWidth="3xl"
+      maxWidth="5xl"
       onSubmit={handleSubmit}
       confirmText={isSubmitting ? 'Đang tạo...' : 'Xác nhận tạo Booking'}
       confirmVariant="primary"
@@ -305,357 +305,430 @@ export const CreateBookingModal: React.FC<CreateBookingModalProps> = ({ isOpen, 
       isSubmitting={isSubmitting}
       isConfirmDisabled={isSubmitting || selectedItems.length === 0}
     >
-      <div className="max-h-[68vh] overflow-y-auto pr-1 space-y-4 text-xs">
-        {/* 1. Thông tin đoàn & người đặt */}
-        <div className="bg-slate-50/70 border border-slate-200/80 rounded-xl p-3.5">
-          <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-            <User className="w-3.5 h-3.5 text-emerald-600" /> 1. Thông tin khách hàng & Công ty lữ hành
-          </h4>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">
-                Tên người đặt / Trưởng đoàn <span className="text-rose-500">*</span>
-              </label>
-              <div className="relative">
-                <User className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                <input
-                  type="text"
-                  required
-                  value={customerName}
-                  onChange={e => setCustomerName(e.target.value)}
-                  placeholder="VD: Nguyễn Văn A"
-                  className="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-500 font-medium"
-                />
+      <div className="max-h-[82vh] overflow-y-auto pr-0.5 text-xs">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+          {/* CỘT TRÁI (7 cols): Khách hàng + Danh sách vé */}
+          <div className="lg:col-span-7 space-y-3.5">
+            {/* 1. Thông tin đoàn & người đặt */}
+            <div className="bg-slate-50/80 border border-slate-200/90 rounded-xl p-3 shadow-2xs">
+              <h4 className="text-[11px] font-bold text-slate-800 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5 text-emerald-600" /> 1. Thông tin khách hàng & Đơn vị lữ hành
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div>
+                  <label htmlFor="customerName" className="block font-semibold text-slate-700 mb-1">
+                    Tên người đặt / Trưởng đoàn <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <User className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2" />
+                    <input
+                      id="customerName"
+                      type="text"
+                      required
+                      value={customerName}
+                      onChange={e => setCustomerName(e.target.value)}
+                      placeholder="VD: Nguyễn Văn A"
+                      className="w-full pl-8 pr-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-medium focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="customerPhone" className="block font-semibold text-slate-700 mb-1">
+                    Số điện thoại liên hệ
+                  </label>
+                  <div className="relative">
+                    <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2" />
+                    <input
+                      id="customerPhone"
+                      type="tel"
+                      value={customerPhone}
+                      onChange={e => setCustomerPhone(e.target.value)}
+                      placeholder="0901234567"
+                      className="w-full pl-8 pr-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="companyName" className="block font-semibold text-slate-700 mb-1">
+                    Công ty / Tour Agency <span className="text-slate-400 font-normal">(nếu có)</span>
+                  </label>
+                  <div className="relative">
+                    <Building2 className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2" />
+                    <input
+                      id="companyName"
+                      type="text"
+                      value={companyName}
+                      onChange={e => setCompanyName(e.target.value)}
+                      placeholder="VD: Vietravel, Saigontourist..."
+                      className="w-full pl-8 pr-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-medium focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="customerEmail" className="block font-semibold text-slate-700 mb-1">
+                    Email nhận xác nhận
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2" />
+                    <input
+                      id="customerEmail"
+                      type="email"
+                      value={customerEmail}
+                      onChange={e => setCustomerEmail(e.target.value)}
+                      placeholder="booking@agency.com"
+                      className="w-full pl-8 pr-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">
-                Công ty / Tour Agency <span className="text-slate-400 font-normal">(nếu là khách đoàn)</span>
-              </label>
-              <div className="relative">
-                <Building2 className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                <input
-                  type="text"
-                  value={companyName}
-                  onChange={e => setCompanyName(e.target.value)}
-                  placeholder="VD: Vietravel, Saigontourist..."
-                  className="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-500 font-medium"
-                />
+            {/* 2. Ngày đến & Danh sách loại vé */}
+            <div className="border border-slate-200/90 rounded-xl p-3 bg-white shadow-2xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2.5">
+                <h4 className="text-[11px] font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                  <Ticket className="w-3.5 h-3.5 text-emerald-600" /> 2. Ngày đến & Danh sách loại vé
+                </h4>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-semibold text-slate-600 text-xs">Ngày tham quan:</span>
+                  <VNDateInput
+                    value={visitDate}
+                    onChange={setVisitDate}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-36 py-1 px-2 text-xs font-semibold"
+                  />
+                </div>
               </div>
-            </div>
 
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">Số điện thoại liên hệ</label>
-              <div className="relative">
-                <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                <input
-                  type="tel"
-                  value={customerPhone}
-                  onChange={e => setCustomerPhone(e.target.value)}
-                  placeholder="0901234567"
-                  className="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">Email nhận xác nhận</label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                <input
-                  type="email"
-                  value={customerEmail}
-                  onChange={e => setCustomerEmail(e.target.value)}
-                  placeholder="booking@agency.com"
-                  className="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 2. Ngày đến & Danh sách vé */}
-        <div className="border border-slate-200 rounded-xl p-3.5 bg-white">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-            <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-              <Ticket className="w-3.5 h-3.5 text-emerald-600" /> 2. Ngày đến & Danh sách loại vé
-            </h4>
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-slate-600">Ngày tham quan:</span>
-              <VNDateInput
-                value={visitDate}
-                onChange={setVisitDate}
-                min={new Date().toISOString().split('T')[0]}
-                className="w-36 py-1 px-2.5 text-xs font-semibold"
-              />
-            </div>
-          </div>
-
-          <div className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50">
-            <table className="w-full text-xs text-left">
-              <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
-                <tr>
-                  <th className="py-2 px-3">Loại vé</th>
-                  <th className="py-2 px-3 text-right">Đơn giá</th>
-                  <th className="py-2 px-3 text-center w-28">Số khách / Vé</th>
-                  <th className="py-2 px-3 text-center w-48">Hình thức xuất vé</th>
-                  <th className="py-2 px-3 text-right">Thành tiền</th>
-                  <th className="py-2 px-2 text-center w-10"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 bg-white">
-                {selectedItems.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="py-4 text-center text-slate-400">
-                      Chưa có loại vé nào được chọn. Bấm "Thêm loại vé" bên dưới.
-                    </td>
-                  </tr>
-                ) : (
-                  selectedItems.map((item, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50/60 transition">
-                      <td className="py-2 px-3">
-                        <select
-                          value={item.ticket_type_id}
-                          onChange={e => handleItemChange(idx, 'ticket_type_id', e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-medium focus:outline-none focus:border-emerald-500"
-                        >
-                          {availableTemplates.map(t => (
-                            <option key={t.id} value={t.id}>
-                              {t.name || t.ticket_name} ({Number(t.price).toLocaleString('vi-VN')} đ)
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="py-2 px-3 text-right font-mono font-medium text-slate-700 whitespace-nowrap">
-                        {item.price.toLocaleString('vi-VN')} đ
-                      </td>
-                      <td className="py-2 px-3 text-center">
-                        <div className="inline-flex items-center justify-center border border-slate-300 rounded-lg bg-white overflow-hidden shadow-2xs">
-                          <button
-                            type="button"
-                            onClick={() => handleItemChange(idx, 'count', Math.max(1, item.count - 1))}
-                            className="w-7 h-7 flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition"
-                          >
-                            -
-                          </button>
-                          <input
-                            type="number"
-                            min="1"
-                            value={item.count}
-                            onChange={e => handleItemChange(idx, 'count', e.target.value)}
-                            className="w-12 py-1 text-center font-bold text-slate-900 border-x border-slate-200 focus:outline-none focus:bg-emerald-50/50 text-xs"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => handleItemChange(idx, 'count', item.count + 1)}
-                            className="w-7 h-7 flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition"
-                          >
-                            +
-                          </button>
-                        </div>
-                      </td>
-                      <td className="py-2 px-3 text-center">
-                        {item.count > 1 ? (
-                          <button
-                            type="button"
-                            onClick={() => handleItemChange(idx, 'is_group_ticket', !item.is_group_ticket)}
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold transition border ${
-                              item.is_group_ticket
-                                ? 'bg-purple-100 text-purple-800 border-purple-300 hover:bg-purple-200 shadow-2xs'
-                                : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
-                            }`}
-                            title="Bấm để chuyển đổi giữa Vé đoàn (1 vé N lượt quét) và Vé lẻ (N vé riêng)"
-                          >
-                            {item.is_group_ticket ? (
-                              <>
-                                <Users className="w-3.5 h-3.5 text-purple-700" />
-                                <span>Vé đoàn (1 vé • {item.count} lượt)</span>
-                              </>
-                            ) : (
-                              <>
-                                <Ticket className="w-3.5 h-3.5 text-slate-500" />
-                                <span>Vé lẻ ({item.count} vé rời)</span>
-                              </>
-                            )}
-                          </button>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 text-slate-700 border border-slate-200">
-                            <Ticket className="w-3.5 h-3.5 text-slate-500" />
-                            <span>Vé lẻ (1 lượt)</span>
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-2 px-3 text-right font-mono font-bold text-emerald-700 whitespace-nowrap">
-                        {(item.price * item.count).toLocaleString('vi-VN')} đ
-                      </td>
-                      <td className="py-2 px-2 text-center">
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveItem(idx)}
-                          className="text-slate-400 hover:text-rose-600 p-1 transition"
-                          title="Xóa dòng"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </td>
+              <div className="border border-slate-200 rounded-lg overflow-hidden bg-slate-50">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-slate-100/90 text-slate-700 font-bold border-b border-slate-200 text-[11px]">
+                    <tr>
+                      <th className="py-2 px-2.5">Loại vé</th>
+                      <th className="py-2 px-2 text-right">Đơn giá</th>
+                      <th className="py-2 px-2 text-center w-24">Số lượng</th>
+                      <th className="py-2 px-2 text-center w-36">Hình thức vé</th>
+                      <th className="py-2 px-2.5 text-right">Thành tiền</th>
+                      <th className="py-2 px-1 text-center w-8" aria-label="Hành động"></th>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 bg-white">
+                    {selectedItems.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-4 text-center text-slate-400">
+                          Chưa có loại vé nào. Bấm "+ Thêm loại vé" bên dưới.
+                        </td>
+                      </tr>
+                    ) : (
+                      selectedItems.map((item, idx) => (
+                        <tr key={idx} className="hover:bg-slate-50/60 transition">
+                          <td className="py-1.5 px-2.5">
+                            <select
+                              aria-label="Chọn loại vé"
+                              value={item.ticket_type_id}
+                              onChange={e => handleItemChange(idx, 'ticket_type_id', e.target.value)}
+                              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-medium focus:outline-none focus:border-emerald-500"
+                            >
+                              {availableTemplates.map(t => (
+                                <option key={t.id} value={t.id}>
+                                  {t.name || t.ticket_name} ({Number(t.price).toLocaleString('vi-VN')} đ)
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                          <td className="py-1.5 px-2 text-right font-mono font-medium text-slate-700 whitespace-nowrap text-xs">
+                            {item.price.toLocaleString('vi-VN')} đ
+                          </td>
+                          <td className="py-1.5 px-2 text-center">
+                            <div className="inline-flex items-center justify-center border border-slate-300 rounded-lg bg-white overflow-hidden shadow-2xs">
+                              <button
+                                type="button"
+                                aria-label="Giảm 1 vé"
+                                onClick={() => handleItemChange(idx, 'count', Math.max(1, item.count - 1))}
+                                className="w-6 h-6 flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition text-xs"
+                              >
+                                -
+                              </button>
+                              <input
+                                type="number"
+                                aria-label="Số lượng vé"
+                                min="1"
+                                value={item.count}
+                                onChange={e => handleItemChange(idx, 'count', e.target.value)}
+                                className="w-10 py-0.5 text-center font-bold text-slate-900 border-x border-slate-200 focus:outline-none focus:bg-emerald-50/50 text-xs"
+                              />
+                              <button
+                                type="button"
+                                aria-label="Tăng 1 vé"
+                                onClick={() => handleItemChange(idx, 'count', item.count + 1)}
+                                className="w-6 h-6 flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition text-xs"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </td>
+                          <td className="py-1.5 px-2 text-center">
+                            {item.count > 1 ? (
+                              <button
+                                type="button"
+                                onClick={() => handleItemChange(idx, 'is_group_ticket', !item.is_group_ticket)}
+                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold transition border ${
+                                  item.is_group_ticket
+                                    ? 'bg-purple-100 text-purple-800 border-purple-300 hover:bg-purple-200 shadow-2xs'
+                                    : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
+                                }`}
+                                title="Bấm để chuyển đổi giữa Vé đoàn (1 vé N lượt) và Vé lẻ (N vé rời)"
+                              >
+                                {item.is_group_ticket ? (
+                                  <>
+                                    <Users className="w-3 h-3 text-purple-700" />
+                                    <span>Vé đoàn ({item.count} lượt)</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Ticket className="w-3 h-3 text-slate-500" />
+                                    <span>Vé lẻ ({item.count} vé)</span>
+                                  </>
+                                )}
+                              </button>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                                <Ticket className="w-3 h-3 text-slate-400" />
+                                <span>Vé lẻ (1 lượt)</span>
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-1.5 px-2.5 text-right font-mono font-bold text-emerald-700 whitespace-nowrap text-xs">
+                            {(item.price * item.count).toLocaleString('vi-VN')} đ
+                          </td>
+                          <td className="py-1.5 px-1 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveItem(idx)}
+                              className="text-slate-400 hover:text-rose-600 p-1 transition"
+                              title="Xóa dòng vé này"
+                              aria-label="Xóa dòng vé"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
 
-            <div className="p-2.5 bg-slate-50 border-t border-slate-200 flex justify-between items-center flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleAddItem}
-                icon={<Plus className="w-3.5 h-3.5 text-emerald-600" />}
-              >
-                Thêm loại vé
-              </Button>
-              <div className="flex items-center gap-3 text-xs">
-                <span className="text-slate-600">
-                  Tổng khách: <b className="text-slate-900 font-bold">{totalPeople} người</b>
+                <div className="p-2 bg-slate-50/90 border-t border-slate-200 flex justify-between items-center flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAddItem}
+                    icon={<Plus className="w-3.5 h-3.5 text-emerald-600" />}
+                    className="py-1 text-xs"
+                  >
+                    Thêm loại vé
+                  </Button>
+                  <div className="flex items-center gap-2.5 text-xs">
+                    <span className="text-slate-600">
+                      Tổng khách: <b className="text-slate-900 font-bold">{totalPeople} người</b>
+                    </span>
+                    {selectedItems.some(it => it.is_group_ticket) && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full border border-purple-200">
+                        <Users className="w-3 h-3" /> Booking vé đoàn
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* CỘT PHẢI (5 cols): Khuyến mãi/Chiết khấu + Thanh toán/Cọc + Ghi chú */}
+          <div className="lg:col-span-5 space-y-3.5">
+            {/* 3. Chiết khấu & Ưu đãi tự động từ DB */}
+            <div className="bg-emerald-50/60 border border-emerald-200/90 rounded-xl p-3 shadow-2xs space-y-2.5">
+              <div className="flex items-center justify-between flex-wrap gap-1">
+                <h4 className="text-[11px] font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                  <CreditCard className="w-3.5 h-3.5 text-emerald-600" /> 3. Ưu đãi & Chiết khấu (DB)
+                </h4>
+                <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-100/90 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <ShieldCheck className="w-3 h-3 text-emerald-600" /> Quy tắc MAX chuẩn Order
                 </span>
-                {selectedItems.some(it => it.is_group_ticket) && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full border border-purple-200">
-                    <Users className="w-3 h-3" /> Booking vé đoàn
+              </div>
+
+              <div className="bg-white border border-slate-200/80 rounded-lg p-2.5 space-y-2 text-xs">
+                {/* Nhóm khách hàng DB */}
+                <div className="flex items-center justify-between gap-1 pb-1.5 border-b border-slate-100">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <Users className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                    <span className="font-semibold text-slate-700">Nhóm KH:</span>
+                    <span className="font-bold text-[11px] text-purple-800 bg-purple-50 border border-purple-200 px-1.5 py-0.5 rounded">
+                      {matchedCustomerGroup?.name || (isGroupBooking ? 'Khách đoàn' : 'Khách lẻ')}
+                    </span>
+                    <span className="text-[11px] text-slate-500 font-medium">
+                      (-<b className="text-purple-700">{groupDiscountPercent}%</b>)
+                    </span>
+                  </div>
+                  <span className="font-mono font-bold text-slate-800 text-xs">
+                    - {groupDiscountAmount.toLocaleString('vi-VN')} đ
                   </span>
+                </div>
+
+                {/* Chương trình Khuyến mại (Promotions) DB */}
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between gap-1">
+                    <label htmlFor="promoSelect" className="font-semibold text-slate-700 flex items-center gap-1.5">
+                      <Tag className="w-3.5 h-3.5 text-amber-600" /> Mã khuyến mại:
+                    </label>
+                    {activePromo && (
+                      <span className="font-mono font-bold text-amber-700 text-xs">
+                        - {promoDiscountAmount.toLocaleString('vi-VN')} đ
+                      </span>
+                    )}
+                  </div>
+                  <select
+                    id="promoSelect"
+                    value={selectedPromotionId}
+                    onChange={e => setSelectedPromotionId(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1 text-xs font-medium text-slate-800 focus:outline-none focus:border-emerald-500"
+                  >
+                    <option value="">-- Không áp dụng CTKM --</option>
+                    {validPromotions.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({p.discount_percent ? `Giảm ${p.discount_percent}%` : `Giảm ${Number(p.discount_value).toLocaleString('vi-VN')}đ`})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Dòng áp dụng mức giảm tối ưu */}
+                {effectiveDiscount > 0 ? (
+                  <div className="pt-1.5 border-t border-dashed border-emerald-200 flex items-center justify-between text-emerald-800 font-bold">
+                    <span className="flex items-center gap-1 text-[11px]">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      Giảm tối đa ({isPromoHigher ? 'CTKM' : 'Nhóm KH'}):
+                    </span>
+                    <span className="font-mono font-extrabold text-emerald-700 text-xs">
+                      - {effectiveDiscount.toLocaleString('vi-VN')} đ
+                    </span>
+                  </div>
+                ) : (
+                  <div className="pt-0.5 text-[10px] text-slate-400 italic">
+                    * Chưa có mức chiết khấu nào áp dụng cho đơn này.
+                  </div>
                 )}
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* 3. Chiết khấu tự động từ DB & Đặt cọc (Quy tắc MAX chuẩn Order) */}
-        <div className="bg-emerald-50/50 border border-emerald-200/80 rounded-xl p-3.5 space-y-3">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-              <CreditCard className="w-3.5 h-3.5 text-emerald-600" /> 3. Chiết khấu tự động (DB) & Đặt cọc
-            </h4>
-            <div className="text-[11px] font-semibold text-emerald-700 bg-emerald-100/70 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Quy tắc MAX chuẩn Order (Lấy mức ưu đãi cao nhất)
-            </div>
-          </div>
+            {/* 4. Tổng kết tài chính & Tiền đặt cọc */}
+            <div className="bg-slate-50/90 border border-slate-200 rounded-xl p-3 shadow-2xs space-y-2.5">
+              <h4 className="text-[11px] font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                <CreditCard className="w-3.5 h-3.5 text-emerald-600" /> 4. Thanh toán & Đặt cọc
+              </h4>
 
-          {/* Khối hiển thị nguồn giảm giá tự động từ DB */}
-          <div className="bg-white border border-slate-200 rounded-lg p-3 space-y-2.5 text-xs">
-            {/* Nhóm khách hàng DB */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 pb-2 border-b border-slate-100">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-semibold text-slate-700 flex items-center gap-1">
-                  <Users className="w-3.5 h-3.5 text-purple-600" />
-                  Nhóm khách hàng (DB):
-                </span>
-                <span className="font-bold text-slate-900 bg-purple-50 text-purple-800 border border-purple-200 px-2 py-0.5 rounded">
-                  {matchedCustomerGroup?.name || (isGroupBooking ? 'Khách đoàn' : 'Khách lẻ')}
-                </span>
-                <span className="text-slate-500 font-medium">
-                  (Cấu hình giảm: <b className="text-purple-700 font-bold">{groupDiscountPercent}%</b>)
-                </span>
+              <div className="space-y-1.5 text-xs bg-white p-2.5 rounded-lg border border-slate-200">
+                <div className="flex items-center justify-between text-slate-600">
+                  <span>Tiền vé gốc:</span>
+                  <span className="font-mono font-semibold text-slate-800">{subtotal.toLocaleString('vi-VN')} đ</span>
+                </div>
+                {effectiveDiscount > 0 && (
+                  <div className="flex items-center justify-between text-emerald-700 font-medium">
+                    <span>Chiết khấu ({effectiveDiscountPercent}%):</span>
+                    <span className="font-mono font-bold">- {effectiveDiscount.toLocaleString('vi-VN')} đ</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between pt-1 border-t border-slate-100 font-bold text-slate-900">
+                  <span>Tổng tiền thanh toán:</span>
+                  <span className="font-mono text-sm text-slate-900">{totalAmount.toLocaleString('vi-VN')} đ</span>
+                </div>
               </div>
-              <span className="font-mono font-bold text-slate-800">
-                - {groupDiscountAmount.toLocaleString('vi-VN')} đ
-              </span>
-            </div>
 
-            {/* Chương trình Khuyến mại (Promotions) DB */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
-              <div className="flex items-center gap-2 flex-1 flex-wrap">
-                <span className="font-semibold text-slate-700 flex items-center gap-1 shrink-0">
-                  <Tag className="w-3.5 h-3.5 text-amber-600" />
-                  Chương trình khuyến mại (DB):
-                </span>
-                <select
-                  value={selectedPromotionId}
-                  onChange={e => setSelectedPromotionId(e.target.value)}
-                  className="bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-medium text-slate-800 focus:outline-none focus:border-emerald-500 max-w-xs"
-                >
-                  <option value="">-- Không áp dụng CTKM --</option>
-                  {validPromotions.map(p => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} ({p.discount_percent ? `Giảm ${p.discount_percent}%` : `Giảm ${Number(p.discount_value).toLocaleString('vi-VN')}đ`})
-                    </option>
-                  ))}
-                </select>
+              {/* Ô nhập tiền cọc và các nút chọn nhanh % cọc */}
+              <div className="bg-white p-2.5 rounded-lg border border-slate-200 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="depositAmount" className="text-slate-800 font-bold text-xs">
+                    Tiền đặt cọc trước (VNĐ):
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setDepositAmount(0)}
+                      className="px-1.5 py-0.5 text-[10px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded transition"
+                      title="Không đặt cọc"
+                    >
+                      0đ
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDepositAmount(Math.round(totalAmount * 0.3))}
+                      className="px-1.5 py-0.5 text-[10px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded transition"
+                      title="Cọc 30%"
+                    >
+                      30%
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDepositAmount(Math.round(totalAmount * 0.5))}
+                      className="px-1.5 py-0.5 text-[10px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded transition"
+                      title="Cọc 50%"
+                    >
+                      50%
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDepositAmount(totalAmount)}
+                      className="px-1.5 py-0.5 text-[10px] font-bold bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded transition"
+                      title="Cọc đủ 100%"
+                    >
+                      100%
+                    </button>
+                  </div>
+                </div>
+                <div className="relative">
+                  <input
+                    id="depositAmount"
+                    type="number"
+                    min="0"
+                    max={totalAmount}
+                    step="50000"
+                    value={depositAmount || ''}
+                    onChange={e => setDepositAmount(Math.max(0, parseFloat(e.target.value) || 0))}
+                    className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg font-mono font-bold text-emerald-700 text-right focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                    placeholder="0"
+                  />
+                  <span className="absolute left-2.5 top-2 text-[11px] text-slate-400 font-semibold pointer-events-none">
+                    VNĐ
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between pt-1 text-xs">
+                  <span className="font-semibold text-slate-600">Còn phải thu tại POS:</span>
+                  <span className={`font-mono font-extrabold text-sm ${remainingAmount === 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    {remainingAmount === 0 ? '✓ Đã cọc đủ 100%' : `${remainingAmount.toLocaleString('vi-VN')} đ`}
+                  </span>
+                </div>
               </div>
-              {activePromo && (
-                <span className="font-mono font-bold text-amber-700 shrink-0">
-                  - {promoDiscountAmount.toLocaleString('vi-VN')} đ
-                </span>
-              )}
             </div>
 
-            {/* Tổng kết mức giảm áp dụng theo quy tắc MAX */}
-            {effectiveDiscount > 0 ? (
-              <div className="pt-2 border-t border-dashed border-emerald-200 flex items-center justify-between text-emerald-800 font-bold">
-                <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  Mức giảm tối ưu được áp dụng ({isPromoHigher ? `CTKM "${activePromo?.name}"` : `Chiết khấu ${matchedCustomerGroup?.name || 'Khách đoàn'}`}):
-                </span>
-                <span className="font-mono text-sm font-extrabold text-emerald-700">
-                  - {effectiveDiscount.toLocaleString('vi-VN')} đ
-                </span>
-              </div>
-            ) : (
-              <div className="pt-1 text-[11px] text-slate-400 italic">
-                * Chưa có chính sách chiết khấu nào được áp dụng cho đơn đặt này.
-              </div>
-            )}
-          </div>
-
-          {/* Grid tổng hợp số tiền */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
-            <div className="bg-white p-2.5 rounded-lg border border-slate-200">
-              <span className="text-slate-400 block text-[11px] mb-0.5">Tiền vé gốc</span>
-              <span className="font-mono font-bold text-slate-700 text-sm">
-                {subtotal.toLocaleString('vi-VN')} đ
-              </span>
-            </div>
-
-            <div className="bg-white p-2.5 rounded-lg border border-slate-200">
-              <span className="text-slate-400 block text-[11px] mb-0.5">Tổng sau chiết khấu</span>
-              <span className="font-mono font-bold text-slate-900 text-sm">
-                {totalAmount.toLocaleString('vi-VN')} đ
-              </span>
-            </div>
-
-            <div className="bg-white p-2.5 rounded-lg border border-slate-200">
-              <label className="text-slate-700 font-semibold block text-[11px] mb-0.5">Tiền đặt cọc (VNĐ)</label>
-              <input
-                type="number"
-                min="0"
-                step="50000"
-                value={depositAmount || ''}
-                onChange={e => setDepositAmount(Math.max(0, parseFloat(e.target.value) || 0))}
-                className="w-full px-2 py-0.5 bg-slate-50 border border-slate-300 rounded font-mono font-bold text-emerald-700 text-right focus:outline-none focus:border-emerald-500 text-sm"
-                placeholder="0"
+            {/* 5. Ghi chú nghiệp vụ */}
+            <div className="bg-white border border-slate-200 rounded-xl p-2.5 shadow-2xs">
+              <label htmlFor="bookingNote" className="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5 text-slate-400" /> Ghi chú nghiệp vụ
+              </label>
+              <textarea
+                id="bookingNote"
+                rows={2}
+                value={note}
+                onChange={e => setNote(e.target.value)}
+                placeholder="VD: Khách đoàn cần hướng dẫn viên, cọc tiền mặt..."
+                className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
               />
             </div>
-
-            <div className="bg-white p-2.5 rounded-lg border border-slate-200">
-              <span className="text-slate-400 block text-[11px] mb-0.5">Còn phải thu tại POS</span>
-              <span className={`font-mono font-bold text-sm ${remainingAmount === 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                {remainingAmount === 0 ? '✓ Đã cọc đủ 100%' : `${remainingAmount.toLocaleString('vi-VN')} đ`}
-              </span>
-            </div>
           </div>
-        </div>
-
-        {/* 4. Ghi chú */}
-        <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1.5">
-            <FileText className="w-3.5 h-3.5 text-slate-400" /> Ghi chú nghiệp vụ
-          </label>
-          <textarea
-            rows={2}
-            value={note}
-            onChange={e => setNote(e.target.value)}
-            placeholder="VD: Đoàn 40 người cần chuẩn bị hướng dẫn viên, thanh toán chuyển khoản trước 50%..."
-            className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-500"
-          />
         </div>
       </div>
     </Modal>

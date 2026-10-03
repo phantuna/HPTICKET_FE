@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ShoppingBag, X, AlertTriangle } from 'lucide-react';
 import { Product } from '../../../shared/types/hpticket';
+import { useFormShortcuts } from '../../../shared/hooks';
 
 // ---------------------------------------------------------------------------
 // NumericInput – uncontrolled-during-edit pattern.
@@ -130,13 +131,12 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   adjustmentReason = '', setAdjustmentReason, loading = false, isSubmitting = false, onSubmit, onClose
 }) => {
   const isBusy = Boolean(loading || isSubmitting);
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+  useFormShortcuts({
+    isOpen: true,
+    onClose,
+    onSubmit,
+    isSubmitting: isBusy,
+  });
 
   return (
     <div

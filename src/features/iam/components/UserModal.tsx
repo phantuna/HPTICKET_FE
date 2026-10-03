@@ -2,6 +2,7 @@ import React from 'react';
 import { Save, UserCheck, X, CreditCard } from 'lucide-react';
 import { apiClient, API_ENDPOINTS } from '../../../api/apiConfig';
 import { Button } from '../../../shared/components/ui';
+import { useFormShortcuts } from '../../../shared/hooks';
 
 const UnregisteredCardPicker: React.FC<{ onSelect: (code: string) => void }> = ({ onSelect }) => {
   const [show, setShow] = React.useState(false);
@@ -94,6 +95,13 @@ export const UserModal: React.FC<UserModalProps> = ({
   isSubmitting = false,
   onClose, onSubmit
 }) => {
+  useFormShortcuts({
+    isOpen: true,
+    onClose,
+    onSubmit,
+    isSubmitting,
+  });
+
   const toggleCounter = (id: string) => {
     setSelectedCounterIds(
       selectedCounterIds.includes(id)

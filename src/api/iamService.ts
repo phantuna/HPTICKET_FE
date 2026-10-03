@@ -97,12 +97,16 @@ export const iamService = {
     localStorage.removeItem('hpticket_role');
   },
 
-  async fetchUsers(): Promise<ApiResponse<User[]>> {
+  async fetchUsers(params?: { isActive?: boolean; keyword?: string }): Promise<ApiResponse<User[]>> {
     if (true) {
       try {
-        const res = await apiClient.get<ApiResponse<any>>(API_ENDPOINTS.IAM.USERS);
+        const queryParams: Record<string, any> = {};
+        if (params?.isActive !== undefined) queryParams.isActive = params.isActive;
+        if (params?.keyword) queryParams.keyword = params.keyword;
+
+        const res = await apiClient.get<ApiResponse<any>>(API_ENDPOINTS.IAM.USERS, queryParams);
         const list = Array.isArray(res.data) ? res.data : (res.data?.content || []);
-        if (list && list.length > 0) {
+        if (list && list.length > 0 && params?.isActive === undefined) {
           dbStore.users = list;
           dbStore.saveToStorage();
         }

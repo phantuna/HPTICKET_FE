@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { X, Printer, Download, Calendar, Phone, Mail, ShieldCheck, Clock } from 'lucide-react';
 import { QRCodeDisplay } from '../../../shared/components/QRCodeDisplay';
 import { IssuedTicket } from '../../../api/salesService';
+import { dbStore } from '../../../shared/data/mockDatabase';
 
 interface MonthlyTicketCardModalProps {
   ticket: IssuedTicket | null;
@@ -20,6 +21,9 @@ export const MonthlyTicketCardModal: React.FC<MonthlyTicketCardModalProps> = ({ 
   const daysLeft = expireDate ? Math.ceil((expireDate.getTime() - now.getTime()) / (1000 * 3600 * 24)) : null;
 
   const qrValue = ticket.qr_display || ticket.qr_code_string || ticket.id;
+  const company = dbStore.companies?.[0];
+  const companyName = company?.name || 'KHU DU LỊCH EO GIÓ';
+  const companyPhone = company?.phone || '0987 654 321';
 
   const handleDownloadQR = () => {
     if (!cardRef.current) return;
@@ -136,7 +140,7 @@ export const MonthlyTicketCardModal: React.FC<MonthlyTicketCardModalProps> = ({ 
         <body>
           <div class="card">
             <div class="header">
-              <div class="brand">KHU DU LỊCH EO GIÓ</div>
+              <div class="brand">${companyName}</div>
               <div class="sub-brand">HỆ THỐNG VÉ ĐIỆN TỬ HOÀNG PHÁT</div>
               <div class="title">${ticket.ticket_template_name || ticket.ticket_template_code || 'VÉ THÁNG THAM QUAN'}</div>
             </div>
@@ -169,7 +173,7 @@ export const MonthlyTicketCardModal: React.FC<MonthlyTicketCardModalProps> = ({ 
 
             <div class="footer">
               Vui lòng quét mã QR tại cổng tự động khi vào tham quan.<br/>
-              Hotline hỗ trợ: 0987 654 321
+              Hotline hỗ trợ: ${companyPhone}
             </div>
           </div>
           <script>
@@ -196,7 +200,7 @@ export const MonthlyTicketCardModal: React.FC<MonthlyTicketCardModalProps> = ({ 
             <ShieldCheck className="w-6 h-6 text-blue-300" />
             <div>
               <h3 className="font-bold text-base tracking-wide">Thẻ Vé Tháng Điện Tử</h3>
-              <p className="text-xs text-blue-200">Khu du lịch Eo Gió Quy Nhơn</p>
+              <p className="text-xs text-blue-200">{companyName}</p>
             </div>
           </div>
           <button 

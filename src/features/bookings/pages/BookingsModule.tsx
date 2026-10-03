@@ -11,20 +11,35 @@ import { ConfirmModal } from '../../../shared/components/ConfirmModal';
 import { CreateBookingModal } from '../components/CreateBookingModal';
 import { BookingTicketPassModal } from '../components/BookingTicketPassModal';
 import { usePermission } from '../../../shared/hooks/usePermission';
+import { Pagination, VNDateInput } from '../../../shared/components/ui';
 
 interface BookingsModuleProps {
   onOpenPOSWithBooking?: (bookingCode: string) => void;
 }
+
+const getTodayStr = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 export const BookingsModule: React.FC<BookingsModuleProps> = ({ onOpenPOSWithBooking }) => {
   const { can } = usePermission();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Filters
+  // Filters: Mặc định lọc theo Ngày Đến là Hôm Nay
   const [search, setSearch] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
-  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState<string>(getTodayStr);
+
+  // Pagination states (0-indexed for backend API)
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
   // Modals
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -34,22 +49,38 @@ export const BookingsModule: React.FC<BookingsModuleProps> = ({ onOpenPOSWithBoo
   const fetchBookings = useCallback(async () => {
     setIsLoading(true);
     try {
-      const params: Record<string, string | number | boolean> = {};
+      const params: Record<string, string | number | boolean> = {
+        page,
+        size: pageSize,
+      };
       if (search.trim()) params.search = search.trim();
       if (selectedStatus !== 'ALL') params.status = selectedStatus;
       if (selectedDate) params.visitDate = selectedDate;
 
       const res = await salesService.getBookings(params);
-      const list = res.data?.content || res.data || [];
-      setBookings(list);
+      const data = res.data;
+      if (data && typeof data === 'object') {
+        const list = Array.isArray(data.content) ? data.content : (Array.isArray(data) ? data : []);
+        setBookings(list);
+        const total = Number(data.totalElements ?? data.total_elements ?? list.length);
+        setTotalElements(total);
+        const pages = Number(data.totalPages ?? data.total_pages ?? Math.max(1, Math.ceil(total / pageSize)));
+        setTotalPages(pages);
+      } else {
+        setBookings([]);
+        setTotalElements(0);
+        setTotalPages(1);
+      }
     } catch (err: any) {
       console.error('Lỗi lấy danh sách đặt chỗ từ hệ thống:', err);
       setBookings([]);
+      setTotalElements(0);
+      setTotalPages(1);
       toast.error('Không thể tải danh sách đặt chỗ: ' + (err.message || 'Lỗi kết nối máy chủ'));
     } finally {
       setIsLoading(false);
     }
-  }, [search, selectedStatus, selectedDate]);
+  }, [page, pageSize, search, selectedStatus, selectedDate]);
 
   useEffect(() => {
     fetchBookings();
@@ -97,7 +128,7 @@ export const BookingsModule: React.FC<BookingsModuleProps> = ({ onOpenPOSWithBoo
     }
   };
 
-  const totalBookings = bookings.length;
+  const totalBookings = totalElements;
   const totalAmountSum = bookings.reduce((acc, b) => acc + (Number(b.total_amount) || 0), 0);
   const totalDepositSum = bookings.reduce((acc, b) => acc + (Number(b.deposit_amount) || 0), 0);
   const totalRemainingSum = bookings.reduce((acc, b) => acc + (Number(b.remaining_amount) || 0), 0);
@@ -141,10 +172,10 @@ export const BookingsModule: React.FC<BookingsModuleProps> = ({ onOpenPOSWithBoo
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
           <span className="text-xs font-semibold text-slate-500 block mb-1">Tổng đơn đặt chỗ</span>
-          <span className="text-2xl font-black text-slate-900">{totalBookings} đơn</span>
+          <span className="text-2xl font-black text-slate-900">{totalBookings.toLocaleString()} đơn</span>
         </div>
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-          <span className="text-xs font-semibold text-slate-500 block mb-1">Doanh số đặt trước</span>
+          <span className="text-xs font-semibold text-slate-500 block mb-1">Doanh số trang hiện tại</span>
           <span className="text-2xl font-black font-mono text-emerald-700">{totalAmountSum.toLocaleString('vi-VN')} đ</span>
         </div>
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
@@ -165,7 +196,10 @@ export const BookingsModule: React.FC<BookingsModuleProps> = ({ onOpenPOSWithBoo
             <input
               type="text"
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={e => {
+                setSearch(e.target.value);
+                setPage(0);
+              }}
               placeholder="Tìm theo mã đặt (BK-...), tên khách, SĐT, công ty..."
               className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500"
             />
@@ -180,21 +214,55 @@ export const BookingsModule: React.FC<BookingsModuleProps> = ({ onOpenPOSWithBoo
         </div>
 
         <div className="flex items-center gap-3 text-xs">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-slate-500 font-medium">Ngày đến:</span>
-            <input
-              type="date"
+            <VNDateInput
               value={selectedDate}
-              onChange={e => setSelectedDate(e.target.value)}
-              className="px-2.5 py-1.5 border border-slate-200 rounded-lg font-medium text-slate-800 focus:outline-none focus:border-emerald-500"
+              onChange={(val) => {
+                setSelectedDate(val);
+                setPage(0);
+              }}
+              className="w-36 py-1.5 px-2.5 text-xs font-semibold"
+              placeholder="dd/mm/yyyy"
             />
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedDate(getTodayStr());
+                setPage(0);
+              }}
+              className={`px-2 py-1.5 rounded-lg border font-semibold text-[11px] transition ${
+                selectedDate === getTodayStr()
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300 shadow-2xs'
+                  : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+              }`}
+              title="Lọc các đơn đặt chỗ có ngày đến là Hôm nay"
+            >
+              Hôm nay
+            </button>
+            {selectedDate && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedDate('');
+                  setPage(0);
+                }}
+                className="px-2 py-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg border border-slate-200 text-[11px] font-medium transition"
+                title="Bỏ lọc theo ngày (Xem tất cả các ngày)"
+              >
+                Tất cả ngày
+              </button>
+            )}
           </div>
 
           <div className="flex items-center gap-1.5">
             <span className="text-slate-500 font-medium">Trạng thái:</span>
             <select
               value={selectedStatus}
-              onChange={e => setSelectedStatus(e.target.value)}
+              onChange={e => {
+                setSelectedStatus(e.target.value);
+                setPage(0);
+              }}
               className="px-2.5 py-1.5 border border-slate-200 rounded-lg font-medium text-slate-800 focus:outline-none focus:border-emerald-500"
             >
               <option value="ALL">Tất cả trạng thái</option>
@@ -371,6 +439,20 @@ export const BookingsModule: React.FC<BookingsModuleProps> = ({ onOpenPOSWithBoo
             </tbody>
           </table>
         </div>
+
+        {/* Thanh Phân Trang Chuẩn Hệ Thống */}
+        <Pagination
+          currentPage={page}
+          pageSize={pageSize}
+          totalElements={totalElements}
+          totalPages={totalPages}
+          onPageChange={(newPage) => setPage(newPage)}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setPage(0);
+          }}
+          pageSizeOptions={[10, 20, 50, 100]}
+        />
       </div>
 
       {/* Modal: Tạo đặt chỗ */}

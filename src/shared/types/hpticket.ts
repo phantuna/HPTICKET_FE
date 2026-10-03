@@ -80,6 +80,9 @@ export interface Company extends BaseEntity {
   fax: string;
   web_logo_url: string;
   invoice_logo_url: string;
+  tax_code?: string;
+  email?: string;
+  contact_person?: string;
 }
 
 export interface CustomerGroup extends BaseEntity {

@@ -5,6 +5,7 @@ import {
   Package, CalendarClock, Receipt, QrCode, Crown, CheckSquare, Square
 } from 'lucide-react';
 import { Button } from '../../../shared/components/ui';
+import { useFormShortcuts } from '../../../shared/hooks';
 
 interface RoleModalProps {
   editingRoleId: string | null;
@@ -68,6 +69,8 @@ const NAV_PAGES: NavPageDefinition[] = [
     permissions: [
       { code: 'CREATE_ORDER', label: 'Tạo đơn và bán vé POS', action: 'Thêm' },
       { code: 'VIEW_ORDER', label: 'Xem danh sách đơn hàng đã bán', action: 'Xem' },
+      { code: 'ISSUE_INVOICE', label: 'Tạo & Xuất hóa đơn điện tử (HĐĐT)', action: 'Nghiệp vụ' },
+      { code: 'VIEW_COMPANY', label: 'Xem thông tin doanh nghiệp xuất HĐĐT', action: 'Xem' },
       { code: 'VIEW_PRODUCT', label: 'Xem danh mục sản phẩm / dịch vụ', action: 'Xem' },
       { code: 'VIEW_TICKET_TEMPLATE', label: 'Xem bảng giá loại vé bán tại quầy', action: 'Xem' },
       { code: 'VIEW_PROMOTION', label: 'Xem & Áp dụng khuyến mãi / Voucher', action: 'Xem' },
@@ -117,6 +120,8 @@ const NAV_PAGES: NavPageDefinition[] = [
     description: 'Tra cứu lịch sử đơn hàng, xem chi tiết vé đã bán và hủy đơn hàng lỗi',
     permissions: [
       { code: 'VIEW_ORDER', label: 'Xem danh sách hóa đơn đơn hàng', action: 'Xem' },
+      { code: 'ISSUE_INVOICE', label: 'Phát hành / Xuất hóa đơn điện tử (HĐĐT)', action: 'Nghiệp vụ' },
+      { code: 'VIEW_COMPANY', label: 'Xem thông tin doanh nghiệp xuất HĐĐT', action: 'Xem' },
       { code: 'CANCEL_ORDER', label: 'Hủy đơn hàng và vé', action: 'Xóa' },
       { code: 'VIEW_REPORT', label: 'Xem báo cáo doanh thu đơn hàng', action: 'Xem' },
       { code: 'VIEW_TICKET_TEMPLATE', label: 'Xem thông tin loại vé trong đơn', action: 'Xem' },
@@ -400,6 +405,14 @@ export const RoleModal: React.FC<RoleModalProps> = ({
 
   const isSuperAdminChecked = rolePermissions.includes('SUPER_ADMIN');
 
+  // Phím tắt Enter để Lưu / Escape để đóng
+  useFormShortcuts({
+    isOpen: true,
+    onClose,
+    onSubmit,
+    isSubmitting,
+  });
+
   // Toggle mở rộng chi tiết các quyền con của 1 trang
   const toggleExpand = (pageId: string) => {
     setExpandedPageIds((prev) =>
@@ -624,58 +637,8 @@ export const RoleModal: React.FC<RoleModalProps> = ({
           </div>
         </div>
 
-        {/* 3. DẢI CÁC QUYỀN QUẢN TRỊ TO (MANAGERS) - GỌN GÀNG Ở TRÊN CÙNG */}
-        <div className="px-6 py-2.5 bg-slate-50/70 border-b border-slate-200 shrink-0">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600">
-              Chọn nhanh quyền quản trị toàn phân hệ:
-            </span>
-            <div className="flex items-center gap-2 text-xs">
-              <button
-                type="button"
-                onClick={() => handleToggleBigManager('SUPER_ADMIN', 'SYSTEM')}
-                className="font-semibold text-emerald-700 hover:underline"
-              >
-                {isSuperAdminChecked ? 'Tắt toàn quyền hệ thống' : 'Bật toàn quyền hệ thống'}
-              </button>
-              <span className="text-slate-300">|</span>
-              <button
-                type="button"
-                onClick={() => setRolePermissions([])}
-                className="font-medium text-slate-500 hover:text-slate-800 hover:underline"
-              >
-                Bỏ chọn tất cả
-              </button>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-1.5">
-            {BIG_MANAGERS.map((mgr) => {
-              const isChecked = rolePermissions.includes(mgr.code) || (mgr.code !== 'SUPER_ADMIN' && isSuperAdminChecked);
-              const IconComp = mgr.icon;
-
-              return (
-                <button
-                  key={mgr.code}
-                  type="button"
-                  onClick={() => handleToggleBigManager(mgr.code, mgr.module)}
-                  className={`px-2.5 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition select-none ${
-                    isChecked
-                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                      : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-100'
-                  }`}
-                >
-                  <IconComp className={`w-3.5 h-3.5 ${isChecked ? 'text-white' : 'text-slate-500'}`} />
-                  <span>{mgr.label}</span>
-                  {isChecked && <Check className="w-3.5 h-3.5 ml-0.5" />}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* 4. THANH TÌM KIẾM TRANG NHANH */}
-        <div className="px-6 py-2 bg-white border-b border-slate-200 flex items-center justify-between gap-3 shrink-0">
+        {/* 3. THANH TÌM KIẾM TRANG NHANH */}
+        <div className="px-6 py-2.5 bg-white border-b border-slate-200 flex items-center justify-between gap-3 shrink-0">
           <div className="relative flex-1 max-w-md">
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
@@ -696,8 +659,29 @@ export const RoleModal: React.FC<RoleModalProps> = ({
             )}
           </div>
 
-          <div className="text-[11px] text-slate-500">
-            Tick chọn trang $\rightarrow$ <strong>Tự động cấp toàn bộ quyền</strong> của trang đó
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => handleToggleBigManager('SUPER_ADMIN', 'SYSTEM')}
+              className={`px-3 py-1.5 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition select-none ${isSuperAdminChecked
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                  : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 hover:border-blue-300'
+                }`}
+            >
+              <Crown className={`w-3.5 h-3.5 ${isSuperAdminChecked ? 'text-white' : 'text-blue-600'}`} />
+              <span>{isSuperAdminChecked ? 'Đang bật Toàn quyền Tối cao (SUPER_ADMIN)' : 'Toàn quyền Tối cao (SUPER_ADMIN)'}</span>
+              {isSuperAdminChecked && <Check className="w-3.5 h-3.5 ml-0.5" />}
+            </button>
+
+            <span className="text-slate-200">|</span>
+
+            <button
+              type="button"
+              onClick={() => setRolePermissions([])}
+              className="text-xs font-semibold text-slate-500 hover:text-rose-600 transition"
+            >
+              Bỏ chọn tất cả
+            </button>
           </div>
         </div>
 
@@ -725,13 +709,12 @@ export const RoleModal: React.FC<RoleModalProps> = ({
                       <div key={page.id} className="transition">
                         {/* DÒNG TÊN TRANG TRÊN NAVBAR */}
                         <div
-                          className={`px-3.5 py-2.5 flex items-center justify-between gap-3 transition select-none ${
-                            state === 'checked'
+                          className={`px-3.5 py-2.5 flex items-center justify-between gap-3 transition select-none ${state === 'checked'
                               ? 'bg-emerald-50/50'
                               : state === 'partial'
-                              ? 'bg-amber-50/40'
-                              : 'hover:bg-slate-50'
-                          }`}
+                                ? 'bg-amber-50/40'
+                                : 'hover:bg-slate-50'
+                            }`}
                         >
                           {/* Checkbox & Tên Trang */}
                           <div
@@ -751,17 +734,15 @@ export const RoleModal: React.FC<RoleModalProps> = ({
                             </div>
 
                             <IconComp
-                              className={`w-4 h-4 shrink-0 ${
-                                state === 'checked' ? 'text-emerald-700' : 'text-slate-500'
-                              }`}
+                              className={`w-4 h-4 shrink-0 ${state === 'checked' ? 'text-emerald-700' : 'text-slate-500'
+                                }`}
                             />
 
                             <div className="min-w-0">
                               <div className="flex items-center gap-2">
                                 <span
-                                  className={`text-xs font-bold truncate ${
-                                    state === 'checked' ? 'text-emerald-950' : 'text-slate-800'
-                                  }`}
+                                  className={`text-xs font-bold truncate ${state === 'checked' ? 'text-emerald-950' : 'text-slate-800'
+                                    }`}
                                 >
                                   {page.title}
                                 </span>
@@ -814,11 +795,10 @@ export const RoleModal: React.FC<RoleModalProps> = ({
                                 return (
                                   <label
                                     key={p.code}
-                                    className={`flex items-center gap-2 p-1.5 rounded-lg border text-xs cursor-pointer select-none transition ${
-                                      isPermChecked
+                                    className={`flex items-center gap-2 p-1.5 rounded-lg border text-xs cursor-pointer select-none transition ${isPermChecked
                                         ? 'bg-white border-emerald-300 text-emerald-900 shadow-2xs'
                                         : 'bg-white/60 border-slate-200 text-slate-600 hover:bg-white'
-                                    }`}
+                                      }`}
                                   >
                                     <input
                                       type="checkbox"
@@ -832,17 +812,16 @@ export const RoleModal: React.FC<RoleModalProps> = ({
                                           {p.code}
                                         </span>
                                         <span
-                                          className={`text-[9px] font-semibold px-1 rounded ${
-                                            p.action === 'Xem'
+                                          className={`text-[9px] font-semibold px-1 rounded ${p.action === 'Xem'
                                               ? 'bg-slate-100 text-slate-700'
                                               : p.action === 'Thêm'
-                                              ? 'bg-emerald-50 text-emerald-700'
-                                              : p.action === 'Sửa'
-                                              ? 'bg-blue-50 text-blue-700'
-                                              : p.action === 'Xóa'
-                                              ? 'bg-rose-50 text-rose-700'
-                                              : 'bg-slate-100 text-slate-700'
-                                          }`}
+                                                ? 'bg-emerald-50 text-emerald-700'
+                                                : p.action === 'Sửa'
+                                                  ? 'bg-blue-50 text-blue-700'
+                                                  : p.action === 'Xóa'
+                                                    ? 'bg-rose-50 text-rose-700'
+                                                    : 'bg-slate-100 text-slate-700'
+                                            }`}
                                         >
                                           {p.action}
                                         </span>

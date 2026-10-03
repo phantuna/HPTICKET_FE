@@ -31,6 +31,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         localStorage.setItem('hpticket_username', username);
         localStorage.setItem('hpticket_role', res.data.role || 'ADMIN');
 
+        // Lưu cảnh báo bản quyền sắp hết hạn nếu có
+        if (res.data.license_warning) {
+          sessionStorage.setItem('hpticket_license_warning', res.data.license_warning);
+        }
+
         setSuccessMsg(`Đăng nhập thành công! Đang tải dữ liệu hệ thống...`);
 
         // Đã xóa hàm tự động kéo toàn bộ dữ liệu (Fat Client) ở đây để tăng tốc login

@@ -66,7 +66,14 @@ export function ConfirmModal({
   const currentConfig = config[type];
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+    <div 
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
       <div className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         <div className="p-6 text-center space-y-4">
           <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto ${currentConfig.bgIcon}`}>

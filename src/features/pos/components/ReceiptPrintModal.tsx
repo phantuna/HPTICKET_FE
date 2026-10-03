@@ -3,10 +3,11 @@ import {
   Printer,
   CheckCircle2,
 } from 'lucide-react';
-import { Order, IssuedTicket, PaymentMethod } from '../../../shared/types/hpticket';
+import { Order, IssuedTicket, PaymentMethod, Company } from '../../../shared/types/hpticket';
 import { QRCodeDisplay } from '../../../shared/components/QRCodeDisplay';
 import { dbStore } from '../../../shared/data/mockDatabase';
 import { API_BASE_URL } from '../../../api/apiConfig';
+import { marketingService } from '../../../api/marketingService';
 
 interface ReceiptPrintModalProps {
   order: Order;
@@ -61,6 +62,17 @@ export const ReceiptPrintModal: React.FC<ReceiptPrintModalProps> = ({
 
   const [isPrinting, setIsPrinting] = React.useState<boolean>(false);
   const [printError, setPrintError] = React.useState<{ message: string; errorCode?: string } | null>(null);
+  const [company, setCompany] = React.useState<Company | null>(() => dbStore.companies?.[0] || null);
+
+  React.useEffect(() => {
+    marketingService.fetchCompanies().then((res) => {
+      if (res.data && res.data.length > 0) {
+        setCompany(res.data[0]);
+      }
+    }).catch((err) => {
+      console.warn('[ReceiptPrintModal] Fetch companies failed:', err);
+    });
+  }, []);
 
   // In qua C# Print Agent (không dialog, chống in trùng).
   const printViaAgent = async (jobType: 'NORMAL' | 'REPRINT' = 'NORMAL', overrideRequestId?: string) => {
@@ -270,14 +282,22 @@ export const ReceiptPrintModal: React.FC<ReceiptPrintModalProps> = ({
                 {/* Header */}
                 <div className="text-center space-y-0 mb-1.5 pt-1 print:pt-1">
                   <img src={(() => {
-                    const url = dbStore.companies?.[0]?.invoice_logo_url;
+                    const url = company?.invoice_logo_url || dbStore.companies?.[0]?.invoice_logo_url;
                     if (!url || url === '/logo.png') return "/hoang-phat-logo.jpg";
                     if (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:')) return url;
                     return API_BASE_URL + url;
                   })()} alt="Logo" className="w-[200px] h-auto mx-auto object-contain mb-2 grayscale contrast-150 brightness-90" style={{ mixBlendMode: 'multiply' }} />
-                  <div className="font-bold text-[16px] uppercase tracking-wide">KHU DU LỊCH EO GIÓ</div>
-                  <div className="text-[12px]">Mã số thuế: 0100109106-501</div>
-                  <div className="text-[12px]">Eo Gió, Quy Nhơn</div>
+                  <div className="font-bold text-[16px] uppercase tracking-wide">
+                    {'BAN QUAN LY ' + company?.code}
+                  </div>
+                  {(company?.tax_code) && (
+                    <div className="text-[12px]">
+                      Mã số thuế: {company?.tax_code}
+                    </div>
+                  )}
+                  <div className="text-[12px]">
+                    Địa chỉ: {company?.address}
+                  </div>
                 </div>
 
                 <div className="text-center font-bold text-xl uppercase mb-2 tracking-wider">
@@ -330,12 +350,22 @@ export const ReceiptPrintModal: React.FC<ReceiptPrintModalProps> = ({
           <div className="bg-white mx-auto text-black font-sans w-full max-w-[300px] sm:max-w-[320px] pb-6 pt-6 print:mb-0 print:pb-0 print:pt-8">
             <div className="text-center space-y-0 mb-1.5 pt-1 print:pt-1">
               <img src={(() => {
-                const url = dbStore.companies?.[0]?.invoice_logo_url;
+                const url = company?.invoice_logo_url || dbStore.companies?.[0]?.invoice_logo_url;
                 if (!url || url === '/logo.png') return "/hoang-phat-logo.jpg";
                 if (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:')) return url;
                 return API_BASE_URL + url;
               })()} alt="Logo" className="w-[200px] h-auto mx-auto object-contain mb-2 grayscale contrast-150 brightness-90" style={{ mixBlendMode: 'multiply' }} />
-              <div className="font-bold text-[17px] uppercase tracking-wide mb-1">KHU DU LỊCH EO GIÓ</div>
+              <div className="font-bold text-[16px] uppercase tracking-wide">
+                {'BAN QUAN LY ' + company?.code}
+              </div>
+              {(company?.tax_code) && (
+                <div className="text-[12px]">
+                  Mã số thuế: {company?.tax_code}
+                </div>
+              )}
+              <div className="text-[12px]">
+                Địa chỉ: {company?.address}
+              </div>
             </div>
             <div className="text-center text-[15px] font-bold mb-4">HÓA ĐƠN THANH TOÁN</div>
 
@@ -402,7 +432,7 @@ export const ReceiptPrintModal: React.FC<ReceiptPrintModalProps> = ({
 
             <div className="text-center text-[12px] italic space-y-0.5 mt-4">
               <div>Cảm ơn quý khách và hẹn gặp lại!</div>
-              <div>Hotline: 1900 6868</div>
+              <div>Hotline: {company?.phone || '1900 6868'}</div>
             </div>
 
             <div className="text-center text-[13px] space-y-0.5 mt-3 pt-3 border-t border-dashed border-slate-300">

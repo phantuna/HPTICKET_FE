@@ -19,6 +19,7 @@ export const useIAM = (initialTab: string) => {
   const [selectedBadgeUser, setSelectedBadgeUser] = useState<User | null>(null);
   const [badgeQrMode, setBadgeQrMode] = useState<'text' | 'vcard' | 'code'>('text');
   const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
+  const [activeStaffList, setActiveStaffList] = useState<User[]>([]);
 
   const refreshUsers = async () => {
     try {
@@ -32,12 +33,28 @@ export const useIAM = (initialTab: string) => {
     }
   };
 
+  // Nạp danh sách thẻ nhân viên đang hoạt động trực tiếp từ Backend API (isActive=true)
+  const refreshActiveStaffBadges = async () => {
+    try {
+      const res = await iamService.fetchUsers({ isActive: true });
+      if (res.data) {
+        setActiveStaffList(res.data);
+      }
+    } catch (err) {
+      console.error('[useIAM] Error refreshing active staff badges:', err);
+    }
+  };
+
   useEffect(() => {
     if (activeSubTab === 'KhaiBaoPhanQuyen') {
       iamService.fetchRoles().then(res => { setRoles(res.data || []); globalIamCache.roles = res.data; });
       iamService.fetchPermissions().then(res => { setPermissions(res.data || []); globalIamCache.perms = res.data; });
-    } else if (activeSubTab === 'KhaibaoDangNhap' || activeSubTab === 'KhaiBaoThe_NV') {
+    } else if (activeSubTab === 'KhaibaoDangNhap') {
       refreshUsers();
+      iamService.fetchRoles().then(res => { setRoles(res.data || []); globalIamCache.roles = res.data; });
+    } else if (activeSubTab === 'KhaiBaoThe_NV') {
+      refreshUsers();
+      refreshActiveStaffBadges();
       iamService.fetchRoles().then(res => { setRoles(res.data || []); globalIamCache.roles = res.data; });
     }
   }, [activeSubTab]);
@@ -147,6 +164,8 @@ export const useIAM = (initialTab: string) => {
       await iamService.deleteUser(String(id));
     }
     setUsers((prev) => prev.filter((u) => !ids.includes(u.id)));
+    setActiveStaffList((prev) => prev.filter((u) => !ids.includes(u.id)));
+    refreshActiveStaffBadges();
   };
 
   const handleToggleUserActive = async (id: string | number, currentActive: boolean) => {
@@ -155,6 +174,7 @@ export const useIAM = (initialTab: string) => {
       prev.map((u) => (u.id === id ? { ...u, is_active: newActive, isActive: newActive, active: newActive } : u))
     );
     await iamService.updateUserStatus(id as string, newActive);
+    refreshActiveStaffBadges();
   };
 
   const openNewUserModal = () => {
@@ -296,6 +316,8 @@ export const useIAM = (initialTab: string) => {
     openNewUserModal,
     openEditUserModal,
     refreshUsers,
+    activeStaffList,
+    refreshActiveStaffBadges,
     
     // Role management
     showRoleModal, setShowRoleModal,
