@@ -285,6 +285,7 @@ export interface Product extends BaseEntity {
   unit?: string; // "Chai", "Lon", "Cái", "Bộ", "Hộp"
   cost_price?: number; // Giá vốn
   price: number; // Giá bán
+  retail_price?: number; // Alias for price
   tax_percent?: number;
   stock_quantity: number;
   min_stock_alert?: number; // Ngưỡng cảnh báo tồn tối thiểu
@@ -324,12 +325,17 @@ export interface OrderDetail extends BaseEntity {
   unit_price: number;
   total_price: number;
   item_name?: string;
+  item_code?: string;
   ticket_zone_name?: string;
+  discount_percent?: number;
+  tax_percent?: number;
 }
 
 export interface Order extends BaseEntity {
   order_code: string;
   customer_source_id?: string | null;
+  customer_group_id?: string | null;
+  user_id?: string | null;
   sales_counter_id: string;
   total_amount: number;
   discount_amount: number;
@@ -339,6 +345,8 @@ export interface Order extends BaseEntity {
   invoice_status: InvoiceStatus;
   invoice_number?: string | null;
   invoice_lookup_code?: string | null;
+  company_name?: string | null;
+  company_tax_code?: string | null;
   use_date?: string;
   is_holiday?: boolean;
   holiday_id?: string;

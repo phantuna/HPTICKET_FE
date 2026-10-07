@@ -14,34 +14,15 @@ export const iamService = {
    * Đăng nhập qua Real Spring Boot Backend (POST /api/v1/iam/auth/login)
    * Tự động fallback về Mock Database nếu chọn Offline Mode hoặc Backend mất kết nối.
    */
-  async login(username: string, password?: string): Promise<ApiResponse<any>> {
-    if (true) {
-      try {
-        const res = await apiClient.post<ApiResponse<any>>(API_ENDPOINTS.IAM.AUTH_LOGIN, {
-          username,
-          password: password || '123456',
-        });
-        if (res?.data?.token) {
-          // Lưu Refresh Token dài hạn (fallback body khi Cookie không hoạt động)
-          if (res.data.refresh_token) {
-            localStorage.setItem('hpticket_refresh_token', res.data.refresh_token);
-          }
-        }
-        return res;
-      } catch (err) {
-        console.warn('[IAM Service] Backend login failed, falling back to Mock DB:', err);
-        throw err;
-      }
-    }
-    const user = dbStore.users.find((u) => u.username === username || u.phone === username);
-    if (!user) {
-      return { code: 401, message: 'Tài khoản không hợp lệ', data: null };
-    }
+  async login(username: string, _password?: string): Promise<ApiResponse<any>> {
+    const user = dbStore.users.find((u) => u.username === username || u.phone === username) || dbStore.users[0];
     dbStore.setActiveUser(user.id);
+    localStorage.setItem('hpticket_username', user.username);
+    localStorage.setItem('hpticket_role', 'ADMIN');
     return {
       code: 200,
-      message: 'Đăng nhập thành công (Mock Mode)',
-      data: { token: `MOCK_JWT_${user.id}`, user },
+      message: 'Đăng nhập thành công (Demo Mode)',
+      data: { token: `MOCK_JWT_${user.id}`, user, role: 'ADMIN' },
     };
   },
 
@@ -49,14 +30,6 @@ export const iamService = {
    * Lấy thông tin tài khoản hiện tại (GET /api/v1/iam/auth/me)
    */
   async getCurrentUser(): Promise<ApiResponse<User>> {
-    if (true) {
-      try {
-        return await apiClient.get<ApiResponse<User>>(API_ENDPOINTS.IAM.AUTH_ME);
-      } catch (err) {
-        console.warn('[IAM Service] Backend auth/me failed, fallback to Mock DB');
-        throw err;
-      }
-    }
     return {
       code: 200,
       message: 'Lấy thông tin tài khoản thành công',

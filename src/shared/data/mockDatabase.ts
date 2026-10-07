@@ -1,6 +1,7 @@
 /**
- * Initial Seed Data & Persistent Mock Database Store for HPTicket
- * Simulates PostgreSQL ACID storage & system JSON logging.
+ * Demo Mock Database Store for HPTicket
+ * Mô phỏng cơ sở dữ liệu hoàn chỉnh, độc lập cho bản Demo giới thiệu sản phẩm.
+ * Tích hợp tự động nạp Mock Data phong phú và đồng bộ Supabase / LocalStorage.
  */
 
 import {
@@ -26,32 +27,43 @@ import {
   OrderDetail,
   IssuedTicket,
   SystemLog,
-  UserRoleCode,
-  OrderStatus,
-  InvoiceStatus,
-  PaymentMethod,
-  ItemType,
-  TicketStatus,
-  ScanStatusResult,
   LicenseConfig,
   Booking,
-  BookingStatus,
 } from '../types/hpticket';
-import { apiClient, API_ENDPOINTS} from '../../api/apiConfig';
-import { hasPermission } from '../utils/permissionGuard';
-// Supabase connection removed
 
-const STORAGE_KEY = 'hpticket_db_v3_real_backend_only';
-const STOCK_LOGS_KEY = 'hpticket_stock_movement_logs_v1';
-const SYSTEM_LOGS_KEY = 'hpticket_system_logs_v1';
-const BOOKINGS_KEY = 'hpticket_bookings_store_v1';
+import {
+  demoCompanies,
+  demoSalesLocations,
+  demoSalesCounters,
+  demoControlZones,
+  demoTicketZones,
+  demoAudienceTypes,
+  demoTicketTemplates,
+  demoProducts,
+  demoCustomerGroups,
+  demoCustomerSources,
+  demoPromotions,
+  demoControlGates,
+  demoUsers,
+  demoRoles,
+  demoOrders,
+  demoIssuedTickets,
+} from './demoSeedData';
+
+import {
+  isSupabaseConfigured,
+  syncStateToSupabase,
+  loadStateFromSupabase,
+} from '../../api/supabaseClient';
+
+const STORAGE_KEY = 'hpticket_demo_mock_db_v1';
+const STOCK_LOGS_KEY = 'hpticket_demo_stock_movement_logs_v1';
+const SYSTEM_LOGS_KEY = 'hpticket_demo_system_logs_v1';
+const BOOKINGS_KEY = 'hpticket_demo_bookings_store_v1';
 
 const now = new Date().toISOString();
-const todayDate = new Date().toISOString().split('T')[0];
-
 
 export class MockDatabaseStore {
-  // Runtime Memory Cache (Chỉ chứa dữ liệu thật từ API, mất đi khi F5)
   public permissions: Permission[] = [];
   public roles: Role[] = [];
   public users: User[] = [];
@@ -77,41 +89,53 @@ export class MockDatabaseStore {
   public bookings: Booking[] = [];
 
   public licenseConfig: LicenseConfig = {
-    license_key: 'HPT-PRO-30DAYS-TRIAL',
-    expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    license_key: 'HPT-PRO-SHOWCASE-DEMO',
+    expires_at: null,
     is_locked: false,
-    is_permanent: false,
-    lock_reason: 'Hệ thống đã hết 30 ngày dùng thử bản quyền. Vui lòng nhập Key kích hoạt Vĩnh viễn để mở khóa trọn đời.',
+    is_permanent: true,
+    lock_reason: '',
     master_unlock_key: 'VIP-SYSTEM-UNLOCK-9999',
     activated_at: now,
   };
 
-  private activeUserId: string = ''; 
+  private activeUserId: string = 'usr-admin-01';
 
   constructor() {
+    this.seedDemoData();
     this.loadFromStorage();
     this.loadStockLogs();
     this.loadSystemLogs();
     this.loadBookings();
   }
 
+  public seedDemoData() {
+    this.companies = [...demoCompanies];
+    this.company = demoCompanies[0] || null;
+    this.salesLocations = [...demoSalesLocations];
+    this.salesCounters = [...demoSalesCounters];
+    this.controlZones = [...demoControlZones];
+    this.ticketZones = [...demoTicketZones];
+    this.audienceTypes = [...demoAudienceTypes];
+    this.ticketTemplates = [...demoTicketTemplates];
+    this.products = [...demoProducts];
+    this.customerGroups = [...demoCustomerGroups];
+    this.customerSources = [...demoCustomerSources];
+    this.promotions = [...demoPromotions];
+    this.controlGates = [...demoControlGates];
+    this.users = [...demoUsers];
+    this.roles = [...demoRoles];
+    this.orders = [...demoOrders];
+    this.issuedTickets = [...demoIssuedTickets];
+  }
+
   public loadStockLogs(): StockMovementLog[] {
     try {
-      // Dọn sạch key mock seed
-      localStorage.removeItem('hpticket_opening_stock_initialized_v2');
-      localStorage.removeItem('hpticket_opening_stock_initialized');
-
       const raw = localStorage.getItem(STOCK_LOGS_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Tuyệt đối không dùng mock: loại bỏ bất kỳ log giả nào tạo bởi seeder cũ
-          const clean = parsed.filter((l: any) => !l.id?.startsWith('slog-opening-'));
-          this.stockLogs = clean;
-          if (clean.length !== parsed.length) {
-            localStorage.setItem(STOCK_LOGS_KEY, JSON.stringify(clean));
-          }
-          return clean;
+          this.stockLogs = parsed;
+          return parsed;
         }
       }
     } catch (e) {
@@ -190,50 +214,93 @@ export class MockDatabaseStore {
 
   private loadFromStorage() {
     try {
-      // Dọn sạch các key rác cũ của phiên bản trước nếu còn sót lại trên trình duyệt
-      ['hpticket_db_v1', 'hpticket_db_v2', 'hpticket_db', 'hpticket_backup_sync'].forEach(k => localStorage.removeItem(k));
-
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (parsed.licenseConfig) this.licenseConfig = parsed.licenseConfig;
-        // Khôi phục companies để logo không bị mất khi reload/đăng nhập lại
-        if (parsed.companies?.length > 0) this.companies = parsed.companies;
-
-        // Tự động dọn dẹp (prune) bloat dữ liệu vé & đơn hàng cũ tồn đọng trong localStorage để giải phóng bộ nhớ trình duyệt
-        if (parsed.issuedTickets || parsed.orders) {
-          this.saveToStorage();
+        if (parsed.products?.length > 0) this.products = parsed.products;
+        if (parsed.ticketTemplates?.length > 0) this.ticketTemplates = parsed.ticketTemplates;
+        if (parsed.salesCounters?.length > 0) this.salesCounters = parsed.salesCounters;
+        if (parsed.salesLocations?.length > 0) this.salesLocations = parsed.salesLocations;
+        if (parsed.customerGroups?.length > 0) this.customerGroups = parsed.customerGroups;
+        if (parsed.customerSources?.length > 0) this.customerSources = parsed.customerSources;
+        if (parsed.promotions?.length > 0) this.promotions = parsed.promotions;
+        if (parsed.orders?.length > 0) this.orders = parsed.orders;
+        if (parsed.issuedTickets?.length > 0) this.issuedTickets = parsed.issuedTickets;
+        if (parsed.companies?.length > 0) {
+          this.companies = parsed.companies;
+          this.company = parsed.companies[0] || null;
         }
+        if (parsed.users?.length > 0) this.users = parsed.users;
+        if (parsed.roles?.length > 0) this.roles = parsed.roles;
+        if (parsed.ticketZones?.length > 0) this.ticketZones = parsed.ticketZones;
+        if (parsed.controlZones?.length > 0) this.controlZones = parsed.controlZones;
+        if (parsed.controlGates?.length > 0) this.controlGates = parsed.controlGates;
+      } else {
+        // Lưu lần đầu để có sẵn cache
+        this.saveToStorage(false);
       }
     } catch (e) {
-      console.error('Failed to load storage:', e);
+      console.warn('Failed to load storage, maintaining seed defaults:', e);
+    }
+
+    // Tự động kéo dữ liệu mới nhất từ Supabase nếu đã cấu hình
+    if (isSupabaseConfigured) {
+      this.loadFromSupabase().catch(() => {});
     }
   }
 
   public clearBrowserCache() {
-    this.issuedTickets = [];
-    this.orders = [];
-    this.systemLogs = [];
+    this.seedDemoData();
+    localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(SYSTEM_LOGS_KEY);
-    this.saveToStorage();
+    localStorage.removeItem(STOCK_LOGS_KEY);
+    this.saveToStorage(false);
   }
 
   public async loadFromSupabase() {
-    // Đã loại bỏ kết nối Supabase
-    // Dữ liệu mock sẽ chỉ lưu trên localStorage
-    return;
+    if (!isSupabaseConfigured) return;
+    try {
+      const s = await loadStateFromSupabase();
+      if (s) {
+        if (s.products?.length > 0) this.products = s.products;
+        if (s.ticketTemplates?.length > 0) this.ticketTemplates = s.ticketTemplates;
+        if (s.salesCounters?.length > 0) this.salesCounters = s.salesCounters;
+        if (s.orders?.length > 0) this.orders = s.orders;
+        if (s.customerGroups?.length > 0) this.customerGroups = s.customerGroups;
+        this.saveToStorage(false);
+        window.dispatchEvent(new Event('hpticket_data_synced'));
+      }
+    } catch (e) {
+      console.warn('[Supabase Sync] Load error:', e);
+    }
   }
 
-  public saveToStorage() {
+  public saveToStorage(syncSupabase: boolean = true) {
     try {
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({
-          licenseConfig: this.licenseConfig,
-          // Chỉ lưu cấu hình bản quyền & company (logo web/hóa đơn), KHÔNG nhồi hàng ngàn vé/đơn hàng vào localStorage
-          companies: this.companies,
-        })
-      );
+      const state = {
+        products: this.products,
+        ticketTemplates: this.ticketTemplates,
+        salesCounters: this.salesCounters,
+        salesLocations: this.salesLocations,
+        customerGroups: this.customerGroups,
+        customerSources: this.customerSources,
+        promotions: this.promotions,
+        orders: this.orders,
+        issuedTickets: this.issuedTickets,
+        companies: this.companies,
+        users: this.users,
+        roles: this.roles,
+        ticketZones: this.ticketZones,
+        controlZones: this.controlZones,
+        controlGates: this.controlGates,
+        licenseConfig: this.licenseConfig,
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+
+      // Bất đồng bộ lưu lên Supabase nếu có cấu hình
+      if (syncSupabase && isSupabaseConfigured) {
+        syncStateToSupabase(state).catch(() => {});
+      }
     } catch (e) {
       console.error('Failed to save storage:', e);
     }
@@ -243,75 +310,26 @@ export class MockDatabaseStore {
     return false;
   }
 
-  public unlockSystem(masterKey: string): { success: boolean; message: string } {
-    const keyClean = masterKey.trim();
-    if (
-      keyClean === this.licenseConfig.master_unlock_key ||
-      keyClean === 'VIP-SYSTEM-UNLOCK-9999' ||
-      keyClean.startsWith('HPT-FULL') ||
-      keyClean.startsWith('KEY-') ||
-      keyClean.length >= 6
-    ) {
-      this.licenseConfig.is_locked = false;
-      this.licenseConfig.is_permanent = true;
-      this.licenseConfig.expires_at = null;
-      this.licenseConfig.permanent_key = keyClean;
-      this.licenseConfig.license_key = 'HPT-PRO-FULL-LIFETIME';
-      this.saveToStorage();
-      this.logAudit('UPDATE', 'LICENSE_PERMANENT', 'license-01', null, this.licenseConfig);
-      return {
-        success: true,
-        message: 'Kích hoạt bản quyền VĨNH VIỄN thành công! Hệ thống đã được mở khóa trọn đời và sẽ không bao giờ bị khóa nữa.',
-      };
-    }
-    return { success: false, message: 'Mã Key kích hoạt không hợp lệ! Vui lòng kiểm tra lại.' };
+  public unlockSystem(_masterKey: string): { success: boolean; message: string } {
+    return {
+      success: true,
+      message: 'Bản quyền Demo vĩnh viễn đã được kích hoạt thành công!',
+    };
   }
 
-  public setLockTimer(minutesFromNow: number) {
-    if (minutesFromNow <= 0) {
-      this.licenseConfig.expires_at = new Date().toISOString();
-      this.licenseConfig.is_locked = true;
-    } else {
-      this.licenseConfig.expires_at = new Date(Date.now() + minutesFromNow * 60 * 1000).toISOString();
-      this.licenseConfig.is_locked = false;
-    }
-    this.saveToStorage();
-    this.logAudit('UPDATE', 'LICENSE_TIMER', 'license-01', null, this.licenseConfig);
+  public setLockTimer(_minutesFromNow: number) {
+    // Không khóa trong bản demo
   }
 
-  public setManualLock(locked: boolean, reason?: string) {
-    this.licenseConfig.is_locked = locked;
-    if (reason) this.licenseConfig.lock_reason = reason;
-    this.saveToStorage();
-    this.logAudit('UPDATE', 'LICENSE_LOCK', 'license-01', null, this.licenseConfig);
+  public setManualLock(_locked: boolean, _reason?: string) {
+    // Không khóa trong bản demo
   }
 
   public getActiveUser(): User {
-    const jwtUsername = localStorage.getItem('hpticket_username');
-    let user = null;
-    if (jwtUsername) {
-        user = this.users.find((u) => u.username === jwtUsername || u.id === jwtUsername);
-    }
-    if (!user) {
-        user = this.users.find((u) => u.id === this.activeUserId) || this.users[0];
-    }
-    if (!user) {
-      return {
-        id: 'system-fallback-admin',
-        username: jwtUsername || 'admin',
-        fullname: localStorage.getItem('hpticket_fullname') || 'System Admin',
-        email: 'admin@hpticket.vn',
-        phone: '0988000000',
-        role_id: 'rol-admin',
-        is_active: true,
-        qr_code: '',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        created_by: 'system',
-        updated_by: 'system'
-      } as User;
-    }
-    return user;
+    const jwtUsername = localStorage.getItem('hpticket_username') || 'admin';
+    const user = this.users.find((u) => u.username === jwtUsername || u.id === jwtUsername);
+    if (user) return user;
+    return this.users[0] || demoUsers[0];
   }
 
   public setActiveUser(userId: string) {
@@ -335,8 +353,8 @@ export class MockDatabaseStore {
       entity_id,
       old_data,
       new_data,
-      ip_address: '192.168.1.100',
-      user_agent: 'HPTicket Web Console',
+      ip_address: '127.0.0.1',
+      user_agent: 'HPTicket Showcase Demo',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       created_by: activeUser.username,
@@ -347,129 +365,11 @@ export class MockDatabaseStore {
       this.systemLogs.length = 200;
     }
     this.saveSystemLogs();
-    this.saveToStorage();
   }
 
-  /**
-   * Tự động đồng bộ dữ liệu thật từ REST API Spring Boot (cổng 8080) vào bộ nhớ cục bộ
-   * Giúp toàn bộ 24 màn hình API hiển thị dữ liệu thực từ PostgreSQL thay vì dữ liệu mẫu.
-   */
-  public async syncFromBackend(force: boolean = false): Promise<boolean> {
-    
-    try {
-      // Chỉ gọi các API mà user hiện tại có quyền — bỏ qua nếu thiếu quyền (tránh 403)
-      const safeGet = (endpoint: string, perm?: string) => {
-        if (perm && !hasPermission(perm)) return Promise.resolve(null);
-        return apiClient.get<any>(endpoint).catch(() => null);
-      };
-
-      const [
-        usersRes,
-        rolesRes,
-        grpRes,
-        srcRes,
-        tplRes,
-        gateRes,
-        czRes,
-        ordRes,
-        tktRes,
-        cntRes,
-      ] = await Promise.all([
-        safeGet(API_ENDPOINTS.IAM.USERS,                    'VIEW_USER'),
-        safeGet(API_ENDPOINTS.IAM.ROLES,                    'VIEW_ROLE'),
-        safeGet(API_ENDPOINTS.MARKETING.CUSTOMER_GROUPS,    'VIEW_CUSTOMER_GROUP'),
-        safeGet(API_ENDPOINTS.MARKETING.CUSTOMER_SOURCES,   'VIEW_CUSTOMER_SOURCE'),
-        safeGet(API_ENDPOINTS.TICKETING.TEMPLATES,          'VIEW_TICKET_TEMPLATE'),
-        safeGet(API_ENDPOINTS.TICKETING.GATES,              'VIEW_GATE'),
-        safeGet(API_ENDPOINTS.TICKETING.CONTROL_ZONES,      'VIEW_CONTROL_ZONE'),
-        safeGet(API_ENDPOINTS.SALES.ORDERS,                 'VIEW_ORDER'),
-        safeGet(API_ENDPOINTS.SALES.ISSUED_TICKETS,         'VIEW_ORDER'),
-        safeGet(API_ENDPOINTS.SALES.COUNTERS,               'VIEW_COUNTER'),
-      ]);
-
-      // Unwrap list from standard ApiResponse or PageResponse
-      const getList = (res: any): any[] | null => {
-        if (!res) return null;
-        // Paginated: { data: { content: [...] } }
-        if (res.data?.content && Array.isArray(res.data.content)) return res.data.content;
-        // Direct array in data: { data: [...] }
-        if (Array.isArray(res.data)) return res.data;
-        // Bare array
-        if (Array.isArray(res)) return res;
-        return null;
-      };
-
-      let hasUpdated = false;
-
-      const usersList = getList(usersRes);
-      if (usersList && usersList.length > 0) {
-        this.users = usersList;
-        hasUpdated = true;
-      }
-
-      const rolesList = getList(rolesRes);
-      if (rolesList && rolesList.length > 0) {
-        this.roles = rolesList;
-        hasUpdated = true;
-      }
-
-      const grpList = getList(grpRes);
-      if (grpList && grpList.length > 0) {
-        this.customerGroups = grpList;
-        hasUpdated = true;
-      }
-
-      const srcList = getList(srcRes);
-      if (srcList && srcList.length > 0) {
-        this.customerSources = srcList;
-        hasUpdated = true;
-      }
-
-      const tplList = getList(tplRes);
-      if (tplList && tplList.length > 0) {
-        this.ticketTemplates = tplList;
-        hasUpdated = true;
-      }
-
-      const gateList = getList(gateRes);
-      if (gateList && gateList.length > 0) {
-        this.controlGates = gateList;
-        hasUpdated = true;
-      }
-
-      const czList = getList(czRes);
-      if (czList && czList.length > 0) {
-        this.controlZones = czList;
-        hasUpdated = true;
-      }
-
-      const ordList = getList(ordRes);
-      if (ordList && ordList.length > 0) {
-        this.orders = ordList;
-        hasUpdated = true;
-      }
-
-      const tktList = getList(tktRes);
-      if (tktList && tktList.length > 0) {
-        this.issuedTickets = tktList;
-        hasUpdated = true;
-      }
-
-      const cntList = getList(cntRes);
-      if (cntList && cntList.length > 0) {
-        this.salesCounters = cntList;
-        hasUpdated = true;
-      }
-
-      if (hasUpdated) {
-        this.saveToStorage();
-        window.dispatchEvent(new Event('hpticket_data_synced'));
-      }
-      return hasUpdated;
-    } catch (err) {
-      console.warn('[HPTicket Sync] Could not sync with Spring Boot Backend:', err);
-      return false;
-    }
+  public async syncFromBackend(_force: boolean = false): Promise<boolean> {
+    // Đã chạy chế độ Demo Mock độc lập — không gọi máy chủ thật
+    return true;
   }
 }
 

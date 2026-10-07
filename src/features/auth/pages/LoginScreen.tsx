@@ -135,6 +135,24 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               </div>
             </div>
 
+            <div className="flex items-center gap-2 pt-1 pb-1">
+              <span className="text-xs text-slate-400 font-medium">Tài khoản demo:</span>
+              <button
+                type="button"
+                onClick={() => { setUsername('admin'); setPassword('123456'); }}
+                className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors border border-blue-200"
+              >
+                👑 Admin
+              </button>
+              <button
+                type="button"
+                onClick={() => { setUsername('cashier1'); setPassword('123456'); }}
+                className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors border border-emerald-200"
+              >
+                💳 Thu Ngân
+              </button>
+            </div>
+
             <button
               type="button"
               onClick={handleLogin}

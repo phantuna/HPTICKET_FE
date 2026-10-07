@@ -48,9 +48,8 @@ export const clearApiCache = (): void => {
 };
 
 export const getUseMockApi = (): boolean => {
-  // Đã chuyển sang dùng Backend API thật. Các service dùng if(true) để bypass hàm này.
-  // Giữ false để phản ánh đúng trạng thái hệ thống — không dùng Mock nữa.
-  return false;
+  // DEMO MODE: Luôn bật Mock để bảo mật toàn bộ logic và dữ liệu nội bộ
+  return true;
 };
 
 export const setUseMockApi = (value: boolean): void => {
@@ -288,6 +287,100 @@ export const apiClient = {
     }
 
     const executeRequest = async (): Promise<T> => {
+      // INTERCEPT ALL CALLS IN DEMO MODE TO PREVENT NETWORK LEAKS
+      if (getUseMockApi()) {
+        const { dbStore } = await import('../shared/data/mockDatabase');
+
+        if (endpoint.includes('/system/master-data')) {
+          return {
+            code: 200,
+            message: 'Master data (Demo Mode)',
+            data: {
+              users: dbStore.users,
+              customerGroups: dbStore.customerGroups,
+              customerSources: dbStore.customerSources,
+              counters: dbStore.salesCounters,
+              templates: dbStore.ticketTemplates,
+              products: dbStore.products,
+              locations: dbStore.salesLocations,
+              zones: dbStore.ticketZones,
+              gates: dbStore.controlGates,
+            }
+          } as any;
+        }
+
+        if (endpoint.includes('/sales/reports/summary')) {
+          const totalRev = dbStore.orders.reduce((sum, o) => sum + (o.final_amount || 0), 0);
+          const totalTickets = dbStore.issuedTickets.length;
+          return {
+            code: 200,
+            data: {
+              totalRevenue: totalRev,
+              totalOrders: dbStore.orders.length,
+              totalTicketsIssued: totalTickets,
+              totalCash: Math.round(totalRev * 0.6),
+              totalTransfer: Math.round(totalRev * 0.4),
+            }
+          } as any;
+        }
+
+        if (endpoint.includes('/sales/reports/ticket-revenue')) {
+          const data = dbStore.ticketTemplates.map((t) => {
+            const count = dbStore.issuedTickets.filter(it => it.ticket_template_id === t.id).length;
+            return {
+              templateId: t.id,
+              templateName: t.name,
+              quantity: count,
+              revenue: count * t.price,
+            };
+          });
+          return { code: 200, data } as any;
+        }
+
+        if (endpoint.includes('/sales/reports/product-revenue')) {
+          const data = dbStore.products.map((p) => {
+            return {
+              productId: p.id,
+              productName: p.name,
+              quantity: 10,
+              revenue: 10 * (p.price || 0),
+            };
+          });
+          return { code: 200, data } as any;
+        }
+
+        if (endpoint.includes('/sales/reports/seller-revenue')) {
+          return {
+            code: 200,
+            data: [
+              { seller: 'admin', orderCount: dbStore.orders.length, revenue: dbStore.orders.reduce((s, o) => s + o.final_amount, 0) },
+              { seller: 'cashier1', orderCount: 5, revenue: 1250000 }
+            ]
+          } as any;
+        }
+
+        if (endpoint.includes('/system/backup/files')) {
+          return [] as any;
+        }
+
+        if (endpoint.includes('/system/backup/settings')) {
+          return {
+            cron_expression: '0 0 * * *',
+            max_files: 7,
+            backup_path: '/backup',
+          } as any;
+        }
+
+        if (endpoint.includes('/iam/system-logs')) {
+          return {
+            code: 200,
+            data: dbStore.systemLogs,
+          } as any;
+        }
+
+        throw new Error(`DEMO_MODE_INTERCEPTED: ${endpoint}`);
+      }
+
       try {
         let response = await fetch(fullUrl, mergedConfig);
 
