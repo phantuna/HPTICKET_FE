@@ -48,6 +48,7 @@ import {
   demoRoles,
   demoOrders,
   demoIssuedTickets,
+  demoBookings,
 } from './demoSeedData';
 
 import {
@@ -126,6 +127,7 @@ export class MockDatabaseStore {
     this.roles = [...demoRoles];
     this.orders = [...demoOrders];
     this.issuedTickets = [...demoIssuedTickets];
+    this.bookings = [...demoBookings];
   }
 
   public loadStockLogs(): StockMovementLog[] {
@@ -235,6 +237,7 @@ export class MockDatabaseStore {
         if (parsed.ticketZones?.length > 0) this.ticketZones = parsed.ticketZones;
         if (parsed.controlZones?.length > 0) this.controlZones = parsed.controlZones;
         if (parsed.controlGates?.length > 0) this.controlGates = parsed.controlGates;
+        if (parsed.bookings?.length > 0) this.bookings = parsed.bookings;
       } else {
         // Lưu lần đầu để có sẵn cache
         this.saveToStorage(false);
@@ -293,6 +296,7 @@ export class MockDatabaseStore {
         ticketZones: this.ticketZones,
         controlZones: this.controlZones,
         controlGates: this.controlGates,
+        bookings: this.bookings,
         licenseConfig: this.licenseConfig,
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
