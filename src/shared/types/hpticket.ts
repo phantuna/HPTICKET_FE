@@ -98,6 +98,7 @@ export interface CustomerSource extends BaseEntity {
   address: string;
   phone: string;
   email: string;
+  tax_code?: string;
   customer_group_id: string;
   is_active: boolean;
 }
@@ -272,6 +273,9 @@ export interface SalesCounter extends BaseEntity {
   sales_location_id: string;
   is_active: boolean;
   supportedTypes?: PosType[];
+  boundMachineId?: string | null;
+  boundMachineName?: string | null;
+  lastActiveAt?: string | null;
 }
 
 export interface Product extends BaseEntity {

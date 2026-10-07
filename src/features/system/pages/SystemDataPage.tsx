@@ -9,7 +9,11 @@ const SystemDataPage: React.FC = () => {
   const { role, permissions, can, isAdmin } = usePermission();
   const [backups, setBackups] = useState<BackupJobResponse[]>([]);
 
-  const isSuperAdmin = isAdmin || can('SUPER_ADMIN') || permissions.includes('SUPER_ADMIN') || (role || '').toUpperCase().includes('ADMIN');
+  const isSuperAdmin =
+    isAdmin ||
+    can('SUPER_ADMIN') ||
+    permissions.includes('SUPER_ADMIN') ||
+    (role || '').toUpperCase().includes('ADMIN');
 
   const fetchBackups = async () => {
     if (!isSuperAdmin) return;
@@ -57,7 +61,7 @@ const SystemDataPage: React.FC = () => {
 
   return (
     <div className="p-6 min-h-[calc(100vh-4rem)] bg-gray-50 flex flex-col gap-6 overflow-y-auto">
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 min-w-[700px] items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 w-full items-start">
         <div className="flex flex-col gap-6">
           <PhysicalBackupTable backups={backups} onRefresh={fetchBackups} />
         </div>

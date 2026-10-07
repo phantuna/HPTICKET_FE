@@ -2,6 +2,7 @@ import React from 'react';
 import { CheckCircle2, ChevronDown, ChevronUp, User } from 'lucide-react';
 import { ItemType } from '../../../shared/types/hpticket';
 import { VNDateInput } from '../../../shared/components/ui';
+import { apiClient, API_ENDPOINTS } from '../../../api/apiConfig';
 
 interface POSInvoiceFormProps {
   searchBookingCode: string; setSearchBookingCode: (v: string) => void;
@@ -265,9 +266,30 @@ export const POSInvoiceForm: React.FC<POSInvoiceFormProps> = React.memo(({
                 const sourceId = e.target.value;
                 setSelectedSourceId(sourceId);
                 if (sourceId) {
-                  const source = customerSources.find((s) => s.id === sourceId);
-                  if (source) {
-                    const groupId = source.customer_group_id || source.customerGroupId;
+                  const applySource = (src: any) => {
+                    if (!src) return;
+                    const phone = src.phone || src.phoneNumber || src.phone_number || '';
+                    if (phone) setPhoneNumber(phone);
+
+                    const emailVal = src.email || src.companyEmail || src.company_email || '';
+                    if (emailVal) {
+                      setEmail(emailVal);
+                      setCompanyEmail(emailVal);
+                    }
+
+                    const compName = src.company_name || src.companyName || src.name || '';
+                    if (compName) {
+                      setCustomerName(compName);
+                      setCompanyName(compName);
+                    }
+
+                    const taxCode = src.tax_code || src.taxCode || '';
+                    if (taxCode) setCompanyTaxCode(taxCode);
+
+                    const addr = src.address || src.companyAddress || src.company_address || '';
+                    if (addr) setCompanyAddress(addr);
+
+                    const groupId = src.customer_group_id || src.customerGroupId;
                     if (groupId) {
                       const group = customerGroups.find((g) => g.id === groupId);
                       if (group) {
@@ -280,6 +302,19 @@ export const POSInvoiceForm: React.FC<POSInvoiceFormProps> = React.memo(({
                           }))
                         );
                       }
+                    }
+                  };
+
+                  const source = customerSources.find((s) => s.id === sourceId);
+                  if (source) {
+                    applySource(source);
+                    // Nếu source bị thiếu email/sđt/mst (do masterData backend cache cũ), tự động kéo ngay từ active list
+                    if (!source.phone && !source.email && !source.tax_code && !source.taxCode) {
+                      apiClient.get<any>(API_ENDPOINTS.MARKETING.CUSTOMER_SOURCES_ACTIVE).then(res => {
+                        const list = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+                        const detail = list.find((s: any) => s.id === sourceId);
+                        if (detail) applySource(detail);
+                      }).catch(() => {});
                     }
                   }
                 } else {

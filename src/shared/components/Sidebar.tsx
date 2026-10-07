@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePermission } from '../hooks/usePermission';
 import {
   Settings,
@@ -78,7 +78,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { label: 'Khai báo đối tượng', module: 'ticketing', subTab: 'KhaiBaoDoiTuong', icon: Users, requirePermission: 'VIEW_AUDIENCE_TYPE' },
     { label: 'Khai báo mẫu vé / Loại vé', module: 'ticketing', subTab: 'KhaibaoVe', icon: Ticket, requirePermission: 'VIEW_TICKET_TEMPLATE' },
     { label: 'Khai báo nhóm vé áp dụng (Khu vực)', module: 'ticketing', subTab: 'KhaiBaoVe_KS', icon: Layers, requirePermission: 'VIEW_TICKET_ZONE' },
-    { label: 'Quản lý vé tháng', module: 'ticketing', subTab: 'VeThangHetHan', icon: CalendarClock, requirePermission: 'VIEW_ISSUED_TICKET' },
     { label: 'Khai báo nhóm quyền', module: 'iam', subTab: 'KhaiBaoPhanQuyen', icon: Shield, requirePermission: 'VIEW_ROLE' },
     { label: 'Khai báo tài khoản đăng nhập', module: 'iam', subTab: 'KhaibaoDangNhap', icon: UserCheck, requirePermission: 'VIEW_USER' },
     { label: 'Khai báo thẻ nhân viên / QR', module: 'iam', subTab: 'KhaiBaoThe_NV', icon: QrCode, requirePermission: 'VIEW_USER' },
@@ -91,6 +90,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { label: 'Đặt vé / Bán vé thu ngân', module: 'pos', icon: ShoppingCart, badge: 'POS', requirePermission: ['CREATE_ORDER', 'VIEW_ORDER'] },
     { label: 'Quản lý đặt trước (Booking)', module: 'bookings', icon: CalendarClock, badge: 'Mới', requirePermission: 'VIEW_BOOKING' },
     { label: 'Danh sách hóa đơn vé', module: 'orders', icon: Receipt, requirePermission: 'VIEW_ORDER' },
+    { label: 'Quản lý vé tháng', module: 'ticketing', subTab: 'VeThangHetHan', icon: CalendarClock, requirePermission: 'VIEW_ISSUED_TICKET' },
     { label: 'Kiểm tra vé / Soát cổng', module: 'gate', icon: QrCode, requirePermission: 'SCAN_TICKET' },
     { label: 'Cổng đặt vé online (Khách)', module: 'dat-ve', icon: Ticket, requirePermission: ['CREATE_ORDER', 'VIEW_BOOKING', 'CREATE_BOOKING'] },
   ];
@@ -156,6 +156,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const isAnyChildActive = (children: any[]) => {
     return children.some(child => isRouteActive(child.module, child.subTab));
   };
+
+  // Tự động mở đúng nhóm menu của trang đang dùng, thu nhỏ các nhóm khác để thanh nav luôn gọn gàng
+  useEffect(() => {
+    const isPos = filteredPosMenu.some(item => isRouteActive(item.module, (item as any).subTab));
+    const isKhaibao = filteredDeclarationMenu.some(item => isRouteActive(item.module, item.subTab));
+    const isBaoCao = filteredReportsMenu.some(item => isRouteActive(item.module, item.subTab) || (item.children && isAnyChildActive(item.children)));
+    const isSaoLuu = filteredSystemMenu.some(item => isRouteActive(item.module, (item as any).subTab));
+
+    if (isPos) {
+      setQuanlyveOpen(true);
+      setKhaibaoOpen(false);
+      setBaocaoOpen(false);
+      setSaoluuOpen(false);
+    } else if (isKhaibao) {
+      setKhaibaoOpen(true);
+      setQuanlyveOpen(false);
+      setBaocaoOpen(false);
+      setSaoluuOpen(false);
+    } else if (isBaoCao) {
+      setBaocaoOpen(true);
+      setKhaibaoOpen(false);
+      setQuanlyveOpen(false);
+      setSaoluuOpen(false);
+    } else if (isSaoLuu) {
+      setSaoluuOpen(true);
+      setKhaibaoOpen(false);
+      setQuanlyveOpen(false);
+      setBaocaoOpen(false);
+    }
+  }, [activeTab, activeSubTab]);
 
   return (
     <aside
@@ -230,7 +260,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => setQuanlyveOpen(!quanlyveOpen)}
               aria-expanded={quanlyveOpen}
               aria-label="Quản Lý Vé & POS"
-              className={`w-full flex items-center justify-between p-2 rounded-xl text-xs font-bold transition text-left ${filteredPosMenu.some((item) => isRouteActive(item.module))
+              className={`w-full flex items-center justify-between p-2 rounded-xl text-xs font-bold transition text-left ${filteredPosMenu.some((item) => isRouteActive(item.module, (item as any).subTab))
                 ? 'bg-blue-50 text-blue-700 border border-blue-200'
                 : 'text-slate-700 hover:bg-slate-100'
                 }`}
@@ -249,11 +279,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div className={`space-y-0.5 ${isOpen ? 'pl-3 border-l border-slate-200 ml-3 mt-1' : 'pl-0 border-none ml-0 mt-1'}`}>
                 {filteredPosMenu.map((item, idx) => {
                   const Icon = item.icon;
-                  const active = isRouteActive(item.module);
+                  const active = isRouteActive(item.module, (item as any).subTab);
                   return (
                     <button
                       key={idx}
-                      onClick={() => handleNavClick(item.module)}
+                      onClick={() => handleNavClick(item.module, (item as any).subTab)}
                       title={item.label}
                       className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition text-left ${active
                         ? 'bg-blue-600 text-white font-semibold shadow-xs'

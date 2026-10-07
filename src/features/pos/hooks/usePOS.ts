@@ -273,7 +273,19 @@ export const usePOS = () => {
           }
           if (masterData.customerSources) {
             const list = extractList({ data: masterData.customerSources });
-            if (list.length > 0) setCustomerSources(list);
+            if (list.length > 0) {
+              setCustomerSources(list);
+              // Kiểm tra nếu danh sách từ masterData chưa có phone/email/tax_code (ví dụ do cache backend cũ)
+              const hasDetails = list.some((s: any) => Boolean(s.phone || s.email || s.tax_code || s.taxCode || s.address));
+              if (!hasDetails) {
+                apiClient.get<any>(API_ENDPOINTS.MARKETING.CUSTOMER_SOURCES_ACTIVE).then(json => {
+                  const activeList = extractList(json);
+                  if (activeList && activeList.length > 0) {
+                    setCustomerSources(activeList);
+                  }
+                }).catch(() => {});
+              }
+            }
           }
           if (masterData.customerGroups) {
             const list = extractList({ data: masterData.customerGroups });
@@ -1037,22 +1049,34 @@ export const usePOS = () => {
         company_email: invoiceStatus === 'IMMEDIATE' ? (companyEmail.trim() || null) : null,
         invoice_recipient_email: invoiceStatus === 'IMMEDIATE' ? (companyEmail.trim() || null) : null,
       });
-
       if (res.code === 200 && res.data) {
         const orderId = (res.data as any).id || (res.data as any).order_id;
+        const hasTickets = lineItems.some(item => item.item_type === ItemType.TICKET);
+        const hasProducts = lineItems.some(item => item.item_type === ItemType.PRODUCT || (!item.item_type && !item.ticket_template_id));
         const normalizedOrder = {
           ...res.data,
           id: orderId,
           order_code: (res.data as any).order_code || (res.data as any).orderCode,
           details: (res.data as any).items || (res.data as any).details || [],
+          invoice_status: (res.data as any).invoice_status || invoiceStatus,
+          company_tax_code: (res.data as any).company_tax_code || (invoiceStatus === 'IMMEDIATE' ? companyTaxCode.trim() : null),
+          company_name: (res.data as any).company_name || (invoiceStatus === 'IMMEDIATE' ? (companyName.trim() || effectiveBookerName) : null),
+          has_tickets: hasTickets,
+          has_products: hasProducts,
         };
         let ticketsForOrder: any[] = [];
         let retries = 0;
 
-        const hasTickets = lineItems.some(item => item.item_type === ItemType.TICKET);
         if (hasTickets) {
           while (ticketsForOrder.length === 0 && retries < 6) {
             try {
+              // Lấy vé trực tiếp theo orderId từ backend
+              const byOrderRes = await salesService.fetchIssuedTicketsByOrder(orderId);
+              const list = Array.isArray(byOrderRes?.data) ? byOrderRes.data : (Array.isArray(byOrderRes) ? byOrderRes : []);
+              if (list.length > 0) {
+                ticketsForOrder = list;
+                break;
+              }
               await salesService.fetchIssuedTickets();
               ticketsForOrder = dbStore.issuedTickets.filter(
                 (t) => t.order_id === orderId || (t as any).orderId === orderId
@@ -1061,7 +1085,7 @@ export const usePOS = () => {
               console.warn("Lỗi khi fetch vé:", e);
             }
             if (ticketsForOrder.length > 0) break;
-            await new Promise(r => setTimeout(r, 500));
+            await new Promise(r => setTimeout(r, 400));
             retries++;
           }
         }

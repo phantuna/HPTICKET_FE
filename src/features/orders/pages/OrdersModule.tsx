@@ -55,7 +55,7 @@ export const OrdersModule: React.FC = () => {
 
   const { can } = usePermission();
 
-  const [reprintData, setReprintData] = React.useState<{order: any, tickets: any[]} | null>(null);
+  const [reprintData, setReprintData] = React.useState<{ order: any, tickets: any[] } | null>(null);
   const [isReprinting, setIsReprinting] = React.useState(false);
   const [isCancellingId, setIsCancellingId] = React.useState<string | undefined>();
 
@@ -71,16 +71,16 @@ export const OrdersModule: React.FC = () => {
 
   const handleConfirmCancel = async (reason: string) => {
     if (!orderToCancel || !reason) return;
-    
+
     setPromptModalOpen(false);
     setIsCancellingId(orderToCancel.id);
-    
+
     try {
       const res = await salesService.cancelOrder(orderToCancel.id, reason);
       if (res.code === 200 || res.code === 201 || res.code === 204) {
         // Clear selection just in case the cancelled order was previously selected
         clearSelection();
-        fetchData(); 
+        fetchData();
         toast.success('Hủy đơn hàng thành công');
       } else {
         toast.error(res.message || 'Hủy đơn hàng thất bại');
@@ -105,7 +105,7 @@ export const OrdersModule: React.FC = () => {
       const orderRes = await salesService.fetchOrderDetail(ord.id);
       // 2. Gọi API lấy toàn bộ vé của order đó
       const ticketsRes = await salesService.fetchIssuedTicketsByOrder(ord.id);
-      
+
       let fullOrder = ord;
       if (orderRes && typeof orderRes === 'object') {
         fullOrder = orderRes.data || orderRes;
@@ -142,16 +142,16 @@ export const OrdersModule: React.FC = () => {
       if (searchQuery) {
         const sq = searchQuery.toLowerCase();
         if (!o.order_code.toLowerCase().includes(sq) &&
-            !(o.invoice_number && o.invoice_number.toLowerCase().includes(sq))) {
+          !(o.invoice_number && o.invoice_number.toLowerCase().includes(sq))) {
           return false;
         }
       }
-      
+
       if (filterOrderCode && !o.order_code.toLowerCase().includes(filterOrderCode.toLowerCase())) return false;
       if (filterBookingCode && o.booking_code && !o.booking_code.toLowerCase().includes(filterBookingCode.toLowerCase())) return false;
       if (filterCounterId && String(o.sales_counter_id) !== filterCounterId) return false;
       if (filterSourceId && String(o.customer_source_id) !== filterSourceId) return false;
-      
+
       if (fromDate) {
         const oDate = new Date(o.created_at);
         const fDate = new Date(fromDate);
@@ -198,126 +198,137 @@ export const OrdersModule: React.FC = () => {
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 relative print:p-0 print:m-0 print:space-y-0 print:max-w-none">
       <div className="print:hidden space-y-6">
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed top-20 right-6 z-50 animate-fade-in">
-          <div className="bg-slate-800 text-white px-4 py-3 rounded-lg shadow-xl flex items-center gap-3">
-            <span className="text-sm font-medium">{toastMessage}</span>
-            <button onClick={clearToast} className="text-slate-400 hover:text-white transition">
-              <span className="sr-only">Close</span>
-              &times;
-            </button>
+        {/* Toast Notification */}
+        {toastMessage && (
+          <div className="fixed top-20 right-6 z-50 animate-fade-in">
+            <div className="bg-slate-800 text-white px-4 py-3 rounded-lg shadow-xl flex items-center gap-3">
+              <span className="text-sm font-medium">{toastMessage}</span>
+              <button onClick={clearToast} className="text-slate-400 hover:text-white transition">
+                <span className="sr-only">Close</span>
+                &times;
+              </button>
+            </div>
           </div>
-        </div>
-      )}
-
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-        <div>
-          <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-            <Receipt className="w-5 h-5 text-emerald-600" /> Quản Lý Đơn Hàng POS
-          </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Quản lý và đối soát danh sách hóa đơn bán hàng
-          </p>
-        </div>
-        
-        {/* Nút công cụ xuất bù */}
-        {can('ISSUE_INVOICE') && (
-          <button
-            onClick={() => setIsRecoveryModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-orange-100 text-orange-700 hover:bg-orange-200 hover:text-orange-800 transition rounded-lg text-sm font-semibold shadow-sm"
-          >
-            <Wrench className="w-4 h-4" />
-            Công cụ tiện ích / Xuất bù
-          </button>
         )}
-      </div>
 
-      <OrderFilterBar
-        activeSubTab={activeSubTab}
-        searchQuery={searchQuery} setSearchQuery={setSearchQuery}
-        fromDate={fromDate} setFromDate={setFromDate}
-        toDate={toDate} setToDate={setToDate}
-        filterCounterId={filterCounterId} setFilterCounterId={setFilterCounterId}
-        filterOrderCode={filterOrderCode} setFilterOrderCode={setFilterOrderCode}
-        filterBookingCode={filterBookingCode} setFilterBookingCode={setFilterBookingCode}
-        filterSourceId={filterSourceId} setFilterSourceId={setFilterSourceId}
-        ticketCounters={ticketCounters} customerSources={customerSources}
-        isLoading={isLoading}
-        onSearch={() => { goToPage(0); }}
-        onRefresh={() => fetchData()}
-        onFilterFocus={loadDropdowns}
-        onExportOrders={handleExportOrders}
-      />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <Receipt className="w-5 h-5 text-emerald-600" /> Quản Lý Đơn Hàng POS
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Quản lý và đối soát danh sách hóa đơn bán hàng
+            </p>
+          </div>
 
-      {/* Invoice Action Bar */}
-      {activeSubTab === 'orders' && can('ISSUE_INVOICE') && (
-        <div className="mb-2">
-           <InvoiceActionBar
+          {/* Nút công cụ xuất bù */}
+          {can('ISSUE_INVOICE') && (
+            <button
+              onClick={() => setIsRecoveryModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-orange-100 text-orange-700 hover:bg-orange-200 hover:text-orange-800 transition rounded-lg text-sm font-semibold shadow-sm"
+            >
+              <Wrench className="w-4 h-4" />
+              Công cụ tiện ích / Xuất bù
+            </button>
+          )}
+        </div>
+
+        <OrderFilterBar
+          activeSubTab={activeSubTab}
+          searchQuery={searchQuery} setSearchQuery={setSearchQuery}
+          fromDate={fromDate} setFromDate={setFromDate}
+          toDate={toDate} setToDate={setToDate}
+          filterCounterId={filterCounterId} setFilterCounterId={setFilterCounterId}
+          filterOrderCode={filterOrderCode} setFilterOrderCode={setFilterOrderCode}
+          filterBookingCode={filterBookingCode} setFilterBookingCode={setFilterBookingCode}
+          filterSourceId={filterSourceId} setFilterSourceId={setFilterSourceId}
+          ticketCounters={ticketCounters} customerSources={customerSources}
+          isLoading={isLoading}
+          onSearch={() => { goToPage(0); }}
+          onRefresh={() => fetchData()}
+          onFilterFocus={loadDropdowns}
+          onExportOrders={handleExportOrders}
+        />
+
+        {/* Invoice Action Bar */}
+        {activeSubTab === 'orders' && can('ISSUE_INVOICE') && (
+          <div className="mb-2">
+            <InvoiceActionBar
               selectedCount={selectedOrderIds.length}
               isSubmitting={isSubmitting}
               todayDate={new Date().toISOString().split('T')[0]}
               onIssueSelected={openIssueModal}
               onIssueBulkRetail={() => issueBulkRetail(undefined, () => fetchData())}
               onClearSelection={clearSelection}
-           />
-        </div>
-      )}
+            />
+          </div>
+        )}
 
-      {activeSubTab === 'orders' && (
-        <OrdersTable
-          orders={filteredOrders}
-          fetchOrderDetail={fetchOrderDetail}
-          currentPage={currentPage}
-          pageSize={pageSize}
-          totalElements={totalElements}
-          totalPages={totalPages}
-          goToPage={goToPage}
-          changePageSize={changePageSize}
-          // Invoice Selection Props
-          selectedOrderIds={selectedOrderIds}
-          onToggleSelectOrder={toggleSelectOrder}
-          onToggleSelectAll={toggleSelectAll}
-          isAllSelected={isAllSelected(filteredOrders)}
-          onReprintOrder={handleReprintOrder}
-          isReprinting={isReprinting}
-          onCancelOrder={handleCancelOrderClick}
-          isCancellingId={isCancellingId}
+        {activeSubTab === 'orders' && (
+          <OrdersTable
+            orders={filteredOrders}
+            fetchOrderDetail={fetchOrderDetail}
+            currentPage={currentPage}
+            pageSize={pageSize}
+            totalElements={totalElements}
+            totalPages={totalPages}
+            goToPage={goToPage}
+            changePageSize={changePageSize}
+            // Invoice Selection Props
+            selectedOrderIds={selectedOrderIds}
+            onToggleSelectOrder={toggleSelectOrder}
+            onToggleSelectAll={toggleSelectAll}
+            isAllSelected={isAllSelected(filteredOrders)}
+            onReprintOrder={handleReprintOrder}
+            isReprinting={isReprinting}
+            onCancelOrder={handleCancelOrderClick}
+            isCancellingId={isCancellingId}
+          />
+        )}
+
+        {activeSubTab === 'tickets' && (
+          <TicketsGrid tickets={filteredTickets} setSelectedTicket={setSelectedTicket} />
+        )}
+
+        <OrderDetailModal
+          selectedOrder={selectedOrder}
+          orderDetail={orderDetail}
+          issuedTickets={issuedTickets}
+          selectedTicket={selectedTicket}
+          setSelectedOrder={setSelectedOrder}
+          setSelectedTicket={setSelectedTicket}
+          onRefresh={() => fetchOrderDetail(selectedOrder)}
         />
-      )}
 
-      {activeSubTab === 'tickets' && (
-        <TicketsGrid tickets={filteredTickets} setSelectedTicket={setSelectedTicket} />
-      )}
+        <TicketQRModal
+          selectedTicket={selectedTicket}
+          setSelectedTicket={setSelectedTicket}
+        />
 
-      <OrderDetailModal
-        selectedOrder={selectedOrder}
-        orderDetail={orderDetail}
-        issuedTickets={issuedTickets}
-        selectedTicket={selectedTicket}
-        setSelectedOrder={setSelectedOrder}
-        setSelectedTicket={setSelectedTicket}
-        onRefresh={() => fetchOrderDetail(selectedOrder)}
-      />
-
-      <TicketQRModal
-        selectedTicket={selectedTicket}
-        setSelectedTicket={setSelectedTicket}
-      />
-
-      <IssueInvoiceModal
-        isOpen={isModalOpen}
-        selectedCount={selectedOrderIds.length}
-        isSubmitting={isSubmitting}
-        onClose={closeIssueModal}
-        onSubmitCompany={(payload) => issueSelectedOrders(payload, () => fetchData())}
-      />
+        <IssueInvoiceModal
+          isOpen={isModalOpen}
+          selectedCount={selectedOrderIds.length}
+          isSubmitting={isSubmitting}
+          onClose={closeIssueModal}
+          onSubmitCompany={(payload) => issueSelectedOrders(payload, () => fetchData())}
+        />
       </div>
 
       {reprintData && (
         <ReceiptPrintModal
           order={reprintData.order}
           tickets={reprintData.tickets}
+          invoiceRequested={Boolean(
+            reprintData.order.invoice_status === 'IMMEDIATE' ||
+            reprintData.order.invoice_status === 'ISSUED' ||
+            reprintData.order.invoice_status === 'ISSUED_BULK' ||
+            reprintData.order.invoice_number ||
+            (reprintData.order as any).invoiceNumber ||
+            reprintData.order.invoice_lookup_code ||
+            (reprintData.order as any).invoiceLookupCode ||
+            reprintData.order.company_tax_code ||
+            (reprintData.order as any).companyTaxCode
+          )}
           onClose={() => setReprintData(null)}
           onNewOrder={() => setReprintData(null)} // Đóng modal sau khi in xong
         />

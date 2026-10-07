@@ -153,9 +153,20 @@ export const PublicBookingPortal: React.FC<PublicBookingPortalProps> = ({
   const handleQuantityChange = (templateId: string, delta: number) => {
     setTicketQuantities(prev => {
       const current = prev[templateId] || 0;
-      const next = Math.max(0, current + delta);
+      const next = Math.max(0, Math.min(9999, current + delta));
       return { ...prev, [templateId]: next };
     });
+  };
+
+  const handleQuantitySet = (templateId: string, valStr: string) => {
+    if (valStr.trim() === '') {
+      setTicketQuantities(prev => ({ ...prev, [templateId]: 0 }));
+      return;
+    }
+    const cleanStr = valStr.replace(/\D/g, '');
+    const num = parseInt(cleanStr, 10);
+    const val = isNaN(num) ? 0 : Math.max(0, Math.min(9999, num));
+    setTicketQuantities(prev => ({ ...prev, [templateId]: val }));
   };
 
   const totalTickets = Object.values(ticketQuantities).reduce<number>((a, b) => (Number(a) || 0) + (Number(b) || 0), 0);
@@ -519,25 +530,33 @@ export const PublicBookingPortal: React.FC<PublicBookingPortalProps> = ({
                           </div>
                         </div>
 
-                        {/* Nút cộng trừ số lượng */}
-                        <div className="flex items-center gap-2 shrink-0">
+                        {/* Nút cộng trừ & ô nhập số lượng trực tiếp */}
+                        <div className="flex items-center gap-1.5 shrink-0">
                           <button
                             type="button"
                             aria-label={`Giảm số lượng vé ${tpl.name || tpl.code}`}
                             onClick={() => handleQuantityChange(tpl.id, -1)}
                             disabled={qty === 0}
-                            className="w-8 h-8 rounded-lg bg-white hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed border border-slate-300 flex items-center justify-center text-slate-700 transition shadow-2xs cursor-pointer"
+                            className="w-8 h-8 rounded-lg bg-white hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed border border-slate-300 flex items-center justify-center text-slate-700 transition shadow-2xs cursor-pointer active:scale-95"
                           >
                             <Minus className="w-3.5 h-3.5" />
                           </button>
-                          <span className="w-7 text-center font-bold font-mono text-sm text-slate-900 select-none">
-                            {qty}
-                          </span>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            value={qty}
+                            onFocus={(e) => e.target.select()}
+                            onChange={(e) => handleQuantitySet(tpl.id, e.target.value)}
+                            aria-label={`Số lượng vé ${tpl.name || tpl.code}`}
+                            title="Bấm để nhập số lượng trực tiếp"
+                            className="w-12 h-8 text-center font-bold font-mono text-sm text-slate-900 bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition shadow-2xs hover:border-slate-400"
+                          />
                           <button
                             type="button"
                             aria-label={`Tăng số lượng vé ${tpl.name || tpl.code}`}
                             onClick={() => handleQuantityChange(tpl.id, 1)}
-                            className="w-8 h-8 rounded-lg bg-emerald-600 hover:bg-emerald-700 border border-emerald-600 flex items-center justify-center text-white transition shadow-xs cursor-pointer"
+                            className="w-8 h-8 rounded-lg bg-emerald-600 hover:bg-emerald-700 border border-emerald-600 flex items-center justify-center text-white transition shadow-xs cursor-pointer active:scale-95"
                           >
                             <Plus className="w-3.5 h-3.5" />
                           </button>

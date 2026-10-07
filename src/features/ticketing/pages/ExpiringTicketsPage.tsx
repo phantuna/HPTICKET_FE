@@ -4,9 +4,9 @@ import {
   Download, Ticket, CheckCircle2, AlertTriangle, CalendarX, Activity,
   User, Phone, Mail, Plus, ChevronDown, RotateCw
 } from 'lucide-react';
-import { salesService, IssuedTicket } from '../../../api/salesService';
+import { salesService } from '../../../api/salesService';
 import { marketingService } from '../../../api/marketingService';
-import { Promotion, Order } from '../../../shared/types/hpticket';
+import { Promotion, Order, IssuedTicket } from '../../../shared/types/hpticket';
 import { ExpiringTicketsTable } from '../components/ExpiringTicketsTable';
 import { MonthlyTicketCardModal } from '../components/MonthlyTicketCardModal';
 import { MonthlyTicketDetailDrawer } from '../components/MonthlyTicketDetailDrawer';
@@ -53,8 +53,14 @@ export const ExpiringTicketsPage: React.FC = () => {
   const [renewingTicket, setRenewingTicket] = useState<IssuedTicket | null>(null);
   const [selectedCardTicket, setSelectedCardTicket] = useState<IssuedTicket | null>(null);
 
-  // Renewal print data (reuse ReceiptPrintModal after successful renewal)
-  const [renewalPrintData, setRenewalPrintData] = useState<{ order: Order; ticket: IssuedTicket } | null>(null);
+  // Print data for ReceiptPrintModal (Renewal & Monthly Ticket Reprint)
+  const [printTicketData, setPrintTicketData] = useState<{
+    order: Order;
+    tickets: IssuedTicket[];
+    customerName?: string;
+    phoneNumber?: string;
+  } | null>(null);
+  const [reprintingTicketId, setReprintingTicketId] = useState<string | null>(null);
 
   const [promotions, setPromotions] = useState<Promotion[]>([]);
 
@@ -203,6 +209,108 @@ export const ExpiringTicketsPage: React.FC = () => {
     setRenewingTicket(ticket);
   };
 
+  const handlePrintTicket = async (ticket: IssuedTicket) => {
+    setReprintingTicketId(ticket.id);
+    try {
+      let orderData: Order | null = null;
+      let ticketsList: IssuedTicket[] = [ticket];
+
+      if (ticket.order_id) {
+        try {
+          const [orderRes, ticketsRes] = await Promise.allSettled([
+            salesService.fetchOrderDetail(ticket.order_id),
+            salesService.fetchIssuedTicketsByOrder(ticket.order_id),
+          ]);
+
+          if (orderRes.status === 'fulfilled' && orderRes.value) {
+            const res = orderRes.value;
+            orderData = (res && (res.data || (typeof res === 'object' && !res.code ? res : null))) || null;
+          }
+
+          if (ticketsRes.status === 'fulfilled' && ticketsRes.value) {
+            const tRes = ticketsRes.value;
+            let fetchedList: any[] = [];
+            if (Array.isArray(tRes)) {
+              fetchedList = tRes;
+            } else if (tRes && Array.isArray(tRes.data)) {
+              fetchedList = tRes.data;
+            } else if (tRes && typeof tRes === 'object' && !tRes.data && !tRes.code) {
+              fetchedList = [tRes];
+            } else if (tRes && tRes.data && typeof tRes.data === 'object') {
+              fetchedList = [tRes.data];
+            }
+            if (fetchedList.length > 0) {
+              const matchedTicket = fetchedList.find((t: any) => t.id === ticket.id || t.qr_code_string === ticket.qr_code_string);
+              ticketsList = matchedTicket ? [matchedTicket] : fetchedList;
+            }
+          }
+        } catch (e) {
+          console.warn('Could not fetch original order or tickets for reprint:', e);
+        }
+      }
+
+      if (ticketsList.length === 0 || !ticketsList[0]) {
+        ticketsList = [ticket];
+      } else {
+        ticketsList = ticketsList.map((t) => ({
+          ...ticket,
+          ...t,
+          customer_name: t.customer_name || ticket.customer_name,
+          customer_phone: t.customer_phone || ticket.customer_phone,
+        }));
+      }
+
+      if (!orderData) {
+        const now = ticket.created_at || new Date().toISOString();
+        const basePrice = Number(ticket.unit_price || 0);
+        orderData = {
+          id: ticket.order_id || `ord-${ticket.id}`,
+          order_code: (ticket as any).order_code || `VT-${ticket.qr_code_string?.slice(-8) || ticket.id.slice(-8)}`,
+          sales_counter_id: '',
+          total_amount: basePrice,
+          discount_amount: 0,
+          final_amount: basePrice,
+          payment_method: ((ticket as any).payment_method as any) || 'TIEN_MAT',
+          status: 'COMPLETED' as any,
+          invoice_status: 'NOT_ISSUED' as any,
+          invoice_lookup_code: ticket.qr_code_string,
+          created_at: now,
+          updated_at: now,
+          created_by: ticket.created_by || localStorage.getItem('hpticket_username') || 'Admin',
+          updated_by: '',
+          details: [
+            {
+              id: `d-${ticket.id}`,
+              order_id: ticket.order_id || `ord-${ticket.id}`,
+              item_type: 'TICKET' as any,
+              item_id: ticket.ticket_template_id,
+              item_name: ticket.ticket_template_name || ticket.ticket_template_code || 'VÉ THÁNG THAM QUAN',
+              quantity: 1,
+              unit_price: basePrice,
+              total_price: basePrice,
+              created_at: now,
+              updated_at: now,
+              created_by: ticket.created_by || '',
+              updated_by: '',
+            }
+          ]
+        };
+      }
+
+      setPrintTicketData({
+        order: orderData,
+        tickets: ticketsList,
+        customerName: ticket.customer_name || (orderData as any).booker_name || (orderData as any).customer_name || '',
+        phoneNumber: ticket.customer_phone || (orderData as any).customer_phone || '',
+      });
+    } catch (err) {
+      console.error('Lỗi khi tải thông tin in vé tháng:', err);
+      toast.error('Đã xảy ra lỗi khi chuẩn bị in vé!');
+    } finally {
+      setReprintingTicketId(null);
+    }
+  };
+
   const handleResetFilters = () => {
     setDaysAhead(null);
     setStatusFilter('all');
@@ -214,8 +322,9 @@ export const ExpiringTicketsPage: React.FC = () => {
   const activeFiltersCount = (daysAhead !== null ? 1 : 0) + (statusFilter !== 'all' ? 1 : 0) + (employeeSearch !== 'all' ? 1 : 0);
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
-      <div className="bg-white text-slate-900 rounded-xl p-6 shadow-md border border-slate-200 space-y-5 my-2">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 relative print:p-0 print:m-0 print:space-y-0 print:max-w-none">
+      <div className="no-print print:hidden space-y-6">
+        <div className="bg-white text-slate-900 rounded-xl p-6 shadow-md border border-slate-200 space-y-5 my-2">
         {/* Title */}
         <h2 className="text-base sm:text-lg font-bold tracking-wide uppercase text-slate-800">
           QUẢN LÝ VÉ THÁNG
@@ -451,6 +560,8 @@ export const ExpiringTicketsPage: React.FC = () => {
             onEditCustomer={handleEditCustomer}
             onRenewTicket={handleRenewTicket}
             onViewCard={(ticket) => setSelectedCardTicket(ticket)}
+            onPrintTicket={handlePrintTicket}
+            reprintingTicketId={reprintingTicketId}
             onSelectTicket={(ticket) => setSelectedDrawerTicket(ticket)}
             onResetFilters={handleResetFilters}
             canEdit={can('UPDATE_ISSUED_TICKET')}
@@ -487,6 +598,10 @@ export const ExpiringTicketsPage: React.FC = () => {
           setSelectedDrawerTicket(null);
           handleEditCustomer(t);
         }}
+        onPrint={(t) => {
+          setSelectedDrawerTicket(null);
+          handlePrintTicket(t);
+        }}
       />
 
       {/* 7. Digital Membership Card Modal */}
@@ -495,6 +610,10 @@ export const ExpiringTicketsPage: React.FC = () => {
           ticket={selectedCardTicket}
           onClose={() => setSelectedCardTicket(null)}
           onRenew={(ticket) => handleRenewTicket(ticket)}
+          onPrint={(ticket) => {
+            setSelectedCardTicket(null);
+            handlePrintTicket(ticket);
+          }}
         />
       )}
 
@@ -511,21 +630,28 @@ export const ExpiringTicketsPage: React.FC = () => {
         promotions={promotions}
         onClose={() => setRenewingTicket(null)}
         onSuccess={(syntheticOrder, renewedTicket) => {
-          setRenewalPrintData({ order: syntheticOrder, ticket: renewedTicket });
+          setPrintTicketData({
+            order: syntheticOrder,
+            tickets: [renewedTicket],
+            customerName: renewedTicket.customer_name || 'Khách hội viên',
+            phoneNumber: renewedTicket.customer_phone || '',
+          });
           fetchTickets(daysAhead, searchTerm, employeeSearch, statusFilter, currentPage, pageSize);
         }}
       />
+      </div>
 
-      {/* 10. Renewal Receipt Print Modal (reuses same ReceiptPrintModal as POS for UI consistency) */}
-      {renewalPrintData && (
+      {/* 10. Standardized Receipt & Ticket Print Modal (reuses ReceiptPrintModal for POS, Renewal, and Ticket Reprint) */}
+      {printTicketData && (
         <ReceiptPrintModal
-          order={renewalPrintData.order}
-          tickets={[renewalPrintData.ticket]}
-          customerName={renewalPrintData.ticket.customer_name || 'Khách hội viên'}
-          phoneNumber={renewalPrintData.ticket.customer_phone || ''}
-          paymentMethod={renewalPrintData.order.payment_method as string}
-          onClose={() => setRenewalPrintData(null)}
-          onNewOrder={() => setRenewalPrintData(null)}
+          order={printTicketData.order}
+          tickets={printTicketData.tickets}
+          customerName={printTicketData.customerName}
+          phoneNumber={printTicketData.phoneNumber}
+          paymentMethod={printTicketData.order.payment_method as string}
+          printTicketsOnly={true}
+          onClose={() => setPrintTicketData(null)}
+          onNewOrder={() => setPrintTicketData(null)}
         />
       )}
     </div>

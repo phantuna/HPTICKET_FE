@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { CalendarClock, RotateCw, RefreshCw } from 'lucide-react';
-import { IssuedTicket, salesService } from '../../../api/salesService';
-import { Promotion, Order } from '../../../shared/types/hpticket';
+import { salesService } from '../../../api/salesService';
+import { Promotion, Order, IssuedTicket } from '../../../shared/types/hpticket';
 import { Modal, Button } from '../../../shared/components/ui';
 import { toast } from '../../../shared/utils/toast';
 

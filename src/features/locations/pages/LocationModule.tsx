@@ -39,6 +39,7 @@ export const LocationModule: React.FC<LocationModuleProps> = ({ subTab = 'khaiba
     handleAddLocation, handleAddCounter, handleAddZone, handleAddGate,
     handleOpenCompanyModal, handleSaveCompany,
     handleDeleteLocations, handleDeleteCounters, handleDeleteZones, handleDeleteGates,
+    handleUnbindCounterMachine,
     isSubmitting
   } = locState;
 
@@ -155,6 +156,45 @@ export const LocationModule: React.FC<LocationModuleProps> = ({ subTab = 'khaiba
             { header: 'Mã quầy', accessor: 'code', className: 'font-mono font-bold text-slate-800' },
             { header: 'Tên quầy', accessor: 'name', className: 'font-semibold text-slate-900' },
             { header: 'Điểm bán vé', accessor: (row: any) => locations.find((l) => l.id === row.sales_location_id)?.name || 'Zipline', className: 'text-slate-800 font-medium' },
+            { 
+              header: 'Thiết bị liên kết (Hardware)', 
+              accessor: (row: any) => {
+                const boundId = row.boundMachineId || row.bound_machine_id;
+                const boundName = row.boundMachineName || row.bound_machine_name;
+                if (!boundId) {
+                  return (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-500">
+                      Chưa gắn máy
+                    </span>
+                  );
+                }
+                return (
+                  <div className="flex items-center gap-2">
+                    <div>
+                      <span className="font-mono text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                        {boundId}
+                      </span>
+                      {boundName && (
+                        <div className="text-[10px] text-slate-400 mt-0.5 font-mono">{boundName}</div>
+                      )}
+                    </div>
+                    {can('UPDATE_SALES_COUNTER') && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleUnbindCounterMachine(row.id, row.code);
+                        }}
+                        className="text-[11px] font-medium text-rose-600 hover:text-rose-800 hover:underline bg-rose-50 hover:bg-rose-100 px-2 py-1 rounded border border-rose-200 transition whitespace-nowrap cursor-pointer"
+                        title="Gỡ liên kết máy tính cũ để cho phép máy khác sync vào quầy này"
+                      >
+                        Gỡ máy
+                      </button>
+                    )}
+                  </div>
+                );
+              } 
+            },
             { header: 'Sử dụng', accessor: 'is_active', className: 'text-center w-24' },
           ]}
           onAddNew={() => {

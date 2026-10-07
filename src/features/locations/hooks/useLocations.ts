@@ -44,11 +44,19 @@ export const useLocations = (initialTab: string) => {
           } catch (err) {}
         }
       } else if (activeSubTab === 'KhaiBaoDiemBanVe' || activeSubTab === 'KhaiBaoQuayVe') {
-        if (!globalLocationsCache.locs) {
+        try {
           const locRes = await salesService.fetchSalesLocations();
-          if (locRes.data && locRes.data.length > 0) { setLocations(locRes.data); globalLocationsCache.locs = locRes.data; }
+          if (locRes.data && locRes.data.length > 0) { 
+            setLocations(locRes.data); 
+            globalLocationsCache.locs = locRes.data; 
+          }
           const cntRes = await salesService.fetchSalesCounters();
-          if (cntRes.data && cntRes.data.length > 0) { setCounters(cntRes.data); globalLocationsCache.counters = cntRes.data; }
+          if (cntRes.data) { 
+            setCounters(cntRes.data); 
+            globalLocationsCache.counters = cntRes.data; 
+          }
+        } catch (e) {
+          console.error('[useLocations] Error fetching counters/locations:', e);
         }
       } else if (activeSubTab === 'KhaibaosKhuKiemSoat' || activeSubTab === 'KhaiBaoCuaKS') {
         if (!globalLocationsCache.zones) {
@@ -193,6 +201,19 @@ export const useLocations = (initialTab: string) => {
       toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi lưu quầy bán');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleUnbindCounterMachine = async (id: string, counterCode?: string) => {
+    try {
+      const res = await salesService.unbindSalesCounterMachine(id);
+      toast.success(
+        res?.message || (counterCode ? `Đã gỡ liên kết máy khỏi quầy ${counterCode} thành công` : 'Đã gỡ liên kết thiết bị khỏi quầy thành công')
+      );
+      const cntRes = await salesService.fetchSalesCounters();
+      if (cntRes.data && cntRes.data.length > 0) setCounters(cntRes.data);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi gỡ liên kết máy');
     }
   };
 
@@ -362,6 +383,7 @@ export const useLocations = (initialTab: string) => {
     handleAddLocation, handleAddCounter, handleAddZone, handleAddGate,
     handleOpenCompanyModal, handleSaveCompany,
     handleDeleteLocations, handleDeleteCounters, handleDeleteZones, handleDeleteGates,
+    handleUnbindCounterMachine,
     isSubmitting
   };
 };

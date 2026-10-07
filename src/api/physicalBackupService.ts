@@ -11,6 +11,12 @@ export interface BackupJobResponse {
   completedAt?: string;
   partCount?: number;
   errorMessage?: string;
+  /** Số byte SQL đã đọc từ pg_dump (chỉ khi RUNNING) */
+  processedBytes?: number;
+  /** Số giây kể từ lần cuối nhận được dữ liệu (chỉ khi RUNNING) */
+  idleSeconds?: number;
+  /** Ngưỡng tự động ngắt khi treo (giây) */
+  idleTimeoutSeconds?: number;
 }
 
 export interface BackupConfig {
@@ -39,6 +45,10 @@ export const physicalBackupService = {
   
   deleteBackup: (backupId: string) => {
     return apiClient.delete(`/backups/${backupId}`);
+  },
+
+  cancelBackup: (backupId: string) => {
+    return apiClient.post<{ message: string }>(`/backups/${backupId}/cancel`);
   },
   
   downloadBackup: (backupId: string, customFileName?: string) => {

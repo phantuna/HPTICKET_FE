@@ -566,6 +566,30 @@ export const salesService = {
     return { code: 200, message: 'Cập nhật trạng thái thành công', data: dbStore.salesCounters[idx] };
   },
 
+  async unbindSalesCounterMachine(id: string): Promise<ApiResponse<SalesCounter>> {
+    try {
+      const res = await apiClient.put<ApiResponse<SalesCounter>>(`${API_ENDPOINTS.SALES.COUNTERS}/${id}/unbind-machine`);
+      if (res?.data) {
+        const idx = dbStore.salesCounters.findIndex((c) => c.id === id);
+        if (idx !== -1) {
+          dbStore.salesCounters[idx] = res.data;
+          dbStore.saveToStorage();
+        }
+      }
+      return res;
+    } catch (err: any) {
+      console.warn('[Sales Service] Backend unbindSalesCounterMachine failed, fallback to Mock DB:', err);
+      const idx = dbStore.salesCounters.findIndex((c) => c.id === id);
+      if (idx !== -1) {
+        dbStore.salesCounters[idx].boundMachineId = null;
+        dbStore.salesCounters[idx].boundMachineName = null;
+        dbStore.saveToStorage();
+        return { code: 200, message: 'Gỡ liên kết máy thành công', data: dbStore.salesCounters[idx] };
+      }
+      throw err;
+    }
+  },
+
 
   // 4. ORDERS (/sales/orders)
   async fetchOrders(params?: { fromDate?: string; toDate?: string; size?: number }): Promise<ApiResponse<Order[]>> {

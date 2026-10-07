@@ -111,7 +111,14 @@ export const BookingsModule: React.FC<BookingsModuleProps> = ({ onOpenPOSWithBoo
   };
 
   // Status Badge Colors
-  const getStatusBadge = (status: BookingStatus | string) => {
+  const getStatusBadge = (status: BookingStatus | string, isOverdue?: boolean) => {
+    if (isOverdue && status !== BookingStatus.FULFILLED && status !== BookingStatus.CANCELLED) {
+      return (
+        <span className="px-2.5 py-1 bg-rose-50 text-rose-700 border border-rose-200 rounded-full text-xs font-bold" title="Đã qua ngày tham quan nhưng chưa xuất vé">
+          Quá hạn (Hủy)
+        </span>
+      );
+    }
     switch (status) {
       case BookingStatus.CONFIRMED:
         return <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold">Đã xác nhận</span>;
@@ -123,15 +130,26 @@ export const BookingsModule: React.FC<BookingsModuleProps> = ({ onOpenPOSWithBoo
         return <span className="px-2.5 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-bold">Đã xuất vé cổng</span>;
       case BookingStatus.CANCELLED:
         return <span className="px-2.5 py-1 bg-rose-100 text-rose-800 rounded-full text-xs font-bold">Đã hủy</span>;
+      case BookingStatus.EXPIRED:
+        return <span className="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-bold">Đã hết hạn</span>;
       default:
         return <span className="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-bold">{status}</span>;
     }
   };
 
+  const todayStr = getTodayStr();
   const totalBookings = totalElements;
-  const totalAmountSum = bookings.reduce((acc, b) => acc + (Number(b.total_amount) || 0), 0);
-  const totalDepositSum = bookings.reduce((acc, b) => acc + (Number(b.deposit_amount) || 0), 0);
-  const totalRemainingSum = bookings.reduce((acc, b) => acc + (Number(b.remaining_amount) || 0), 0);
+  // Chỉ tính doanh số của các đơn đặt chỗ ĐÃ ĐƯỢC XUẤT VÉ CỔNG THỰC TẾ (FULFILLED)
+  // Các đơn chờ hoặc đã hủy tuyệt đối không tính vào doanh số để tránh lệch với báo cáo doanh thu vé
+  const fulfilledAmountSum = bookings
+    .filter(b => b.status === BookingStatus.FULFILLED)
+    .reduce((acc, b) => acc + (Number(b.total_amount) || 0), 0);
+  const totalDepositSum = bookings
+    .filter(b => b.status !== BookingStatus.CANCELLED && b.status !== BookingStatus.EXPIRED)
+    .reduce((acc, b) => acc + (Number(b.deposit_amount) || 0), 0);
+  const totalRemainingSum = bookings
+    .filter(b => b.status !== BookingStatus.CANCELLED && b.status !== BookingStatus.EXPIRED && b.status !== BookingStatus.FULFILLED && (!b.visit_date || b.visit_date >= todayStr))
+    .reduce((acc, b) => acc + (Number(b.remaining_amount) || 0), 0);
 
   return (
     <div className="p-4 sm:p-6 max-w-[1600px] mx-auto space-y-6">
@@ -175,8 +193,9 @@ export const BookingsModule: React.FC<BookingsModuleProps> = ({ onOpenPOSWithBoo
           <span className="text-2xl font-black text-slate-900">{totalBookings.toLocaleString()} đơn</span>
         </div>
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-          <span className="text-xs font-semibold text-slate-500 block mb-1">Doanh số trang hiện tại</span>
-          <span className="text-2xl font-black font-mono text-emerald-700">{totalAmountSum.toLocaleString('vi-VN')} đ</span>
+          <span className="text-xs font-semibold text-slate-500 block mb-1">Doanh số đã xuất vé (Trang này)</span>
+          <span className="text-2xl font-black font-mono text-emerald-700">{fulfilledAmountSum.toLocaleString('vi-VN')} đ</span>
+          <span className="text-[10px] text-slate-400 block mt-0.5">Chỉ tính đơn đã tạo vé, không tính đơn hủy</span>
         </div>
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
           <span className="text-xs font-semibold text-slate-500 block mb-1">Đã thu cọc trước</span>
@@ -310,8 +329,10 @@ export const BookingsModule: React.FC<BookingsModuleProps> = ({ onOpenPOSWithBoo
                     return acc + (isGroup ? passes : (qty * passes));
                   }, 0) || 0;
                   const isGroupBooking = b.items?.some(it => Boolean(it.is_group_ticket || (Number(it.allowed_passes) || 1) > 1));
+                  const isOverdue = Boolean(b.visit_date && b.visit_date < todayStr && b.status !== BookingStatus.FULFILLED);
                   const isFulfilled = b.status === BookingStatus.FULFILLED;
-                  const isCancelled = b.status === BookingStatus.CANCELLED;
+                  const isCancelled = b.status === BookingStatus.CANCELLED || b.status === BookingStatus.EXPIRED;
+                  const canFulfill = !isOverdue && !isFulfilled && !isCancelled && (b.can_checkout !== false);
                   const remaining = Number(b.remaining_amount || 0);
                   const deposit = Number(b.deposit_amount || 0);
                   const formattedDate = b.visit_date ? b.visit_date.split('-').reverse().join('/') : '--';
@@ -395,7 +416,7 @@ export const BookingsModule: React.FC<BookingsModuleProps> = ({ onOpenPOSWithBoo
                       </td>
 
                       <td className="py-3 px-3 text-center whitespace-nowrap">
-                        {getStatusBadge(b.status)}
+                        {getStatusBadge(b.status, isOverdue)}
                       </td>
 
                       <td className="py-3 px-3 text-center whitespace-nowrap sticky right-0 bg-white group-hover:bg-slate-50 transition z-10 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)]">
@@ -409,7 +430,7 @@ export const BookingsModule: React.FC<BookingsModuleProps> = ({ onOpenPOSWithBoo
                             <QrCode className="w-3.5 h-3.5" /> Phiếu
                           </button>
 
-                          {!isFulfilled && !isCancelled && can('FULFILL_BOOKING') && (
+                          {canFulfill && can('FULFILL_BOOKING') && (
                             <button
                               type="button"
                               onClick={() => handleSellInPOS(b.booking_code)}

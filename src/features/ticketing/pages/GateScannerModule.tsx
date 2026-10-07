@@ -26,6 +26,7 @@ import { ticketingService, GateScanResponse } from '../../../api/ticketingServic
 import { ScanStatusResult, GateAccessLog } from '../../../shared/types/hpticket';
 import {setUseMockApi, API_BASE_URL } from '../../../api/apiConfig';
 import { RefreshButton } from '../../../shared/components/RefreshButton';
+import { toast } from '../../../shared/utils/toast';
 
 export const GateScannerModule: React.FC = () => {
   const [gates, setGates] = useState<any[]>([]);
@@ -40,6 +41,7 @@ export const GateScannerModule: React.FC = () => {
   const [serverStatus, setServerStatus] = useState<boolean>(true);
   const [hardwareStatus, setHardwareStatus] = useState<boolean>(false);
   const [pendingSync, setPendingSync] = useState<number>(0);
+  const [isReconnecting, setIsReconnecting] = useState<boolean>(false);
 
   const fetchLogs = async () => {
     setIsLoadingLogs(true);
@@ -53,8 +55,35 @@ export const GateScannerModule: React.FC = () => {
     }
   };
 
+  const checkAgentHardwareStatus = async () => {
+    // Không cần gọi C# qua loopback HTTP 7788
+  };
+
+  const handleReconnectHardware = async () => {
+    setIsReconnecting(true);
+    const globalWindow = window as any;
+    if (globalWindow.chrome && globalWindow.chrome.webview) {
+      globalWindow.chrome.webview.postMessage('reconnect_hardware');
+      toast.info('Đang gửi lệnh kết nối lại tới phần cứng qua WebView2...');
+    } else {
+      try {
+        const res = await ticketingService.fetchControlGates();
+        const activeGates = (res.data || []).filter((g: any) => g.is_active || g.isActive);
+        if (activeGates.length > 0) {
+          setHardwareStatus(true);
+          toast.success(`✓ Cổng [${activeGates[0].device_name}] đang kết nối và sẵn sàng!`);
+        } else {
+          toast.info('Không có cổng nào đang kích hoạt trên hệ thống.');
+        }
+      } catch {
+        toast.info('Hệ thống hoạt động trên nền Web, phần cứng do Server tự quản lý.');
+      }
+    }
+    setTimeout(() => setIsReconnecting(false), 800);
+  };
+
   useEffect(() => {
-    // Lắng nghe trạng thái từ Desktop App (C# WebView2)
+    // 1. Lắng nghe trạng thái từ Desktop App (nếu chạy trong C# WebView2)
     const handleWebMessage = (e: any) => {
       try {
         const msg = JSON.parse(e.data);
@@ -77,7 +106,10 @@ export const GateScannerModule: React.FC = () => {
       if (res.data && res.data.length > 0) {
         const activeGates = res.data.filter((g: any) => g.is_active || g.isActive);
         setGates(activeGates);
-        if (activeGates.length > 0) setSelectedGateId(activeGates[0].id);
+        if (activeGates.length > 0) {
+          setSelectedGateId(activeGates[0].id);
+          setHardwareStatus(true);
+        }
       }
     });
 
@@ -462,15 +494,12 @@ export const GateScannerModule: React.FC = () => {
               <span className="flex items-center gap-1.5 text-rose-400 font-semibold bg-rose-400/10 px-2 py-0.5 rounded">
                 <XCircle className="w-3.5 h-3.5" /> DISCONNECTED
                 <button 
-                  onClick={() => {
-                    const globalWindow = window as any;
-                    if (globalWindow.chrome && globalWindow.chrome.webview) {
-                      globalWindow.chrome.webview.postMessage('reconnect_hardware');
-                    }
-                  }}
-                  className="ml-2 bg-rose-600 hover:bg-rose-500 text-white px-2 py-0.5 rounded text-[10px] font-bold transition-colors shadow-sm"
+                  disabled={isReconnecting}
+                  onClick={handleReconnectHardware}
+                  className="ml-2 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white px-2 py-0.5 rounded text-[10px] font-bold transition-colors shadow-sm flex items-center gap-1"
                 >
-                  KẾT NỐI LẠI
+                  {isReconnecting && <RefreshCw className="w-2.5 h-2.5 animate-spin" />}
+                  {isReconnecting ? 'ĐANG KẾT NỐI...' : 'KẾT NỐI LẠI'}
                 </button>
               </span>
             )}

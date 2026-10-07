@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Phone, Mail } from 'lucide-react';
-import { IssuedTicket, salesService } from '../../../api/salesService';
+import { salesService } from '../../../api/salesService';
+import { IssuedTicket } from '../../../shared/types/hpticket';
 import { Modal } from '../../../shared/components/ui';
 import { toast } from '../../../shared/utils/toast';
 

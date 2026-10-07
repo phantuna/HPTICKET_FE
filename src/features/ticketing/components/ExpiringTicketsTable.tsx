@@ -2,9 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   Calendar, Clock, Mail, Phone, QrCode, RefreshCw,
   Edit2, MoreVertical, Copy, Printer, Eye, CheckCircle2,
-  AlertTriangle, CalendarX, Check, RotateCw
+  AlertTriangle, CalendarX, Check, RotateCw, Loader2
 } from 'lucide-react';
-import { IssuedTicket } from '../../../api/salesService';
+import { IssuedTicket } from '../../../shared/types/hpticket';
 import { toast } from '../../../shared/utils/toast';
 
 interface ExpiringTicketsTableProps {
@@ -14,6 +14,8 @@ interface ExpiringTicketsTableProps {
   onEditCustomer: (ticket: IssuedTicket) => void;
   onRenewTicket: (ticket: IssuedTicket) => void;
   onViewCard: (ticket: IssuedTicket) => void;
+  onPrintTicket?: (ticket: IssuedTicket) => void;
+  reprintingTicketId?: string | null;
   onSelectTicket: (ticket: IssuedTicket) => void;
   onResetFilters?: () => void;
   canEdit?: boolean;
@@ -29,6 +31,8 @@ export const ExpiringTicketsTable: React.FC<ExpiringTicketsTableProps> = ({
   onEditCustomer,
   onRenewTicket,
   onViewCard,
+  onPrintTicket,
+  reprintingTicketId,
   onSelectTicket,
   onResetFilters,
   canEdit = true,
@@ -115,7 +119,7 @@ export const ExpiringTicketsTable: React.FC<ExpiringTicketsTableProps> = ({
           <col className="w-[12%]" />
 
           {/* Thao tác */}
-          <col className="w-[190px]" />
+          <col className="w-[280px]" />
         </colgroup>
         <thead className="bg-slate-100 text-slate-900 font-bold border-b border-slate-200">
           <tr>
@@ -318,9 +322,27 @@ export const ExpiringTicketsTable: React.FC<ExpiringTicketsTableProps> = ({
                     )}
                   </td>
 
-                  {/* 8. Thao Tác (Gia hạn + Chi tiết + Dropdown) */}
+                  {/* 8. Thao Tác (In Lại + Gia hạn + Chi tiết + Dropdown) */}
                   <td className="p-3 text-center">
                     <div className="flex items-center justify-center gap-1.5 relative">
+                      {/* Nút In Lại - Đồng bộ 100% với Danh sách hóa đơn (OrdersTable) */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onPrintTicket && onPrintTicket(ticket);
+                        }}
+                        disabled={reprintingTicketId === ticket.id}
+                        className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 text-[11px] font-semibold rounded-lg border border-blue-200 transition inline-flex items-center gap-1 disabled:opacity-50 shadow-2xs whitespace-nowrap"
+                        title="In lại phiếu vé nhiệt chuẩn hệ thống (đồng bộ POS & Hóa đơn)"
+                      >
+                        {reprintingTicketId === ticket.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Printer className="w-3.5 h-3.5" />
+                        )}
+                        In Lại
+                      </button>
+
                       {canEdit && (
                         <button
                           onClick={(e) => {
@@ -420,12 +442,16 @@ export const ExpiringTicketsTable: React.FC<ExpiringTicketsTableProps> = ({
                             <button
                               onClick={() => {
                                 setActiveMenuId(null);
-                                onViewCard(ticket);
+                                if (onPrintTicket) {
+                                  onPrintTicket(ticket);
+                                } else {
+                                  onViewCard(ticket);
+                                }
                               }}
                               className="w-full px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition"
                             >
                               <Printer className="w-3.5 h-3.5 text-slate-500" />
-                              In thẻ
+                              In lại vé
                             </button>
                           </div>
                         )}

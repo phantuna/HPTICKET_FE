@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
 import { 
   X, User, Phone, Mail, Calendar, Clock, Copy, Check, 
-  QrCode, RefreshCw, Edit2, ShieldCheck, Store, UserCheck, Ticket
+  QrCode, RefreshCw, Edit2, ShieldCheck, Store, UserCheck, Ticket, Printer
 } from 'lucide-react';
-import { IssuedTicket } from '../../../api/salesService';
+import { IssuedTicket } from '../../../shared/types/hpticket';
 import { toast } from '../../../shared/utils/toast';
 
 interface MonthlyTicketDetailDrawerProps {
@@ -13,6 +13,7 @@ interface MonthlyTicketDetailDrawerProps {
   onRenew: (ticket: IssuedTicket) => void;
   onViewCard: (ticket: IssuedTicket) => void;
   onEditCustomer: (ticket: IssuedTicket) => void;
+  onPrint?: (ticket: IssuedTicket) => void;
 }
 
 export const MonthlyTicketDetailDrawer: React.FC<MonthlyTicketDetailDrawerProps> = ({
@@ -22,6 +23,7 @@ export const MonthlyTicketDetailDrawer: React.FC<MonthlyTicketDetailDrawerProps>
   onRenew,
   onViewCard,
   onEditCustomer,
+  onPrint,
 }) => {
   const [copied, setCopied] = React.useState(false);
 
@@ -239,22 +241,35 @@ export const MonthlyTicketDetailDrawer: React.FC<MonthlyTicketDetailDrawerProps>
                   onClose();
                   onRenew(ticket);
                 }}
-                className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-4 bg-amber-600 hover:bg-amber-700 active:scale-98 text-white font-bold text-xs rounded-xl transition shadow-xs"
+                className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3 bg-amber-600 hover:bg-amber-700 active:scale-98 text-white font-bold text-xs rounded-xl transition shadow-xs"
               >
                 <RefreshCw className="w-4 h-4" />
-                Gia Hạn Vé Này
+                Gia Hạn
               </button>
               <button
                 onClick={() => {
                   onClose();
                   onViewCard(ticket);
                 }}
-                className="inline-flex items-center justify-center gap-1.5 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-bold text-xs rounded-xl transition shadow-xs"
-                title="Xem thẻ vé điện tử và in thẻ"
+                className="inline-flex items-center justify-center gap-1.5 py-2.5 px-3 bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-bold text-xs rounded-xl transition shadow-xs"
+                title="Xem thẻ vé điện tử"
               >
                 <QrCode className="w-4 h-4" />
                 Thẻ QR
               </button>
+              {onPrint && (
+                <button
+                  onClick={() => {
+                    onClose();
+                    onPrint(ticket);
+                  }}
+                  className="inline-flex items-center justify-center gap-1.5 py-2.5 px-3 bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-bold text-xs rounded-xl transition shadow-xs"
+                  title="In lại phiếu vé nhiệt chuẩn hệ thống (đồng bộ POS & Hóa đơn)"
+                >
+                  <Printer className="w-4 h-4" />
+                  In Lại
+                </button>
+              )}
             </div>
             <button
               onClick={() => {

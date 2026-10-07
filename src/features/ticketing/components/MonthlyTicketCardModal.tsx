@@ -1,17 +1,41 @@
-import React, { useRef } from 'react';
-import { X, Printer, Download, Calendar, Phone, Mail, ShieldCheck, Clock } from 'lucide-react';
+import React, { useRef, useState, useEffect } from 'react';
+import { 
+  Printer, Download, Calendar, Phone, Mail, Clock, 
+  Copy, Check, Ticket, RotateCw, User
+} from 'lucide-react';
 import { QRCodeDisplay } from '../../../shared/components/QRCodeDisplay';
-import { IssuedTicket } from '../../../api/salesService';
+import { IssuedTicket, Company } from '../../../shared/types/hpticket';
+import { marketingService } from '../../../api/marketingService';
+import { Modal, Button } from '../../../shared/components/ui';
+import { toast } from '../../../shared/utils/toast';
 import { dbStore } from '../../../shared/data/mockDatabase';
 
 interface MonthlyTicketCardModalProps {
   ticket: IssuedTicket | null;
   onClose: () => void;
   onRenew?: (ticket: IssuedTicket) => void;
+  onPrint?: (ticket: IssuedTicket) => void;
 }
 
-export const MonthlyTicketCardModal: React.FC<MonthlyTicketCardModalProps> = ({ ticket, onClose, onRenew }) => {
+export const MonthlyTicketCardModal: React.FC<MonthlyTicketCardModalProps> = ({ 
+  ticket, 
+  onClose, 
+  onRenew, 
+  onPrint 
+}) => {
   const cardRef = useRef<HTMLDivElement>(null);
+  const [copied, setCopied] = useState(false);
+  const [company, setCompany] = useState<Company | null>(null);
+
+  useEffect(() => {
+    marketingService.fetchCompanies().then((res) => {
+      if (res.data && res.data.length > 0) {
+        setCompany(res.data[0]);
+      }
+    }).catch((err) => {
+      console.warn('[MonthlyTicketCardModal] Fetch companies failed:', err);
+    });
+  }, []);
 
   if (!ticket) return null;
 
@@ -21,9 +45,17 @@ export const MonthlyTicketCardModal: React.FC<MonthlyTicketCardModalProps> = ({ 
   const daysLeft = expireDate ? Math.ceil((expireDate.getTime() - now.getTime()) / (1000 * 3600 * 24)) : null;
 
   const qrValue = ticket.qr_display || ticket.qr_code_string || ticket.id;
-  const company = dbStore.companies?.[0];
-  const companyName = company?.name || 'KHU DU LỊCH EO GIÓ';
-  const companyPhone = company?.phone || '0987 654 321';
+  const rawName = company?.name || dbStore.companies?.[0]?.name;
+  const companyName = (rawName && !rawName.includes('VIETTELPOST')) ? rawName : 'HỆ THỐNG VÉ ĐIỆN TỬ HOÀNG PHÁT';
+  const companyPhone = company?.hotline || company?.phone || '1900 xxxx';
+
+  const handleCopyCode = () => {
+    if (!ticket.qr_code_string) return;
+    navigator.clipboard.writeText(ticket.qr_code_string);
+    setCopied(true);
+    toast.success('Đã sao chép mã vé vào clipboard!');
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const handleDownloadQR = () => {
     if (!cardRef.current) return;
@@ -37,6 +69,12 @@ export const MonthlyTicketCardModal: React.FC<MonthlyTicketCardModalProps> = ({ 
   };
 
   const handlePrint = () => {
+    if (onPrint) {
+      onPrint(ticket);
+      onClose();
+      return;
+    }
+
     const printWindow = window.open('', '_blank', 'width=600,height=700');
     if (!printWindow) return;
 
@@ -49,7 +87,7 @@ export const MonthlyTicketCardModal: React.FC<MonthlyTicketCardModalProps> = ({ 
         <head>
           <title>Thẻ Vé Tháng - ${ticket.customer_name || ticket.qr_code_string}</title>
           <style>
-            @page { size: 85mm 125mm; margin: 5mm; }
+            @page { size: 80mm auto; margin: 0; }
             body {
               font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
               margin: 0;
@@ -61,7 +99,7 @@ export const MonthlyTicketCardModal: React.FC<MonthlyTicketCardModalProps> = ({ 
             }
             .card {
               width: 80mm;
-              border: 2px solid #0f766e;
+              border: 2px solid #0284c7;
               border-radius: 12px;
               padding: 14px;
               box-sizing: border-box;
@@ -74,11 +112,11 @@ export const MonthlyTicketCardModal: React.FC<MonthlyTicketCardModalProps> = ({ 
               margin-bottom: 10px;
             }
             .brand {
-              font-size: 14px;
+              font-size: 13px;
               font-weight: 800;
-              color: #0f766e;
+              color: #0369a1;
               text-transform: uppercase;
-              letter-spacing: 1px;
+              letter-spacing: 0.5px;
             }
             .sub-brand {
               font-size: 10px;
@@ -105,7 +143,7 @@ export const MonthlyTicketCardModal: React.FC<MonthlyTicketCardModalProps> = ({ 
               font-size: 12px;
               font-weight: 700;
               letter-spacing: 2px;
-              color: #0f766e;
+              color: #0369a1;
               margin-bottom: 8px;
             }
             .info-table {
@@ -163,7 +201,7 @@ export const MonthlyTicketCardModal: React.FC<MonthlyTicketCardModalProps> = ({ 
               </tr>` : ''}
               <tr>
                 <td class="info-label">Hạn sử dụng:</td>
-                <td class="info-val" style="color: #b45309;">${ticket.expire_at ? new Date(ticket.expire_at).toLocaleDateString('vi-VN') : ticket.valid_date || '—'}</td>
+                <td class="info-val" style="color: #0369a1;">${ticket.expire_at ? new Date(ticket.expire_at).toLocaleDateString('vi-VN') : ticket.valid_date || '—'}</td>
               </tr>
               <tr>
                 <td class="info-label">Lượt qua cổng:</td>
@@ -189,136 +227,147 @@ export const MonthlyTicketCardModal: React.FC<MonthlyTicketCardModalProps> = ({ 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-      <div 
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-900 text-white">
-          <div className="flex items-center gap-2.5">
-            <ShieldCheck className="w-6 h-6 text-blue-300" />
+    <Modal
+      isOpen={Boolean(ticket)}
+      onClose={onClose}
+      title="Thẻ Vé Tháng Điện Tử"
+      subtitle={companyName}
+      icon={<Ticket className="w-5 h-5 text-blue-600" />}
+      maxWidth="md"
+      footer={
+        <div className="flex items-center justify-end gap-2 w-full">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            icon={<Printer className="w-3.5 h-3.5 text-blue-600" />}
+            onClick={handlePrint}
+          >
+            In Lại
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            icon={<Download className="w-3.5 h-3.5 text-blue-600" />}
+            onClick={handleDownloadQR}
+          >
+            Tải QR
+          </Button>
+          {onRenew && (
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              className="!bg-blue-600 hover:!bg-blue-700 shadow-blue-100"
+              icon={<RotateCw className="w-3.5 h-3.5" />}
+              onClick={() => {
+                onClose();
+                onRenew(ticket);
+              }}
+            >
+              Gia Hạn Vé
+            </Button>
+          )}
+        </div>
+      }
+    >
+      {/* Electronic Pass Card Body - Tone Trắng Xanh Chuẩn Hệ Thống */}
+      <div className="p-1" ref={cardRef}>
+        <div className="bg-gradient-to-b from-blue-50/70 via-white to-slate-50 border border-blue-200/80 rounded-2xl p-5 shadow-xs relative overflow-hidden">
+          {/* Subtle Decorative Accents */}
+          <div className="absolute -right-12 -top-12 w-40 h-40 bg-blue-400/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -left-12 -bottom-12 w-40 h-40 bg-indigo-400/10 rounded-full blur-3xl pointer-events-none" />
+
+          {/* Pass Header */}
+          <div className="flex items-start justify-between border-b border-blue-100 pb-3 mb-4">
             <div>
-              <h3 className="font-bold text-base tracking-wide">Thẻ Vé Tháng Điện Tử</h3>
-              <p className="text-xs text-blue-200">{companyName}</p>
+              <span className="text-[10px] font-bold tracking-widest text-blue-600 uppercase">MONTHLY MEMBERSHIP PASS</span>
+              <h4 className="text-sm font-extrabold text-slate-900 tracking-wide uppercase mt-0.5">
+                {ticket.ticket_template_name || ticket.ticket_template_code || 'VÉ THÁNG THAM QUAN'}
+              </h4>
+            </div>
+            <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shrink-0 ${
+              isExpired 
+                ? 'bg-rose-50 text-rose-700 border border-rose-200' 
+                : (daysLeft !== null && daysLeft <= 7) 
+                ? 'bg-amber-50 text-amber-700 border border-amber-200' 
+                : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+            }`}>
+              {isExpired ? 'ĐÃ HẾT HẠN' : (daysLeft !== null && daysLeft <= 7) ? `CÒN ${daysLeft} NGÀY` : 'HOẠT ĐỘNG'}
+            </span>
+          </div>
+
+          {/* QR Code Section */}
+          <div className="flex flex-col items-center my-3">
+            <div className="bg-white p-3.5 rounded-2xl shadow-sm border border-blue-100">
+              <QRCodeDisplay value={qrValue} size={150} showText={false} className="!p-0 !border-0 !shadow-none" />
+            </div>
+
+            <div className="mt-3 flex items-center gap-1.5 bg-blue-50/80 hover:bg-blue-100/80 px-3 py-1.5 rounded-xl border border-blue-200/80 text-blue-900 transition shadow-2xs">
+              <span className="font-mono text-xs font-bold tracking-widest text-blue-700 select-all">
+                {ticket.qr_code_string}
+              </span>
+              <button
+                type="button"
+                onClick={handleCopyCode}
+                className="text-blue-500 hover:text-blue-800 p-0.5 rounded transition"
+                title="Sao chép mã vé"
+              >
+                {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+              </button>
             </div>
           </div>
-          <button 
-            onClick={onClose} 
-            className="text-blue-200 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
 
-        {/* Card Mockup Body */}
-        <div className="p-6 bg-slate-50" ref={cardRef}>
-          <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 text-white rounded-2xl p-6 shadow-xl border border-blue-500/30">
-            {/* Background decorative circles */}
-            <div className="absolute -right-8 -top-8 w-36 h-36 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
-            <div className="absolute -left-8 -bottom-8 w-36 h-36 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
-
-            {/* Card Brand Header */}
-            <div className="flex items-start justify-between border-b border-blue-800/60 pb-3 mb-4">
-              <div>
-                <span className="text-[10px] font-bold tracking-widest text-blue-400 uppercase">MONTHLY PASS</span>
-                <h4 className="text-sm font-extrabold text-white tracking-wide uppercase">
-                  {ticket.ticket_template_name || ticket.ticket_template_code || 'VÉ THÁNG THAM QUAN'}
-                </h4>
-              </div>
-              <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${
-                isExpired ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' :
-                (daysLeft !== null && daysLeft <= 7) ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' :
-                'bg-blue-500/20 text-blue-300 border border-blue-500/40'
-              }`}>
-                {isExpired ? 'ĐÃ HẾT HẠN' : (daysLeft !== null && daysLeft <= 7) ? `CÒN ${daysLeft} NGÀY` : 'HOẠT ĐỘNG'}
+          {/* Customer & Pass Details */}
+          <div className="space-y-2 mt-4 text-xs border-t border-slate-200/80 pt-3.5">
+            <div className="flex justify-between items-center">
+              <span className="text-slate-500 flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5 text-slate-400" /> Khách hàng:
+              </span>
+              <span className="font-bold text-slate-900 text-sm">
+                {ticket.customer_name || 'Khách vãng lai'}
               </span>
             </div>
 
-            {/* QR Code Center */}
-            <div className="flex flex-col items-center my-4">
-              <div className="bg-white p-3 rounded-xl shadow-md">
-                <QRCodeDisplay value={qrValue} size={150} showText={false} className="!p-0 !border-0 !shadow-none" />
-              </div>
-              <div className="mt-2.5 font-mono text-sm font-bold tracking-widest text-blue-300 bg-blue-950/80 px-3 py-1 rounded-lg border border-blue-700/50">
-                {ticket.qr_code_string}
-              </div>
-            </div>
-
-            {/* Customer & Ticket Details */}
-            <div className="space-y-2 mt-4 text-xs border-t border-blue-800/60 pt-3">
+            {ticket.customer_phone && (
               <div className="flex justify-between items-center">
-                <span className="text-slate-400">Khách hàng:</span>
-                <span className="font-bold text-white text-sm">{ticket.customer_name || 'Khách vãng lai'}</span>
-              </div>
-              {ticket.customer_phone && (
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400 flex items-center gap-1"><Phone className="w-3 h-3 text-blue-400" /> SĐT:</span>
-                  <span className="font-semibold text-blue-200">{ticket.customer_phone}</span>
-                </div>
-              )}
-              {ticket.customer_email && (
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400 flex items-center gap-1"><Mail className="w-3 h-3 text-blue-400" /> Email:</span>
-                  <span className="font-medium text-slate-300 truncate max-w-[200px]">{ticket.customer_email}</span>
-                </div>
-              )}
-              <div className="flex justify-between items-center">
-                <span className="text-slate-400 flex items-center gap-1"><Calendar className="w-3 h-3 text-blue-400" /> Hạn dùng:</span>
-                <span className={`font-bold ${isExpired ? 'text-rose-400' : 'text-amber-300'}`}>
-                  {ticket.expire_at ? new Date(ticket.expire_at).toLocaleDateString('vi-VN') : ticket.valid_date || '—'}
+                <span className="text-slate-500 flex items-center gap-1.5">
+                  <Phone className="w-3.5 h-3.5 text-blue-600" /> Số điện thoại:
                 </span>
+                <span className="font-semibold text-slate-800">{ticket.customer_phone}</span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-400 flex items-center gap-1"><Clock className="w-3 h-3 text-blue-400" /> Đã qua cổng:</span>
-                <span className="font-bold text-blue-300">{ticket.used_passes ?? 0} lượt</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Modal Action Buttons */}
-        <div className="p-4 bg-white border-t border-slate-100 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handlePrint}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition shadow-xs"
-              title="In thẻ vé vật lý hoặc xuất PDF"
-            >
-              <Printer className="w-4 h-4 text-slate-600" />
-              In Thẻ
-            </button>
-            <button
-              onClick={handleDownloadQR}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition shadow-xs border border-blue-200/60"
-              title="Tải ảnh mã QR về máy để gửi Zalo cho khách"
-            >
-              <Download className="w-4 h-4 text-blue-600" />
-              Tải QR
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {onRenew && (
-              <button
-                onClick={() => {
-                  onClose();
-                  onRenew(ticket);
-                }}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl transition shadow-xs"
-              >
-                Gia hạn vé
-              </button>
             )}
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition"
-            >
-              Đóng
-            </button>
+
+            {ticket.customer_email && (
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 flex items-center gap-1.5">
+                  <Mail className="w-3.5 h-3.5 text-blue-600" /> Email:
+                </span>
+                <span className="font-medium text-slate-700 truncate max-w-[220px]">{ticket.customer_email}</span>
+              </div>
+            )}
+
+            <div className="flex justify-between items-center">
+              <span className="text-slate-500 flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-blue-600" /> Hạn dùng:
+              </span>
+              <span className={`font-bold ${isExpired ? 'text-rose-600' : 'text-blue-700'}`}>
+                {ticket.expire_at ? new Date(ticket.expire_at).toLocaleDateString('vi-VN') : ticket.valid_date || '—'}
+              </span>
+            </div>
+
+            <div className="flex justify-between items-center">
+              <span className="text-slate-500 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-blue-600" /> Đã qua cổng:
+              </span>
+              <span className="font-bold text-slate-800">
+                {ticket.used_passes ?? 0} lượt (Vô hạn)
+              </span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };

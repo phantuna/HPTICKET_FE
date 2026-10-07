@@ -214,7 +214,33 @@ export const FIELD_LABELS: Record<string, string> = {
   booking_code: 'Mã đặt chỗ',
   order_code: 'Mã đơn',
   invoice_type: 'Loại HĐ VAT',
-  invoice_status: 'Trạng thái HĐ'
+  invoice_status: 'Trạng thái HĐ',
+  backup_id: 'Mã bản sao lưu',
+  backupId: 'Mã bản sao lưu',
+  fileName: 'Tên tệp sao lưu',
+  file_name: 'Tên tệp sao lưu',
+  total_size: 'Dung lượng tệp (bytes)',
+  totalSize: 'Dung lượng tệp (bytes)',
+  part_count: 'Số phần tải (chunks)',
+  partCount: 'Số phần tải (chunks)',
+  type: 'Loại sao lưu',
+  backupIntervalMinutes: 'Chu kỳ sao lưu (phút)',
+  backup_interval_minutes: 'Chu kỳ sao lưu (phút)',
+  backupIntervalDays: 'Chu kỳ sao lưu (ngày)',
+  backup_interval_days: 'Chu kỳ sao lưu (ngày)',
+  maxFiles: 'Số bản lưu tối đa',
+  max_files: 'Số bản lưu tối đa',
+  backupPath: 'Đường dẫn thư mục lưu',
+  backup_path: 'Đường dẫn thư mục lưu',
+  cron_expression: 'Lập lịch (Cron)',
+  startedAt: 'Thời điểm kích hoạt',
+  started_at: 'Thời điểm kích hoạt',
+  completedAt: 'Thời điểm hoàn tất',
+  completed_at: 'Thời điểm hoàn tất',
+  createdAt: 'Thời điểm kích hoạt',
+  created_at: 'Thời điểm kích hoạt',
+  errorMessage: 'Thông báo lỗi',
+  error_message: 'Thông báo lỗi'
 };
 
 export const IGNORED_DIFF_KEYS = new Set([
@@ -311,7 +337,8 @@ export const resolveEntityName = (log: {
   const candidateKeys = [
     'device_name', 'deviceName', 'name', 'code', 'title', 'gateName', 'zoneName',
     'productName', 'fullName', 'full_name', 'username', 'customerName',
-    'orderCode', 'order_code', 'bookingCode', 'booking_code'
+    'orderCode', 'order_code', 'bookingCode', 'booking_code',
+    'fileName', 'file_name', 'backupId', 'backup_id'
   ];
 
   const checkObj = (obj: any): string | null => {

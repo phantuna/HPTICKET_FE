@@ -174,16 +174,24 @@ export const POSModule: React.FC = () => {
             <ReceiptPrintModal
               order={completedOrder}
               tickets={generatedTickets}
-              customerName={customerName}
-              customerGroupName={appliedGroup?.name}
-              phoneNumber={""}
-              paymentMethod={paymentMethod}
-              customerSourceName={selectedSourceId ? customerSources.find((s) => s.id === selectedSourceId)?.company_name || 'Khách vãng lai' : 'Khách vãng lai'}
+              customerName={customerName || (completedOrder as any).booker_name || ''}
+              customerGroupName={appliedGroup?.name || (completedOrder as any).customer_group_name || ''}
+              phoneNumber={phoneNumber || (completedOrder as any).customer_phone || ''}
+              paymentMethod={paymentMethod || completedOrder.payment_method}
+              customerSourceName={selectedSourceId ? (customerSources.find((s) => s.id === selectedSourceId)?.company_name || '') : ((completedOrder as any).customer_source_name || '')}
               groupDiscountNote={appliedGroup && appliedGroup.discount_percent > 0 ? `${appliedGroup.discount_percent}%` : ''}
               groupDiscountAmount={systemDiscountAmount}
               promoDiscountNote={appliedPromo ? appliedPromo.name : ''}
-              promoDiscountAmount={extraDiscount}
-              onClose={() => { setCompletedOrder(null); handleResetForm(); }}
+              invoiceRequested={
+                invoiceStatus === 'IMMEDIATE' ||
+                (completedOrder as any).invoice_status === 'IMMEDIATE' ||
+                (completedOrder as any).invoice_status === 'ISSUED' ||
+                (completedOrder as any).invoice_status === 'ISSUED_BULK' ||
+                Boolean((completedOrder as any).invoice_number) ||
+                Boolean((completedOrder as any).invoiceNumber) ||
+                Boolean((completedOrder as any).invoice_lookup_code) ||
+                Boolean((completedOrder as any).invoiceLookupCode)
+              }
               onNewOrder={() => { setCompletedOrder(null); handleResetForm(); }}
             />
           );
