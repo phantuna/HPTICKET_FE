@@ -36,91 +36,37 @@ function decodeJwtPayload(): Record<string, any> | null {
 }
 
 /**
- * Lấy danh sách quyền của user hiện tại từ JWT.
- * Trả về mảng rỗng nếu không có token hoặc không có permissions.
+ * Lấy danh sách quyền của user hiện tại (Bản Demo: Mở full toàn bộ quyền).
  */
 export function getUserPermissions(): string[] {
-  const payload = decodeJwtPayload();
-  if (!payload) return [];
-  return Array.isArray(payload.permissions) ? payload.permissions : [];
+  return ['SUPER_ADMIN', 'ALL', 'MANAGE_SALES', 'MANAGE_TICKETING', 'MANAGE_MARKETING', 'MANAGE_IAM'];
 }
 
 /**
  * Kiểm tra user hiện tại có quyền `perm` không.
- * Trả về true nếu user có SUPER_ADMIN (qua hết mọi thứ).
- *
- * @param perm - Tên permission cần kiểm tra (vd: 'VIEW_ROLE', 'CREATE_ORDER')
+ * Bản Demo: Luôn trả về true để mở khóa 100% chức năng, giao diện, menu.
  */
-export function hasPermission(perm: string): boolean {
-  const role = (getUserRole() || '').toUpperCase();
-  if (role === 'ADMIN' || role === 'SUPER_ADMIN' || role.includes('ADMIN')) return true;
-
-  const permissions = getUserPermissions();
-  // SUPER_ADMIN qua hết
-  if (permissions.includes('SUPER_ADMIN')) return true;
-
-  // 1. Kiểm tra chính xác
-  if (permissions.includes(perm)) return true;
-
-  // 2. Kiểm tra kế thừa từ các quyền MANAGE_* (Trưởng phân hệ)
-  if (permissions.includes('MANAGE_IAM') && (
-    perm.includes('USER') || perm.includes('ROLE') || perm.includes('PERMISSION') || perm.includes('SYSTEM_LOG') || perm.includes('IAM')
-  )) {
-    return true;
-  }
-  
-  // Quản lý Bán hàng & Quản lý Vé liên thông: cả hai đều bao hàm nghiệp vụ vé, POS, hóa đơn, đặt chỗ, mẫu vé, soát cổng
-  if (permissions.includes('MANAGE_SALES') || permissions.includes('MANAGE_TICKETING')) {
-    if (
-      perm.includes('ORDER') || perm.includes('PRODUCT') || perm.includes('TICKET') || 
-      perm.includes('REPORT') || perm.includes('SALES_') || perm.includes('BOOKING') || 
-      perm.startsWith('INVENTORY_') || perm.includes('SALE') || perm.includes('AUDIENCE') || 
-      perm.includes('CONTROL') || perm === 'SCAN_TICKET' || perm.includes('TICKETING') ||
-      perm.startsWith('VIEW_')
-    ) {
-      return true;
-    }
-  }
-  
-  if (permissions.includes('MANAGE_MARKETING') && (
-    perm.includes('COMPANY') || perm.includes('CUSTOMER_') || perm.includes('PROMOTION') || 
-    perm.includes('HOLIDAY') || perm.includes('EMAIL') || perm.includes('MARKETING') ||
-    perm === 'VIEW_TICKET_TEMPLATE'
-  )) {
-    return true;
-  }
-  
-  if (permissions.includes('MANAGE_VINVOICE') && (
-    perm.includes('INVOICE') || perm.includes('VINVOICE') || perm === 'VIEW_ORDER' || perm === 'VIEW_COMPANY'
-  )) {
-    return true;
-  }
-
-  return false;
+export function hasPermission(_perm?: string): boolean {
+  return true;
 }
 
 /**
- * Kiểm tra user có ít nhất 1 trong danh sách quyền.
+ * Kiểm tra user có ít nhất 1 trong danh sách quyền (Bản Demo: Luôn true).
  */
-export function hasAnyPermission(...perms: string[]): boolean {
-  return perms.some(p => hasPermission(p));
+export function hasAnyPermission(..._perms: string[]): boolean {
+  return true;
 }
 
 /**
- * Lấy role của user hiện tại từ JWT.
+ * Lấy role của user hiện tại (Bản Demo: Luôn là ADMIN).
  */
 export function getUserRole(): string {
-  const payload = decodeJwtPayload();
-  return payload?.role ?? '';
+  return 'ADMIN';
 }
 
 /**
- * Kiểm tra có token hợp lệ không (đã đăng nhập chưa).
+ * Kiểm tra trạng thái đăng nhập (Bản Demo: Luôn đăng nhập sẵn).
  */
 export function isAuthenticated(): boolean {
-  const payload = decodeJwtPayload();
-  if (!payload) return false;
-  // Kiểm tra token có hết hạn chưa (exp là Unix timestamp tính theo giây)
-  if (payload.exp && Date.now() / 1000 > payload.exp) return false;
   return true;
 }

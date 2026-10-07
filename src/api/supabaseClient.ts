@@ -17,12 +17,14 @@ export const supabase = createClient(
   isSupabaseConfigured ? rawKey : 'placeholder_key'
 );
 
+let isSupabaseOffline = false;
+
 /**
  * Đồng bộ trạng thái Mock Database lên bảng mock_db_state của Supabase.
  * Hỗ trợ giữ trạng thái khi demo trên nhiều máy/thiết bị khác nhau.
  */
 export async function syncStateToSupabase(statePayload: Record<string, any>): Promise<boolean> {
-  if (!isSupabaseConfigured) return false;
+  if (!isSupabaseConfigured || isSupabaseOffline) return false;
   try {
     const { error } = await supabase
       .from('mock_db_state')
@@ -32,12 +34,13 @@ export async function syncStateToSupabase(statePayload: Record<string, any>): Pr
         updated_at: new Date().toISOString(),
       });
     if (error) {
-      console.warn('[Supabase Sync] Upsert failed:', error.message);
+      // Nếu lỗi mạng / bảng chưa tạo -> Tạm ngắt sync để tránh spam console
+      isSupabaseOffline = true;
       return false;
     }
     return true;
-  } catch (err) {
-    console.warn('[Supabase Sync] Error during sync:', err);
+  } catch (_) {
+    isSupabaseOffline = true;
     return false;
   }
 }
@@ -46,7 +49,7 @@ export async function syncStateToSupabase(statePayload: Record<string, any>): Pr
  * Tải trạng thái Mock Database từ Supabase về.
  */
 export async function loadStateFromSupabase(): Promise<Record<string, any> | null> {
-  if (!isSupabaseConfigured) return null;
+  if (!isSupabaseConfigured || isSupabaseOffline) return null;
   try {
     const { data, error } = await supabase
       .from('mock_db_state')
@@ -54,11 +57,12 @@ export async function loadStateFromSupabase(): Promise<Record<string, any> | nul
       .eq('id', 'demo_hpticket_state')
       .single();
     if (error || !data) {
+      if (error) isSupabaseOffline = true;
       return null;
     }
     return data.state;
-  } catch (err) {
-    console.warn('[Supabase Sync] Error loading state:', err);
+  } catch (_) {
+    isSupabaseOffline = true;
     return null;
   }
 }

@@ -378,7 +378,52 @@ export const apiClient = {
           } as any;
         }
 
-        throw new Error(`DEMO_MODE_INTERCEPTED: ${endpoint}`);
+        if (endpoint.includes('/sales/bookings')) {
+          return {
+            code: 200,
+            message: 'OK',
+            data: dbStore.bookings || [],
+          } as any;
+        }
+
+        if (endpoint.includes('/sales/orders')) {
+          return {
+            code: 200,
+            message: 'OK',
+            data: dbStore.orders || [],
+          } as any;
+        }
+
+        if (endpoint.includes('/sales/issued-tickets')) {
+          return {
+            code: 200,
+            message: 'OK',
+            data: dbStore.issuedTickets || [],
+          } as any;
+        }
+
+        if (endpoint.includes('/ticketing/templates')) {
+          return {
+            code: 200,
+            message: 'OK',
+            data: dbStore.ticketTemplates || [],
+          } as any;
+        }
+
+        if (endpoint.includes('/sales/products')) {
+          return {
+            code: 200,
+            message: 'OK',
+            data: dbStore.products || [],
+          } as any;
+        }
+
+        // Bất kỳ API nào khác: Trả về thành công dữ liệu rỗng để không bao giờ hiện lỗi đỏ
+        return {
+          code: 200,
+          message: 'Thành công (Demo Mode)',
+          data: [],
+        } as any;
       }
 
       try {
